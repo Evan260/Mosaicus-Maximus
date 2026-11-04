@@ -1,0 +1,24 @@
+{
+	"men": ["Lucius", "Titus", "Publius", "Sextus", "Decimus", "Servius", "Gnaeus", "Appius", "Numerius", "Spurius"],
+	"women": ["Gaia", "Julia", "Claudia", "Flavia", "Aurelia", "Tullia", "Fabia", "Junia", "Prisca", "Vibia"],
+	"trade": ["a potter", "a fuller", "a scribe", "a cobbler", "a perfumer", "a fishmonger", "a lamp maker", "a weaver", "a carpenter", "a schoolmaster", "a wine seller", "a shipwright", "a barber", "a dyer", "a goldsmith", "a cook"],
+	"wealth": {"a goldsmith": 1.4, "a perfumer": 1.25, "a wine seller": 1.2, "a shipwright": 1.15, "a fuller": 0.9, "a cobbler": 0.85, "a barber": 0.85},
+	"likes": {"a fishmonger": ["sea"], "a wine seller": ["wine"], "a cook": ["feast"], "a shipwright": ["trade", "sea"], "a schoolmaster": ["myth"], "a perfumer": ["garden"], "a goldsmith": ["myth"]},
+	"wants": [
+		"wants something cheerful for the {room}.", "has saved for years for a proper floor in the {room}.",
+		"says the old floor in the {room} has more holes than floor.", "wants to impress the neighbours.",
+		"is tired of an earth floor in the {room}.", "heard about your work from a friend."
+	],
+	"gossip": [
+		"They say the rival workshop on the hill used painted clay instead of marble. It washed off in the rain.",
+		"Felix and Rufus were seen shouting about bread again.",
+		"A ship came in from Alexandria with glass in its hold.",
+		"Somebody's goat ate a whole bed of lettuces in the forum.",
+		"Widow Cornelia swears she saw a thief run from her door. Nobody else did.",
+		"The aedile is said to be looking for a craftsman he can trust.",
+		"The baths were so busy yesterday that the water ran out.",
+		"A traveller says the floors in Rome aren't half as good as ours.",
+		"The rival workshop is offering cheap floors. Cheap, they say, in every sense.",
+		"Old Septimus was telling stories about your uncle in the tavern again."
+	]
+}

@@ -1,0 +1,69 @@
+ROMAN MOSAIC WORKSHOP - PLAY TEST
+
+Thanks for trying this! The game is early, so expect rough edges.
+
+
+STARTING IT
+
+1. Put this folder anywhere, for example on your Desktop.
+2. Double-click "Roman Mosaic Workshop.exe".
+3. Windows may show a blue box saying "Windows protected your PC". That is
+   because the game is new and not yet signed. Click "More info", then
+   "Run anyway".
+
+Turn your sound on.
+
+
+WHAT TO DO
+
+Start a new workshop on the title screen: give your name and choose your
+dog. You've inherited your uncle's mosaic workshop in a Roman town.
+
+- Click the job board to see today's notices, then pick a client.
+- Agree a price with them by sliding the coins. Ask too much and they'll
+  name their own price.
+- At the design table, drag patterns and pictures from the book onto the
+  floor plan. Drag a corner to resize one. Click any part of a pattern to
+  pick it, then click a stone to colour it. Try to meet their wishes.
+- Watch the stars on the design table: clients judge how the floor looks
+  (symmetry, a centrepiece, how full it is, colours, a border) as well as
+  their wishes. The hint under the stars says what to fix.
+- Lay the floor one stone at a time: pick a stone in the tray (or press 1
+  to 9), and sweep the left mouse button over the places that glow. Then
+  pick the sponge to grout and the cloth to polish.
+- See it finished, get paid, and keep the ones you like in your library
+  (the scroll rack in the workshop). Then end the day.
+
+Some jobs are old floors found under the town: clear the dirt with the
+trowel, fill the gaps one tile at a time with matching stone (the chisel
+lifts a wrong one), press Done, then grout and polish. Each one teaches you a new
+pattern. Collectors ask for copies of famous floors, and every seventh day
+there's a contest against the rival workshop.
+
+Left drag      Lay tiles, wipe grout, polish, clear dirt
+Right drag     Move around the floor
+Mouse wheel    Zoom; on the design table, resize a pattern
+R / F          Turn / mirror the chosen pattern on the design table
+M              Add a mirrored copy on the other side
+Delete         Take the chosen pattern off
+Ctrl+Z / Y     Undo / redo on the design table
+Esc            Leave a floor for later
+F11            Full screen
+
+
+WHAT TO TELL ME
+
+- Was designing a floor fun? Was it clear what the client wanted?
+- Did laying, grouting and polishing feel good, or drag on?
+- Did you want to take another job after the first one?
+- Anything confusing, slow or broken. A screenshot helps a lot: press
+  Windows key + Shift + S, drag over the problem, then paste it into a
+  message.
+- Roughly how long you had played when you noticed each thing.
+
+
+YOUR SAVES
+
+Saved in %APPDATA%\Godot\app_userdata\Roman Mosaic Workshop\
+Floors you keep are in the game's library. Its "Copy to Pictures" button
+puts a picture and a time-lapse in Pictures\Roman Mosaic Workshop.

@@ -1,0 +1,10 @@
+made tools/art/sources/workshop/step2.png
+made tools/art/sources/workshop/step3.png
+made tools/art/sources/workshop/step4.png
+made tools/art/sources/workshop/step5.png
+made tools/art/sources/workshop/step6.png
+made tools/art/sources/workshop/up_amphorae.png
+FAILED tools/art/sources/workshop/up_plants.png
+FAILED tools/art/sources/workshop/up_lamp_a.png
+FAILED tools/art/sources/workshop/up_lamps.png
+done

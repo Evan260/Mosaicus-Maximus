@@ -1,0 +1,20 @@
+# Godot
+game/.godot/
+builds/
+
+# Secrets
+.env
+
+# The downloaded sound recordings the game's sounds are cut from (listed in CREDITS.md), and the trimmed engine,
+# copied from Farmus Maximus
+tools/audio/downloads/
+tools/engine/*.exe
+
+# Recordings of the game
+videos/
+
+# Python and the OS
+__pycache__/
+*.pyc
+Thumbs.db
+.DS_Store

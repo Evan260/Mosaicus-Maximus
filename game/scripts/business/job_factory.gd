@@ -1,0 +1,285 @@
+class_name JobFactory
+## The notices pinned to the job board each morning: commissions from named clients and townsfolk, and restorations.
+## Every board has a few jobs the player can afford, however little money is left.
+
+
+static func board(state: Dictionary, rng: RandomNumberGenerator) -> Array:
+	var count := int(Data.num("board.jobs", 4)) + (1 if "courtyard" in state["upgrades"] else 0)
+	var jobs := []
+	var used := {}
+	for k in count:
+		var job: Dictionary
+		var roll := rng.randf()
+		var digs := Data.num("board.restoration_chance", 0.35)
+		if k > 0 and roll < digs:
+			job = restoration(state, rng)
+		elif k > 0 and int(state["day"]) >= 2 and roll < digs + Data.num("board.copy_chance", 0.15):
+			job = copy(state, rng)
+		else:
+			job = commission(state, rng, used, false)
+		job["id"] = "%d_%d" % [int(state["day"]), k]
+		jobs.append(job)
+	if int(state["day"]) % int(Data.num("contest.every", 7)) == 0:
+		var entry := contest(state, rng)
+		entry["id"] = "%d_contest" % int(state["day"])
+		jobs.push_front(entry)
+	var need := int(Data.num("board.min_affordable", 2))
+	var k := 0
+	while jobs.filter(func(j: Dictionary) -> bool: return affordable(j, state)).size() < need and k < jobs.size():
+		if not affordable(jobs[k], state):
+			var fresh := restoration(state, rng, true)
+			for _try in 6:
+				if not jobs.any(func(j: Dictionary) -> bool: return j["client_name"] == fresh["client_name"] and j["room"] == fresh["room"]):
+					break
+				fresh = restoration(state, rng, true)
+			jobs[k] = fresh
+			jobs[k]["id"] = "%d_r%d" % [int(state["day"]), k]
+		k += 1
+	return jobs
+
+
+## Whether the player could lay at least the plainest floor for this job with what they have.
+static func affordable(job: Dictionary, state: Dictionary) -> bool:
+	if job.get("kind", "") in ["restoration", "contest"]:
+		return true
+	var r := Data.room(job["room"])
+	var tiles := int(r.get("w", 40)) * int(r.get("h", 30)) * Composer.TILES_PER_SQUARE
+	var cheapest := INF
+	for id in state["unlocked_stones"]:
+		cheapest = minf(cheapest, Data.stone_price(id))
+	var have := 0
+	for id in state["stock"]:
+		have += int(state["stock"][id])
+	return maxf(0.0, tiles - have) * cheapest <= int(state["coins"])
+
+
+static func commission(state: Dictionary, rng: RandomNumberGenerator, used: Dictionary, small: bool) -> Dictionary:
+	var chapter := int(state["chapter"])
+	var named := []
+	for id in Data.client_order:
+		var c := Data.client(id)
+		var progress: Dictionary = state["clients"].get(id, {})
+		if int(c.get("chapter", 1)) > chapter or used.has(id) or int(progress.get("step", 0)) >= (c.get("arc", []) as Array).size():
+			continue
+		if int(progress.get("away_until", 0)) > int(state["day"]):
+			continue
+		var beat: Dictionary = c["arc"][int(progress.get("step", 0))]
+		if int(beat.get("chapter", 1)) > chapter or not possible(beat, state):
+			continue
+		named.append(id)
+	if not small and not named.is_empty() and rng.randf() < 0.65:
+		var id: String = named[rng.randi() % named.size()]
+		used[id] = true
+		return _named(id, state, rng)
+	return _townsfolk(state, rng, small)
+
+
+static func _named(id: String, state: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
+	var c := Data.client(id)
+	var step := int(state["clients"].get(id, {}).get("step", 0))
+	var beat: Dictionary = c["arc"][step]
+	var rooms := (c["rooms"] as Array).filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= int(state["chapter"]))
+	if rooms.is_empty():
+		rooms = [c["rooms"][0]]
+	var room: String = beat.get("room", rooms[mini(step, rooms.size() - 1)])
+	if bool(beat.get("restoration", false)):
+		var job := restoration(state, rng)
+		var d := RandomDesign.make(room, 4, rng)
+		job.merge({"client": id, "client_name": c["name"], "portrait": c.get("portrait", ""), "room": room, "design": d.to_dict(),
+			"severity": 0.3, "budget": int(_area(room) * 0.14), "arc_step": step, "line": beat.get("line", ""), "greeting": c.get("greeting", ""),
+			"text": "%s needs the floor under the forum restored." % c["name"]}, true)
+		return job
+	var brief := {"tags": beat.get("tags", []), "must": beat.get("must", []), "want_stones": beat.get("want_stones", []),
+		"ban_stones": (c.get("hates", []) as Array).duplicate(), "border": bool(beat.get("border", false)), "min_motifs": int(beat.get("min_motifs", 0))}
+	if brief["want_stones"].is_empty() and rng.randf() < 0.5:
+		var loved := (c.get("loves", []) as Array).filter(func(s) -> bool: return s in state["unlocked_stones"] and not Stones.is_ground(Stones.index(s)))
+		if not loved.is_empty():
+			brief["want_stones"] = [loved[rng.randi() % loved.size()]]
+	var b: Array = c.get("budget", [80, 120])
+	var area := _area(room)
+	var budget := int(rng.randi_range(int(b[0]), int(b[1])) * clampf(area / 1600.0, 0.8, Data.num("budget.named_scale_max", 1.8)))
+	return {"kind": "commission", "client": id, "client_name": c["name"], "trade": c.get("trade", ""), "portrait": c.get("portrait", ""),
+		"room": room, "brief": brief, "budget": budget, "arc_step": step, "line": beat.get("line", c.get("greeting", "")), "taste": c.get("taste", []),
+		"greeting": c.get("greeting", ""), "text": "%s, %s, wants a new floor for the %s." % [c["name"], c.get("trade", ""), str(Data.room(room).get("name", room)).to_lower()]}
+
+
+static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: bool) -> Dictionary:
+	var names: Dictionary = Data.names
+	var who := person(rng)
+	var first: String = who[0]
+	var trade: String = names["trade"][rng.randi() % names["trade"].size()]
+	var chapter := int(state["chapter"])
+	var rooms := Data.rooms.keys().filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and r != "forum" and r != "temple")
+	if small:
+		rooms.sort_custom(func(a, b) -> bool: return _area(a) < _area(b))
+		rooms = rooms.slice(0, 2)
+	var room: String = rooms[rng.randi() % rooms.size()]
+	var tags := {}
+	for t in names.get("likes", {}).get(trade, []):
+		tags[t] = true
+	var pool := ["geometric", "garden", "animals", "sea", "feast"]
+	if chapter >= 3:
+		pool += ["hunt", "myth", "music"]
+	pool = pool.filter(func(t: String) -> bool: return tag_open(t, state))
+	for t in tags.keys():
+		if not tag_open(t, state):
+			tags.erase(t)
+	while tags.size() < (1 if rng.randf() < 0.6 else 2) and not pool.is_empty():
+		tags[pool[rng.randi() % pool.size()]] = true
+	var brief := {"tags": tags.keys(), "must": [], "want_stones": [], "ban_stones": [], "border": rng.randf() < 0.3, "min_motifs": 0}
+	var colours := (state["unlocked_stones"] as Array).filter(func(s) -> bool: return not Stones.is_ground(Stones.index(s)))
+	if rng.randf() < 0.45 and not colours.is_empty():
+		brief["want_stones"] = [colours[rng.randi() % colours.size()]]
+	if rng.randf() < 0.25 and colours.size() > 1:
+		var ban: String = colours[rng.randi() % colours.size()]
+		if not ban in brief["want_stones"]:
+			brief["ban_stones"] = [ban]
+	var wealth := float(names.get("wealth", {}).get(trade, 1.0))
+	var rate := Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter
+	var budget := int(_area(room) * rate * wealth * rng.randf_range(0.88, 1.15))
+	var want: String = str(names["wants"][rng.randi() % names["wants"].size()]).replace("{room}", str(Data.room(room).get("name", room)).to_lower())
+	var taste := []
+	var line := "%s %s" % [first, want]
+	if rng.randf() < Data.num("board.townsfolk_taste", 0.7):
+		var t: String = Looks.TASTES.keys()[rng.randi() % Looks.TASTES.size()]
+		taste = [t]
+		line += " %s also %s." % [first, Looks.TASTES[t]["text"]]
+	return {"kind": "commission", "client": "", "client_name": "%s, %s" % [first, trade], "trade": trade, "portrait": who[1],
+		"room": room, "brief": brief, "budget": budget, "arc_step": -1, "line": line, "greeting": "", "taste": taste, "taste_said": true,
+		"text": "%s, %s, %s" % [first, trade, want]}
+
+
+## A collector wants a famous floor copied from a rubbing, in a room small enough to copy in one go.
+static func copy(state: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
+	var chapter := int(state["chapter"])
+	var rooms := Data.rooms.keys().filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and _area(r) <= 2600.0)
+	var room: String = rooms[rng.randi() % rooms.size()]
+	var target := _only_unlocked(RandomDesign.make(room, chapter, rng), state)
+	var places := ["Alexandria", "the House of the Faun in Pompeii", "the old palace at Antioch", "a villa on Capri", "the baths at Ostia"]
+	var who := person(rng)
+	var first: String = who[0]
+	var place: String = places[rng.randi() % places.size()]
+	var rate := Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter
+	var budget := int(_area(room) * rate * Data.num("budget.copy_scale", 1.3) * rng.randf_range(0.9, 1.1))
+	return {"kind": "copy", "client": "", "client_name": "%s, a collector" % first, "trade": "a collector", "portrait": who[1],
+		"room": room, "brief": {}, "target": target.to_dict(), "budget": budget, "arc_step": -1, "taste": [], "greeting": "",
+		"line": "%s wants the famous floor from %s copied, stone for stone. Here is a painted sketch of it." % [first, place],
+		"text": "%s wants a famous floor copied." % first}
+
+
+## The town's floor contest: no client and no brief, judged on looks alone against the rival workshop's entry.
+static func contest(state: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
+	var chapter := int(state["chapter"])
+	var rooms := ["changing_room", "dining_room", "atrium", "villa_dining"].filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter)
+	if rooms.is_empty():
+		rooms = ["study"]
+	var room: String = rooms[rooms.size() - 1]
+	var rival := minf(Data.num("contest.rival_cap", 0.86), Data.num("contest.rival_base", 0.52) + Data.num("contest.rival_per_chapter", 0.07) * chapter + rng.randf_range(-0.04, 0.04))
+	var prize := int(Data.num("contest.prize", 100) + Data.num("contest.prize_per_chapter", 50) * chapter)
+	return {"kind": "contest", "client": "", "client_name": "The town's floor contest", "trade": "", "portrait": "towns_3",
+		"room": room, "brief": {}, "budget": prize, "arc_step": -1, "taste": [], "rival": rival, "greeting": "",
+		"line": "The aediles are holding the floor contest again. The judges look at nothing but how a floor looks, and the rival workshop has entered. The winner takes %d d." % prize,
+		"text": "The floor contest: the finest new floor wins %d d." % prize}
+
+
+## Swaps any stone or border the player can't use yet for the nearest one they can, so a copy can always be made.
+static func _only_unlocked(d: FloorDesign, state: Dictionary) -> FloorDesign:
+	var near := func(id: String) -> String:
+		if id in state["unlocked_stones"]:
+			return id
+		var best: String = state["unlocked_stones"][0]
+		for st in state["unlocked_stones"]:
+			if Stones.difference(id, st) < Stones.difference(id, best):
+				best = st
+		return best
+	d.ground = near.call(d.ground)
+	if not str(d.border.get("id", "")) in state["unlocked_borders"]:
+		d.set_border(state["unlocked_borders"][0] if not (state["unlocked_borders"] as Array).is_empty() else "")
+	d.border["stones"] = (d.border.get("stones", []) as Array).map(near)
+	d.placements = d.placements.filter(func(p: Dictionary) -> bool: return p["motif"] in state["unlocked_motifs"])
+	for p in d.placements:
+		var stones := {}
+		for k in MotifLibrary.roles_of(p["motif"]):
+			stones[str(k)] = near.call(str(p["stones"].get(str(k), Data.motif(p["motif"])["stones"].get(str(k), "black_stone"))))
+		p["stones"] = stones
+		if str(p.get("outline", "")) != "":
+			p["outline"] = near.call(p["outline"])
+		p["fine"] = bool(p.get("fine", false)) and int(state["chapter"]) >= 3
+	return d
+
+
+## An old floor found under the town. The client supplies the stone for repairs, so there is always something affordable to do.
+static func restoration(state: Dictionary, rng: RandomNumberGenerator, small: bool = false) -> Dictionary:
+	var chapter := int(state["chapter"])
+	var rooms := Data.rooms.keys().filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and r != "forum")
+	if small:
+		rooms.sort_custom(func(a, b) -> bool: return _area(a) < _area(b))
+		rooms = rooms.slice(0, 2)
+	var room: String = rooms[rng.randi() % rooms.size()]
+	var age_tier := clampi(chapter + (1 if rng.randf() < 0.3 else 0), 1, 4)
+	var design := RandomDesign.make(room, age_tier, rng)
+	var found := _hide_a_pattern(design, state, rng)
+	var finders := ["Builders knocking down an old house", "A householder digging a new cellar", "Workmen mending the street", "A farmer ploughing by the old road"]
+	var who: String = finders[rng.randi() % finders.size()]
+	var budget := int(_area(room) * (Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter) * 0.9 * rng.randf_range(0.9, 1.1))
+	return {"kind": "restoration", "client": "", "client_name": who, "trade": "", "portrait": "towns_%d" % (1 + rng.randi() % 4),
+		"room": room, "brief": {}, "budget": budget, "arc_step": -1, "design": design.to_dict(), "severity": rng.randf_range(0.18, 0.28 + 0.05 * chapter),
+		"line": "%s found an old floor under the dirt. Can you bring it back?" % who + (" Part of it looks like no pattern anyone in town has seen in years." if found != "" else ""),
+		"greeting": "", "discovery": found, "text": "%s found an old floor. Clean it and mend it." % who}
+
+
+## Puts an unowned pattern from up to a chapter ahead at the heart of an old floor; restoring it adds it to the book.
+static func _hide_a_pattern(design: FloorDesign, state: Dictionary, rng: RandomNumberGenerator) -> String:
+	var ahead := int(state["chapter"]) + 1
+	var unknown := Data.motif_order.filter(func(id: String) -> bool:
+		var m := Data.motif(id)
+		return not id in state["unlocked_motifs"] and int(m.get("tier", 1)) <= ahead and m.get("kind", "") != "letters" and not "frame" in m.get("tags", []))
+	var heart := -1
+	for i in design.placements.size():
+		if "frame" in Data.motif(design.placements[i]["motif"]).get("tags", []):
+			continue
+		if heart < 0 or float(design.placements[i]["size"]) > float(design.placements[heart]["size"]):
+			heart = i
+	if unknown.is_empty() or heart < 0:
+		return ""
+	var pick: String = unknown[rng.randi() % unknown.size()]
+	var old_id: String = design.placements[heart]["motif"]
+	for p in design.placements:
+		if p["motif"] == old_id:
+			p["motif"] = pick
+			p["stones"] = (Data.motif(pick)["stones"] as Dictionary).duplicate()
+			p["outline"] = Data.motif(pick).get("outline", "")
+	return pick
+
+
+## Whether the player could meet a brief or story step with what they have unlocked.
+static func possible(brief: Dictionary, state: Dictionary) -> bool:
+	for m in brief.get("must", []):
+		if not m in state["unlocked_motifs"]:
+			return false
+	for t in brief.get("tags", []):
+		if not tag_open(t, state):
+			return false
+	for s in brief.get("want_stones", []):
+		if not s in state["unlocked_stones"]:
+			return false
+	return true
+
+
+static func tag_open(tag: String, state: Dictionary) -> bool:
+	for id in state["unlocked_motifs"]:
+		if tag in Data.motif(id).get("tags", []):
+			return true
+	return false
+
+
+## A townsperson's first name and a portrait to match: the men are pictures 1 and 3, the women 2 and 4.
+static func person(rng: RandomNumberGenerator) -> Array:
+	var woman := rng.randf() < 0.5
+	var names: Array = Data.names["women" if woman else "men"]
+	return [names[rng.randi() % names.size()], "towns_%d" % ((2 if woman else 1) + 2 * (rng.randi() % 2))]
+
+
+static func _area(room_id: String) -> float:
+	var r := Data.room(room_id)
+	return float(int(r.get("w", 40)) * int(r.get("h", 30)))

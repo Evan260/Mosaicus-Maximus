@@ -1,0 +1,20 @@
+{
+	"start": {"coins": 160, "stock": {"limestone": 20, "black_stone": 8, "white_marble": 6}},
+	"sack": 100,
+	"stone_price": {
+		"limestone": 2, "black_stone": 3, "white_marble": 4, "grey_stone": 2,
+		"terracotta": 3, "red_marble": 6, "ochre_marble": 6, "green_marble": 6, "brown_stone": 3,
+		"pink_marble": 8, "wine_marble": 9, "yellow_marble": 8,
+		"blue_glass": 18, "turquoise_glass": 20, "green_glass": 18, "gold": 45
+	},
+	"wage": 6,
+	"pricing": {"accept_at_budget": 0.9, "falloff": 2.4, "reputation_per_point": 0.003, "expectation": 0.25},
+	"payment": {"minimum_share": 0.55, "tip_above": 0.88, "tip": 0.15},
+	"reputation": {"base": 1, "per_score": 9, "per_100_tiles": 0.1, "unhappy_below": 0.45},
+	"board": {"jobs": 4, "restoration_chance": 0.3, "copy_chance": 0.15, "townsfolk_taste": 0.7, "min_affordable": 2},
+	"rival": {"reputation_per_day": 0.6, "steals_after_refusals": 2},
+	"budget": {"per_tile": 0.038, "per_tile_per_chapter": 0.012, "named_scale_max": 1.8, "copy_scale": 1.3},
+	"contest": {"every": 7, "rival_base": 0.52, "rival_per_chapter": 0.07, "rival_cap": 0.86, "prize": 100, "prize_per_chapter": 50, "win_reputation": 8, "lose_reputation": 2},
+	"ship": {"chance": 0.3, "price_scale": 1.5},
+	"time": {"start": 8.0, "seconds_per_hour": 40, "latest": 23.5}
+}

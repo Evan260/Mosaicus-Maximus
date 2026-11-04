@@ -1,0 +1,42 @@
+; Engine configuration file.
+
+config_version=5
+
+[application]
+
+config/name="Roman Mosaic Workshop"
+config/description="A cozy Roman mosaic workshop."
+config/version="0.1.0"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[autoload]
+
+Dev="*res://scripts/autoload/dev.gd"
+Data="*res://scripts/autoload/data.gd"
+Audio="*res://scripts/autoload/audio.gd"
+Settings="*res://scripts/autoload/settings.gd"
+Game="*res://scripts/autoload/game_state.gd"
+Saves="*res://scripts/autoload/saves.gd"
+Nav="*res://scripts/autoload/nav.gd"
+Tips="*res://scripts/autoload/tips.gd"
+Pad="*res://scripts/autoload/pad.gd"
+
+[display]
+
+window/size/viewport_width=1440
+window/size/viewport_height=810
+window/stretch/mode="disabled"
+
+[gui]
+
+fonts/dynamic_fonts/use_oversampling=false
+theme/default_font_antialiasing=0
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/canvas_textures/default_texture_filter=0
+environment/defaults/default_clear_color=Color(0.13, 0.105, 0.09, 1)
+2d/snap/snap_2d_transforms_to_pixel=false

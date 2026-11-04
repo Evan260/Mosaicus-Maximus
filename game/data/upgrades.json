@@ -1,0 +1,10 @@
+[
+	{"id": "apprentice", "name": "Take on an apprentice", "cost": 90, "chapter": 1, "repeat": 3, "text": "Lets you take a second job each day. Earns a wage of 6 d a day."},
+	{"id": "big_brush", "name": "Wide laying trowel", "cost": 60, "chapter": 1, "text": "A bigger brush for laying tiles."},
+	{"id": "amphorae", "name": "Wine jars for the corner", "cost": 30, "chapter": 1, "text": "A touch of comfort. The dog likes to sleep behind them."},
+	{"id": "plants", "name": "Potted plants", "cost": 40, "chapter": 1, "text": "A little green for the workshop."},
+	{"id": "cutting_bench", "name": "Better cutting bench", "cost": 140, "chapter": 2, "text": "Cleaner cuts: stone costs a tenth less."},
+	{"id": "lamps", "name": "Bronze lamps", "cost": 70, "chapter": 2, "text": "Warm light for working late."},
+	{"id": "courtyard", "name": "Open the courtyard", "cost": 260, "chapter": 2, "text": "Room for a second workbench, and one more notice on the board every morning."},
+	{"id": "glass_furnace", "name": "Glass furnace", "cost": 420, "chapter": 4, "text": "Make your own glass: glass costs a third less."}
+]

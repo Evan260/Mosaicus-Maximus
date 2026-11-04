@@ -1,0 +1,11 @@
+[
+	{"id": "plain", "name": "Plain band", "tier": 1, "width": 2, "stones": ["white_marble", "black_stone", "grey_stone", "black_stone"]},
+	{"id": "double", "name": "Double line", "tier": 1, "width": 4, "stones": ["white_marble", "black_stone", "grey_stone", "black_stone"]},
+	{"id": "key", "name": "Key pattern", "tier": 1, "width": 7, "stones": ["white_marble", "black_stone", "grey_stone", "black_stone"]},
+	{"id": "chequer", "name": "Chequers", "tier": 1, "width": 4, "stones": ["white_marble", "black_stone", "grey_stone", "black_stone"]},
+	{"id": "triangles", "name": "Wolf's teeth", "tier": 1, "width": 4, "stones": ["white_marble", "black_stone", "grey_stone", "black_stone"]},
+	{"id": "wave", "name": "Running waves", "tier": 2, "width": 5, "stones": ["white_marble", "blue_glass", "black_stone", "black_stone"]},
+	{"id": "dentil", "name": "Dentils", "tier": 2, "width": 4, "stones": ["white_marble", "terracotta", "black_stone", "black_stone"]},
+	{"id": "braid", "name": "Braid", "tier": 3, "width": 6, "stones": ["white_marble", "red_marble", "ochre_marble", "black_stone"]},
+	{"id": "ivy", "name": "Ivy scroll", "tier": 3, "width": 7, "stones": ["white_marble", "green_marble", "brown_stone", "black_stone"]}
+]

@@ -1,0 +1,73 @@
+[
+	{"id": "septimus", "name": "Old Septimus", "trade": "your uncle's old friend", "portrait": "septimus", "chapter": 1, "rooms": ["study", "vestibule"],
+	 "likes": ["geometric"], "loves": ["black_stone", "white_marble"], "hates": [], "taste": ["mirrored"], "budget": [60, 90],
+	 "greeting": "Your uncle laid my first floor fifty years ago. Let's see if it runs in the family.",
+	 "arc": [
+		{"tags": ["geometric"], "line": "Something simple to start. A rosette, perhaps, or a star. Your uncle always began with a rosette.", "after": "Just like his. Better, maybe. Don't tell him I said so, wherever he is."}
+	 ]},
+	{"id": "cornelia", "name": "Widow Cornelia", "trade": "a widow on Potters' Lane", "portrait": "cornelia", "chapter": 1, "rooms": ["vestibule", "bedroom"],
+	 "likes": ["guard", "geometric"], "loves": ["black_stone", "white_marble"], "hates": ["red_marble", "gold"], "taste": ["calm"], "budget": [70, 110],
+	 "greeting": "Thieves, everywhere! I want every one of them to know there's a dog in this house. There is no dog. That's the point.",
+	 "arc": [
+		{"must": ["dog"], "line": "A guard dog by the door, please, and big. Bigger than that.", "after": "Not one thief since! Mind you, there wasn't one before either."},
+		{"must": ["cave_canem"], "line": "The dog worked so well I want the words too. CAVE CANEM, large, so even the stupid ones understand.", "after": "My neighbour asked to borrow the dog. I said it was busy."},
+		{"tags": ["garden"], "line": "I've taken in a lodger. A cat. I'd like something pretty for the bedroom.", "after": "The cat sleeps on it every afternoon. High praise."}
+	 ]},
+	{"id": "felix", "name": "Felix the baker", "trade": "the baker by the fountain", "portrait": "felix", "chapter": 1, "rooms": ["shop", "bakery", "dining_room"],
+	 "likes": ["bread", "feast"], "loves": ["ochre_marble", "terracotta"], "hates": [], "taste": ["busy"], "budget": [80, 130],
+	 "greeting": "Bread is life, and the floor is where people stand while they buy it.",
+	 "arc": [
+		{"must": ["loaves"], "line": "Rufus opened a bakery across the road. Across the road! I want loaves on my floor, so everyone knows who bakes the real bread.", "after": "Rufus came in to look at it. He bought a loaf. Victory."},
+		{"tags": ["feast"], "min_motifs": 3, "line": "Rufus has copied my floor. Badly. I need a bigger one, with more on it.", "after": "People queue just to stand on it. Some even buy bread."},
+		{"tags": ["feast", "wine"], "line": "Rufus and I have made peace. We're opening a dining room together. Make it a feast.", "after": "Nobody argues over a floor like this. Well, nobody but us."}
+	 ]},
+	{"id": "marcus", "name": "Marcus the veteran", "trade": "a retired legionary", "portrait": "marcus", "chapter": 1, "rooms": ["study", "bedroom", "vestibule"],
+	 "likes": ["hunt", "geometric"], "loves": ["black_stone", "terracotta"], "hates": ["pink_marble", "gold"], "taste": ["framed"], "budget": [70, 120],
+	 "greeting": "Twenty years in the legions. I like things straight, square and finished on time.",
+	 "arc": [
+		{"tags": ["geometric"], "border": true, "line": "Straight lines and a good border. Nothing that wiggles.", "after": "Neat as a camp. Good work, soldier."},
+		{"tags": ["hunt"], "line": "My grandson thinks I've never seen a lion. Put one on the floor, so I can point at it while I tell him.", "after": "He believes me now. Mostly."}
+	 ]},
+	{"id": "gaius", "name": "Gaius of the baths", "trade": "owner of the town baths", "portrait": "gaius", "chapter": 2, "rooms": ["changing_room", "nymphaeum"],
+	 "likes": ["sea"], "loves": ["blue_glass", "white_marble", "turquoise_glass"], "hates": ["brown_stone"], "taste": ["colourful"], "budget": [160, 260],
+	 "greeting": "People come to my baths to forget the dust of the road. The floor should feel like the sea.",
+	 "arc": [
+		{"must": ["octopus"], "tags": ["sea"], "line": "An octopus. People love an octopus. Don't ask me why.", "after": "Children try to pick it up off the floor. Business has never been better."},
+		{"tags": ["sea"], "want_stones": ["blue_glass"], "line": "The new fountain house needs glass that glitters like water.", "after": "It sparkles even on a grey day. You are an artist, my friend."}
+	 ]},
+	{"id": "livia", "name": "Livia", "trade": "a bride-to-be", "portrait": "livia", "chapter": 2, "rooms": ["bedroom", "atrium"],
+	 "likes": ["garden", "luck"], "loves": ["pink_marble", "green_marble", "white_marble"], "hates": ["black_stone"], "taste": ["big_centre"], "budget": [110, 180],
+	 "greeting": "I'm getting married in the spring, and everything has to be perfect. Everything.",
+	 "arc": [
+		{"must": ["dove"], "line": "Doves, for love. Two of them, if you can. Facing each other.", "after": "Mother cried. Then she asked who made it."},
+		{"tags": ["garden", "luck"], "line": "We have a house now, with an atrium. Flowers, and something for good luck.", "after": "We've had guests every day since. I may need more chairs."}
+	 ]},
+	{"id": "aulus", "name": "Aulus the innkeeper", "trade": "keeper of the Thirsty Ox", "portrait": "aulus", "chapter": 2, "rooms": ["tavern"],
+	 "likes": ["wine", "games"], "loves": ["red_marble", "terracotta"], "hates": [], "taste": ["few_colours"], "budget": [120, 190],
+	 "greeting": "The floor of a tavern sees a lot of wine. Some of it even goes in cups.",
+	 "arc": [
+		{"must": ["amphora"], "line": "Amphorae. Wine jars. So the customers remember why they came.", "after": "They keep ordering what's on the floor. Very good for trade."},
+		{"tags": ["games"], "line": "Race day is coming. Give me horses, so the gamblers feel lucky.", "after": "Everyone lost their bets and blamed the horses. They all came back the next day."}
+	 ]},
+	{"id": "trimalchio", "name": "Trimalchio", "trade": "a freedman made very rich", "portrait": "trimalchio", "chapter": 2, "rooms": ["dining_room", "villa_dining"],
+	 "likes": ["feast", "myth"], "loves": ["gold", "yellow_marble"], "hates": ["grey_stone"], "taste": ["colourful", "busy"], "budget": [200, 340],
+	 "greeting": "I have more money than the gods, and better taste. Mostly more money.",
+	 "arc": [
+		{"tags": ["feast"], "line": "My guests should look down and see a feast. Fish, loaves, wine. They'll be hungry before the food arrives.", "after": "A senator laughed so hard he fell off his couch. Perfect."},
+		{"tags": ["myth"], "want_stones": ["gold"], "line": "Gold. More gold. And Medusa, to frighten my brother-in-law.", "after": "He hasn't visited since. Worth every denarius."}
+	 ]},
+	{"id": "valeria", "name": "Valeria", "trade": "a priestess of Venus", "portrait": "valeria", "chapter": 3, "rooms": ["nymphaeum", "temple"],
+	 "likes": ["myth", "sea"], "loves": ["gold", "blue_glass", "pink_marble"], "hates": [], "taste": ["mirrored", "calm"], "budget": [240, 380],
+	 "greeting": "Venus was born from the sea foam. Her house should remember it.",
+	 "arc": [
+		{"must": ["shell"], "tags": ["sea"], "line": "Shells, for the goddess. And a border like waves.", "after": "Pilgrims leave flowers on it. It is a good sign."},
+		{"tags": ["myth"], "want_stones": ["gold"], "border": true, "room": "temple", "chapter": 4, "line": "The new temple hall is finished. It needs the finest floor in the province.", "after": "The whole town came to the dedication. Many of them asked for you by name."}
+	 ]},
+	{"id": "quintus", "name": "Quintus the aedile", "trade": "the magistrate in charge of public works", "portrait": "quintus", "chapter": 3, "rooms": ["corridor", "forum"],
+	 "likes": ["geometric", "myth"], "loves": ["white_marble", "black_stone", "red_marble"], "hates": [], "taste": ["big_centre", "framed"], "budget": [260, 420],
+	 "greeting": "The town council has money to spend, and I have to spend it on something people will notice.",
+	 "arc": [
+		{"tags": ["geometric"], "border": true, "line": "The garden walk by the council house. Something dignified. Something that says the council is wise.", "after": "Two councillors stopped arguing to admire it. A first."},
+		{"restoration": true, "room": "forum", "chapter": 4, "line": "Under the old forum we've found a floor bigger than any in the province. The whole town is talking. Will you bring it back?", "after": "The town held a festival on your floor. Your uncle's name was spoken, and yours after it. Whatever you lay next, they'll come to see it."}
+	 ]}
+]

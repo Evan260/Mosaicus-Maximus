@@ -1,0 +1,16 @@
+[
+	{"id": "vestibule", "name": "Entrance hall", "w": 48, "h": 36, "shape": "rect", "door": 0.5, "tier": 1},
+	{"id": "bedroom", "name": "Bedroom", "w": 46, "h": 34, "shape": "rect", "door": 0.3, "tier": 1},
+	{"id": "study", "name": "Study", "w": 52, "h": 38, "shape": "rect", "door": 0.5, "tier": 1},
+	{"id": "shop", "name": "Shop floor", "w": 44, "h": 30, "shape": "rect", "door": 0.5, "tier": 1},
+	{"id": "tavern", "name": "Tavern", "w": 58, "h": 40, "shape": "rect", "door": 0.4, "tier": 2},
+	{"id": "changing_room", "name": "Bath changing room", "w": 64, "h": 40, "shape": "rect", "door": 0.5, "tier": 2},
+	{"id": "dining_room", "name": "Dining room", "w": 70, "h": 52, "shape": "rect", "door": 0.5, "tier": 2},
+	{"id": "bakery", "name": "Bakery front", "w": 48, "h": 32, "shape": "rect", "door": 0.5, "tier": 2},
+	{"id": "atrium", "name": "Atrium", "w": 80, "h": 64, "shape": "pool", "pool": [0.36, 0.32, 0.28, 0.3], "door": 0.5, "tier": 3},
+	{"id": "villa_dining", "name": "Villa dining hall", "w": 96, "h": 68, "shape": "rect", "door": 0.5, "tier": 3},
+	{"id": "corridor", "name": "Garden walk", "w": 120, "h": 26, "shape": "rect", "door": 0.1, "tier": 3},
+	{"id": "nymphaeum", "name": "Fountain house", "w": 72, "h": 60, "shape": "apse", "door": 0.5, "tier": 4},
+	{"id": "temple", "name": "Temple hall", "w": 100, "h": 76, "shape": "apse", "door": 0.5, "tier": 4},
+	{"id": "forum", "name": "Forum hall", "w": 150, "h": 100, "shape": "rect", "door": 0.5, "tier": 4}
+]

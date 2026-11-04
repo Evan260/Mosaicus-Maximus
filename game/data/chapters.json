@@ -1,0 +1,10 @@
+[
+	{"n": 1, "title": "The dusty workshop", "reputation": 0, "tier": 1,
+	 "text": "Your uncle's workshop is yours now: a bench, some sacks of stone, and a town that still remembers his floors. Start small. Black and white, the way he began."},
+	{"n": 2, "title": "Colour comes to town", "reputation": 35, "tier": 2,
+	 "text": "Word is spreading. The marble merchant has started stopping at your door with coloured stone, and richer clients are asking for you: the baths, the taverns, the new money on the hill."},
+	{"n": 3, "title": "Pictures in stone", "reputation": 110, "tier": 3,
+	 "text": "You've learned to cut tiles half the size, small enough for faces and feathers. The villas want picture panels now, and the council has noticed you."},
+	{"n": 4, "title": "Glass and gold", "reputation": 220, "tier": 4,
+	 "text": "Glass from the east, and gold leaf sealed in glass. The temple of Venus is nearly built, and under the old forum, workmen have found something."}
+]
