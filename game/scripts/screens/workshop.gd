@@ -182,7 +182,7 @@ func _room() -> void:
 	for id in _layers:
 		_follow_sun(_layers[id])
 	var bed: TextureRect = _layers["bed"]
-	var pet := Hotspot.make(Rect2(bed.position + Vector2(0, -40), bed.texture.get_size() + Vector2(0, 40)), "Pet " + _dog_name())
+	var pet := Hotspot.make(Rect2(bed.position, bed.texture.get_size()), "Pet " + _dog_name(), _shape("bed"))
 	pet.light(bed, _shape("bed"), false)
 	pet.light(_dog, null, false)
 	pet.light(_layers["bed_front"], null, false)
@@ -349,9 +349,13 @@ func _open_table() -> void:
 		var col := Ui.vbox(_panel, 4)
 		Ui.label(col, "Nothing on the table yet", "Heading")
 		Ui.label(col, "Take a job from the job board, and its floor plan will be waiting here." if Story.jobs_left(Game.state) > 0 else "That's today's work done. End the day, and new notices go up on the board in the morning.", "", 220)
+		if Story.can_make_panel(Game.state):
+			Ui.label(col, "Or lay a small picture panel at the workbench, under the window.", "MutedLabel", 220)
 		var row := Ui.hbox(col, 4)
 		row.alignment = BoxContainer.ALIGNMENT_END
 		Ui.button(row, "Close", _close_panel, "cross")
+		if Story.can_make_panel(Game.state):
+			Ui.button(row, "To the workbench", _open_bench, "hammer")
 		if Story.jobs_left(Game.state) > 0:
 			Ui.button(row, "To the job board", func() -> void: Nav.go("job_board"), "arrow_r", true)
 		else:

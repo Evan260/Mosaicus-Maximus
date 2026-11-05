@@ -37,8 +37,8 @@ dog. You've inherited your uncle's mosaic workshop in a Roman town.
   new stone, patterns and clients. Click the Chapter button at the top to
   see every chapter and what it brings.
 - Achievements pop up as you earn them. The settings (the gear) list them.
-- Between jobs, click the workbench to lay a small picture panel (one a
-  day). Sell it there, or set it into a client's floor from the Pictures
+- Between jobs, click the workbench (under the window, with the tools on
+  the wall) to lay a small picture panel, one a day. Sell it there, or set it into a client's floor from the Pictures
   page of the pattern book: it comes laid already, and pays extra.
 - Every tenth day is a festival. Its notices pay more, and the best
   festival floor wins a prize.
