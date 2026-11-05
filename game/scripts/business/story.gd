@@ -10,14 +10,60 @@ static func jobs_left(state: Dictionary) -> int:
 	return maxi(0, jobs_allowed(state) - int(state["jobs_today"]))
 
 
-## Pins up the morning's notices, once a day, and sometimes brings a ship into the harbour.
+## Pins up the morning's notices, once a day, and sometimes brings a ship into the harbour or the dog finds a dig.
 static func morning(state: Dictionary) -> void:
 	if int(state["board_day"]) != int(state["day"]):
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([int(state["seed"]), int(state["day"]), 1])
 		state["board"] = JobFactory.board(state, rng)
 		state["board_day"] = state["day"]
+		var f := festival(state)
+		var tag := festival_tag(state, f) if not f.is_empty() else ""
+		if tag != "":
+			state["pending_events"].append({"kind": "festival", "title": "The %s" % f["name"],
+				"text": "%s Floors that show %s pay more today, and the finest wins the festival prize of %d d." % [f["text"], Brief.TAG_WORDS.get(tag, tag), festival_prize(state)]})
 		_ship(state, rng)
+		_dog_dig(state, rng)
+
+
+## The festival held today, or nothing: one every few days, each in turn.
+static func festival(state: Dictionary) -> Dictionary:
+	var every := int(Data.num("festival.every", 10))
+	var day := int(state["day"])
+	if Data.festivals.is_empty() or day % every != int(Data.num("festival.on", 5)) % every:
+		return {}
+	return Data.festivals[(day / every) % Data.festivals.size()]
+
+
+## What a festival's floors should show: its first theme the player has a pattern for, or nothing.
+static func festival_tag(state: Dictionary, f: Dictionary) -> String:
+	for t in f.get("tags", []):
+		if JobFactory.tag_open(t, state):
+			return t
+	return ""
+
+
+static func festival_prize(state: Dictionary) -> int:
+	return int(Data.num("festival.prize", 60) + Data.num("festival.prize_per_chapter", 30) * int(state["chapter"]))
+
+
+## Some mornings the dog digs a hole next door and finds an old floor, which goes up on the board.
+static func _dog_dig(state: Dictionary, rng: RandomNumberGenerator) -> void:
+	var day := int(state["day"])
+	if day < 3 or day - int(state.get("dog_dig_day", -99)) < int(Data.num("dog.dig_gap", 4)) or rng.randf() > Data.num("dog.dig_chance", 0.2):
+		return
+	var dog := str((state.get("dog", {}) as Dictionary).get("name", "The dog"))
+	var job := JobFactory.restoration(state, rng, true)
+	job.merge({"id": "%d_dog" % day, "client_name": "Your neighbour", "dog": true,
+		"line": "%s dug a hole in the yard next door, and at the bottom of it is an old floor. Your neighbour would like it brought back." % dog,
+		"text": "%s found an old floor next door." % dog}, true)
+	state["board"].append(job)
+	state["dog_dig_day"] = day
+	var stats: Dictionary = state.get("stats", {})
+	stats["dog_digs"] = int(stats.get("dog_digs", 0)) + 1
+	state["stats"] = stats
+	state["pending_events"].append({"kind": "dog", "title": "%s found something" % dog,
+		"text": "%s came home covered in dirt. Next door, at the bottom of a fresh hole, is the corner of an old mosaic floor. It's on the job board." % dog})
 
 
 ## A merchant ship with a stone the town can't usually get, one chapter ahead, sold today only.
@@ -61,18 +107,33 @@ static func finish_job(state: Dictionary, job: Dictionary, result: Dictionary) -
 	var stars := Looks.stars(score)
 	state["floors"].append({"client": job.get("client", ""), "client_name": job.get("client_name", ""), "room": job.get("room", ""),
 		"kind": job.get("kind", "commission"), "design": result.get("design", {}), "day": state["day"], "score": score, "paid": result.get("paid", 0),
-		"stars": stars, "tiles": int(result.get("tiles", 0))})
+		"stars": stars, "tiles": int(result.get("tiles", 0)), "portrait": job.get("portrait", ""), "stones": result.get("stones", {})})
 	var stats: Dictionary = state.get("stats", {})
 	if stars >= 5:
 		stats["five_stars"] = int(stats.get("five_stars", 0)) + 1
 	if job.get("kind", "") == "restoration":
 		stats["restorations"] = int(stats.get("restorations", 0)) + 1
+	if bool(Data.room(job.get("room", "")).get("wall", false)):
+		stats["walls"] = int(stats.get("walls", 0)) + 1
 	if bool(result.get("won", false)):
 		stats["contests_won"] = int(stats.get("contests_won", 0)) + 1
 	if float(result.get("likeness", 0.0)) >= 0.95:
 		stats["perfect_copies"] = int(stats.get("perfect_copies", 0)) + 1
 	stats["biggest"] = maxi(int(stats.get("biggest", 0)), int(result.get("tiles", 0)))
 	state["stats"] = stats
+	var f := festival(state)
+	if not f.is_empty() and str(job.get("festival", "")) == str(f["id"]) and stars >= int(Data.num("festival.stars", 4)) and int(state.get("festival_won", -1)) != int(state["day"]):
+		var prize := festival_prize(state)
+		state["festival_won"] = state["day"]
+		state["coins"] = int(state["coins"]) + prize
+		stats["earned"] = int(stats.get("earned", 0)) + prize
+		state["reputation"] = int(state["reputation"]) + int(Data.num("festival.reputation", 4))
+		var won: Array = stats.get("festivals", [])
+		if not f["id"] in won:
+			won.append(f["id"])
+		stats["festivals"] = won
+		events.append({"kind": "festival", "title": "The %s prize" % f["name"],
+			"text": "The judges of the %s walked the town all day, and they chose your floor. The prize of %d d is yours." % [f["name"], prize]})
 	var found: String = job.get("discovery", "")
 	if found != "" and not found in state["unlocked_motifs"]:
 		state["unlocked_motifs"].append(found)
@@ -122,7 +183,7 @@ static func chapter_unlocks(n: int) -> Array:
 		lines.append("Borders: " + _list(borders.map(func(id: String) -> String: return str(Data.borders[id].get("name", id)).to_lower())))
 	if n == 3:
 		lines.append("Small tiles, half the size, for faces and fine detail")
-	var rooms := Data.rooms.keys().filter(func(id: String) -> bool: return int(Data.room(id).get("tier", 1)) == n)
+	var rooms := Data.job_rooms().filter(func(id: String) -> bool: return int(Data.room(id).get("tier", 1)) == n)
 	if not rooms.is_empty():
 		lines.append("Rooms: " + _list(rooms.map(func(id: String) -> String: return str(Data.room(id).get("name", id)).to_lower())))
 	var clients := Data.client_order.filter(func(id: String) -> bool: return int(Data.client(id).get("chapter", 1)) == n)
@@ -166,6 +227,40 @@ static func unlock(state: Dictionary, n: int) -> void:
 	for id in Data.border_order:
 		if int(Data.borders[id].get("tier", 1)) <= n and not id in state["unlocked_borders"]:
 			state["unlocked_borders"].append(id)
+
+
+## What a collector pays for a picture panel: more for more stars, and more as the workshop's name grows.
+static func panel_value(state: Dictionary, stars: int) -> int:
+	var base := Data.num("panel.value", 30) + Data.num("panel.value_per_chapter", 20) * int(state["chapter"])
+	return int(base * (0.4 + 0.16 * stars))
+
+
+## Keeps a finished picture panel in the workshop: its biggest picture, with its stones, is what a floor shows of it.
+static func finish_panel(state: Dictionary, job: Dictionary, result: Dictionary) -> Dictionary:
+	var d := FloorDesign.from_dict(result.get("design", {}))
+	var main := {}
+	for p in d.placements:
+		var picture: bool = Data.motif(p["motif"]).get("kind", "") == "picture"
+		if main.is_empty() or (picture and Data.motif(main["motif"]).get("kind", "") != "picture") or (picture == (Data.motif(main["motif"]).get("kind", "") == "picture") and float(p["size"]) > float(main["size"])):
+			main = p
+	var stars := Looks.stars(float(result.get("score", 0.0)))
+	var panel := {"id": "panel_%d_%d" % [int(state["day"]), (state.get("panels", []) as Array).size()], "motif": main.get("motif", "rosette"),
+		"stones": main.get("stones", {}), "outline": main.get("outline", ""), "fine": bool(main.get("fine", false)), "size": float(main.get("size", 14)),
+		"stars": stars, "score": float(result.get("score", 0.0)), "day": state["day"], "design": result.get("design", {})}
+	var panels: Array = state.get("panels", [])
+	panels.append(panel)
+	state["panels"] = panels
+	state["panel_day"] = state["day"]
+	state["active_job"] = {}
+	var stats: Dictionary = state.get("stats", {})
+	stats["panels_made"] = int(stats.get("panels_made", 0)) + 1
+	state["stats"] = stats
+	return panel
+
+
+## Whether the bench is free for a picture panel today: one a day, and not while a job is on the table.
+static func can_make_panel(state: Dictionary) -> bool:
+	return int(state.get("panel_day", -1)) != int(state["day"]) and (state["active_job"] as Dictionary).is_empty()
 
 
 ## A client turned away, or one who refused the price, goes to the rival for a few days.

@@ -12,5 +12,7 @@
 	{"id": "corridor", "name": "Garden walk", "w": 120, "h": 26, "shape": "rect", "door": 0.1, "tier": 3},
 	{"id": "nymphaeum", "name": "Fountain house", "w": 72, "h": 60, "shape": "apse", "door": 0.5, "tier": 4},
 	{"id": "temple", "name": "Temple hall", "w": 100, "h": 76, "shape": "apse", "door": 0.5, "tier": 4},
-	{"id": "forum", "name": "Forum hall", "w": 150, "h": 100, "shape": "rect", "door": 0.5, "tier": 4}
+	{"id": "forum", "name": "Forum hall", "w": 150, "h": 100, "shape": "rect", "door": 0.5, "tier": 4},
+	{"id": "niche", "name": "Fountain niche", "w": 30, "h": 40, "shape": "apse", "door": 0.5, "tier": 4, "wall": true},
+	{"id": "panel", "name": "Picture panel", "w": 20, "h": 20, "shape": "rect", "door": 0.5, "tier": 1, "bench": true}
 ]

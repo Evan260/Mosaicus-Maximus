@@ -545,7 +545,7 @@ func test_mending_sets_one_tile_and_lifts_it() -> void:
 
 func test_achievements_are_earned_once() -> void:
 	Library.dir = "user://test_library/"
-	var keys := ["floors", "stat", "chapter", "all_patterns", "stories", "story", "tastes", "library"]
+	var keys := ["floors", "stat", "chapter", "all_patterns", "stories", "story", "tastes", "library", "festivals"]
 	var ids := {}
 	for a in Achievements.all():
 		check(not ids.has(a["id"]) and str(a["name"]) != "" and str(a["text"]) != "", "achievement %s has a unique id, a name and a line" % a["id"])
@@ -654,3 +654,88 @@ func test_lamps_are_out_by_day() -> void:
 	check(Daylight.lamps_lit(22.0) == 1.0, "they burn fully at night")
 	var dusk := Daylight.lamps_lit(17.5)
 	check(dusk > 0.0 and dusk < 1.0, "they are being lit at dusk (%.2f)" % dusk)
+
+
+func test_festivals_theme_the_board() -> void:
+	game.new_game("Festive")
+	game.state["day"] = 5
+	var f := Story.festival(game.state)
+	check(not f.is_empty(), "day 5 is a festival")
+	check(Story.festival({"day": 6}).is_empty(), "the day after is not")
+	var tag := Story.festival_tag(game.state, f)
+	Story.morning(game.state)
+	var themed := (game.state["board"] as Array).filter(func(j: Dictionary) -> bool: return str(j.get("festival", "")) == f["id"])
+	check(not themed.is_empty(), "the townsfolk's notices are for the festival")
+	for j in themed:
+		check(tag in j["brief"]["tags"], "a festival notice asks for the festival's theme (%s)" % tag)
+	check((game.state["pending_events"] as Array).any(func(e: Dictionary) -> bool: return e.get("kind", "") == "festival"), "a letter says it's a festival")
+	var job: Dictionary = themed[0]
+	var coins := int(game.state["coins"])
+	var events := Story.finish_job(game.state, job, {"score": 0.95, "paid": 0, "reputation": 0})
+	check(events.any(func(e: Dictionary) -> bool: return e.get("kind", "") == "festival"), "a fine festival floor wins the prize")
+	check(int(game.state["coins"]) == coins + Story.festival_prize(game.state), "the prize is paid")
+	job["id"] = "again"
+	check(not Story.finish_job(game.state, job, {"score": 0.95}).any(func(e: Dictionary) -> bool: return e.get("kind", "") == "festival"), "only once a festival")
+
+
+func test_the_dog_finds_digs() -> void:
+	game.new_game("Digger")
+	var found := 0
+	for day in range(1, 60):
+		game.state["day"] = day
+		Story.morning(game.state)
+		for j in game.state["board"]:
+			if bool(j.get("dog", false)):
+				found += 1
+				check(j["kind"] == "restoration", "the dog finds old floors")
+	check(found >= 3, "the dog finds a dig every so often (%d in two months)" % found)
+
+
+func test_picture_panels() -> void:
+	game.new_game("Bench")
+	check(Story.can_make_panel(game.state), "the bench is free on a new day")
+	var d := FloorDesign.for_room("panel")
+	d.add("dolphin", 10, 10, 14)
+	var panel := Story.finish_panel(game.state, {"kind": "panel"}, {"score": 0.9, "design": d.to_dict()})
+	check(panel["motif"] == "dolphin" and (game.state["panels"] as Array).size() == 1, "a finished panel is kept in the workshop")
+	check(not Story.can_make_panel(game.state), "one panel a day")
+	check(Story.panel_value(game.state, 5) > Story.panel_value(game.state, 2), "a better panel sells for more")
+	var floor := FloorDesign.for_room("vestibule")
+	floor.add("dolphin", 24, 18, 14)
+	var plain := Composer.stone_counts(floor)
+	floor.placements[0]["panel"] = panel["id"]
+	check(Composer.panel_mask(floor, 6).count(1) > 0, "a panel set into a floor has an area that comes laid")
+	var with_panel := Composer.stone_counts(floor)
+	var total := func(c: Dictionary) -> int:
+		var n := 0
+		for k in c:
+			n += int(c[k])
+		return n
+	check(total.call(with_panel) < total.call(plain), "its stone is not bought again (%d against %d)" % [total.call(with_panel), total.call(plain)])
+
+
+func test_bench_and_wall_rooms_are_kept_apart() -> void:
+	check(not "panel" in Data.job_rooms(), "no client asks for the bench's square")
+	check(not "niche" in Data.job_rooms(false) and "niche" in Data.job_rooms(), "a wall niche is never dug up or copied, but can be asked for")
+	game.new_game("Rooms")
+	Story.unlock(game.state, 4)
+	for day in range(1, 40):
+		game.state["day"] = day
+		Story.morning(game.state)
+		for j in game.state["board"]:
+			check(j["room"] != "panel", "no notice for the bench's square (day %d)" % day)
+			if j["kind"] in ["restoration", "copy"]:
+				check(j["room"] != "niche", "no dig or copy of a wall niche (day %d)" % day)
+
+
+func test_prelaid_tiles_count_as_laid() -> void:
+	var d := FloorDesign.for_room("vestibule")
+	var layout := MosaicLayout.new()
+	layout.build(Composer.compose(d, 6), 6)
+	var fv := FloorView.new()
+	add_child(fv)
+	fv.setup(layout)
+	fv.prelay(PackedInt32Array([0, 1, 2, 3]))
+	check(fv.laid == 4, "four tiles come laid")
+	check(fv.stone_unplaced(layout.stone[0]) == int(fv._stone_total[layout.stone[0]]) - [0, 1, 2, 3].filter(func(i: int) -> bool: return layout.stone[i] == layout.stone[0]).size(), "and the tray counts them as placed")
+	fv.free()

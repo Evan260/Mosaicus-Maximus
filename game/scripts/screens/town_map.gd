@@ -21,6 +21,9 @@ var _map: Control
 var _tip: PanelContainer
 var _tip_label: Label
 var _view: PanelContainer
+var _visit: Control
+var _task := -1
+var _pending := {}
 
 
 func enter(_args: Dictionary) -> void:
@@ -47,6 +50,11 @@ func enter(_args: Dictionary) -> void:
 		tag.reset_size()
 		tag.position = (Vector2(d["at"]) - Vector2(tag.size.x * 0.5, 24)).floor()
 	var floors: Array = Game.state["floors"]
+	if Dev.has("visit"):
+		var room := Dev.get_arg("room", "study")
+		floors.append({"room": room, "design": Samples.moved(Samples.make("villa"), room).to_dict(), "client": "septimus",
+			"client_name": "Old Septimus", "day": 3, "score": 0.9, "paid": 87, "stars": 5})
+		_show_floor.call_deferred(floors[-1], "Old Septimus's study, day 3")
 	for i in floors.size():
 		_marker(floors[i], i)
 	_rival()
@@ -135,17 +143,81 @@ reputation %d" % rep, "LightLabel")
 func _show_floor(f: Dictionary, title: String) -> void:
 	if _view:
 		_view.queue_free()
+		_view = null
+	if RoomView.has_room(str(f.get("room", ""))) and _task < 0:
+		_start_visit(f, title)
+		return
 	_view = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_view, 4)
 	Ui.label(col, title, "Heading")
 	var d := FloorDesign.from_dict(f.get("design", {}))
 	var px := clampi(int(220.0 / maxf(d.w, d.h * 1.5)), 2, 5)
-	var img := Composer.compose(d, px)
+	var img := Composer.picture(d, px)
 	Ui.texture(col, ImageTexture.create_from_image(img))
-	Ui.label(col, "Paid %d d. %s" % [int(f.get("paid", 0)), "They loved it." if float(f.get("score", 0)) >= 0.8 else "They were happy enough."], "MutedLabel")
+	Ui.label(col, "Paid %d d. %s" % [int(f.get("paid", 0)), _owner_line(f)], "MutedLabel")
 	Ui.button(col, "Close", func() -> void:
 		_view.queue_free()
 		_view = null, "tick")
 	_view.reset_size()
 	_view.position = ((Nav.ui_size() - _view.size) * 0.5).floor()
 	Audio.ui("page_turn", -8.0)
+
+
+## What the floor's owner thought of it: he or she by their portrait, or the owners when it isn't known.
+func _owner_line(f: Dictionary) -> String:
+	var portrait := str(f.get("portrait", ""))
+	if portrait == "":
+		portrait = str(Data.client(str(f.get("client", ""))).get("portrait", ""))
+	var who := "The owners" if portrait == "" else str(JobFactory.pronouns({"portrait": portrait})["he"]).capitalize()
+	var verb := "love" if portrait == "" else "loves"
+	if float(f.get("score", 0)) < 0.8:
+		verb = "like" if portrait == "" else "likes"
+		return "%s %s it well enough." % [who, verb]
+	return "%s %s it." % [who, verb]
+
+
+## Lays the floor out away from the main thread, then shows it in its room.
+func _start_visit(f: Dictionary, title: String) -> void:
+	_visit = Control.new()
+	_visit.size = Nav.ui_size()
+	_root.add_child(_visit)
+	var shade := ColorRect.new()
+	shade.color = Color(0.13, 0.1, 0.09)
+	shade.size = _visit.size
+	_visit.add_child(shade)
+	var wait := Ui.label(_visit, "Walking over to see it...", "LightLabel")
+	wait.position = ((_visit.size - Vector2(120, 10)) * 0.5).floor()
+	var d := FloorDesign.from_dict(f.get("design", {}))
+	var layout := MosaicLayout.new()
+	_pending = {"floor": f, "title": title, "layout": layout, "wait": wait}
+	_task = WorkerThreadPool.add_task(func() -> void: layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6)))
+	Audio.ui("page_turn", -8.0)
+
+
+func _process(_delta: float) -> void:
+	if _task < 0 or not WorkerThreadPool.is_task_completed(_task):
+		return
+	WorkerThreadPool.wait_for_task_completion(_task)
+	_task = -1
+	if _visit == null:
+		return
+	(_pending["wait"] as Label).queue_free()
+	var f: Dictionary = _pending["floor"]
+	var room := RoomView.new()
+	_visit.add_child(room)
+	room.setup(str(f.get("room", "")), _pending["layout"], f.get("stones", {}))
+	room.floor_view.shine(0.4, 1.6)
+	var s := Nav.ui_size()
+	room.position = Vector2(minf((s.x - room.size.x) * 0.5 + 24.0, s.x - room.size.x + 24.0), (s.y - room.size.y) * 0.5).floor()
+	var card := Ui.panel(_visit, "PagePanel")
+	var col := Ui.vbox(card, 4)
+	Ui.label(col, str(_pending["title"]), "Heading", 150)
+	var stars := Ui.hbox(col, 1)
+	for k in 5:
+		Ui.icon(stars, "star").modulate = Color(1, 1, 1, 1.0 if k < int(f.get("stars", Looks.stars(float(f.get("score", 0))))) else 0.2)
+	Ui.label(col, "Paid %d d. %s" % [int(f.get("paid", 0)), _owner_line(f)], "", 150)
+	Ui.button(col, "Back to the map", func() -> void:
+		_visit.queue_free()
+		_visit = null, "arrow_l", true)
+	card.reset_size()
+	card.position = Vector2(6, floorf((s.y - card.size.y) * 0.5))

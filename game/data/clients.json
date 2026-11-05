@@ -28,7 +28,7 @@
 		{"tags": ["geometric"], "border": true, "line": "Straight lines and a good border. Nothing that wiggles.", "after": "Neat as a camp. Good work, soldier."},
 		{"tags": ["hunt"], "line": "My grandson thinks I've never seen a lion. Put one on the floor, so I can point at it while I tell him.", "after": "He believes me now. Mostly."}
 	 ]},
-	{"id": "gaius", "name": "Gaius of the baths", "trade": "owner of the town baths", "portrait": "gaius", "chapter": 2, "rooms": ["changing_room", "nymphaeum"],
+	{"id": "gaius", "name": "Gaius of the baths", "trade": "owner of the town baths", "portrait": "gaius", "chapter": 2, "rooms": ["changing_room", "nymphaeum", "niche"],
 	 "likes": ["sea"], "loves": ["blue_glass", "white_marble", "turquoise_glass"], "hates": ["brown_stone"], "taste": ["colourful"], "budget": [160, 260],
 	 "greeting": "People come to my baths to forget the dust of the road. The floor should feel like the sea.",
 	 "arc": [
@@ -56,7 +56,7 @@
 		{"tags": ["feast"], "line": "My guests should look down and see a feast. Fish, loaves, wine. They'll be hungry before the food arrives.", "after": "A senator laughed so hard he fell off his couch. Perfect."},
 		{"tags": ["myth"], "want_stones": ["gold"], "line": "Gold. More gold. And Medusa, to frighten my brother-in-law.", "after": "He hasn't visited since. Worth every denarius."}
 	 ]},
-	{"id": "valeria", "name": "Valeria", "trade": "a priestess of Venus", "portrait": "valeria", "chapter": 3, "rooms": ["nymphaeum", "temple"],
+	{"id": "valeria", "name": "Valeria", "trade": "a priestess of Venus", "portrait": "valeria", "chapter": 3, "rooms": ["nymphaeum", "temple", "niche"],
 	 "likes": ["myth", "sea"], "loves": ["gold", "blue_glass", "pink_marble"], "hates": [], "taste": ["mirrored", "calm"], "budget": [240, 380],
 	 "greeting": "Venus was born from the sea foam. Her house should remember it.",
 	 "arc": [

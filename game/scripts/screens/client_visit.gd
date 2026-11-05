@@ -53,7 +53,7 @@ func enter(args: Dictionary) -> void:
 			Ui.label(right, "From your notebook: %s " % JobFactory.pronouns(job)["he"] + " and ".join(known.map(func(t: String) -> String: return Looks.TASTES[t]["text"])) + ".", "MutedLabel", 290)
 	elif kind == "copy":
 		var sketch := TextureRect.new()
-		sketch.texture = ImageTexture.create_from_image(Composer.compose(FloorDesign.from_dict(job["target"]), 3))
+		sketch.texture = ImageTexture.create_from_image(Composer.picture(FloorDesign.from_dict(job["target"]), 3))
 		sketch.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		sketch.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		sketch.custom_minimum_size = Vector2(150, 76)

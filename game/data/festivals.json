@@ -1,0 +1,12 @@
+[
+	{"id": "floralia", "name": "Floralia", "tags": ["garden"],
+	 "text": "Today is the Floralia, the festival of Flora. There are garlands on every door, and the town wants flowers underfoot."},
+	{"id": "neptunalia", "name": "Neptunalia", "tags": ["sea"],
+	 "text": "Today is the Neptunalia. The fishing boats are hung with green branches, and everyone wants the sea on their floor."},
+	{"id": "vinalia", "name": "Vinalia", "tags": ["wine", "feast"],
+	 "text": "Today is the Vinalia. The first of the new wine is opened, and the whole town is thinking about what to eat and drink."},
+	{"id": "consualia", "name": "Consualia", "tags": ["games", "animals"],
+	 "text": "Today is the Consualia. There are races at the circus, and everyone is talking about horses and chariot wheels."},
+	{"id": "saturnalia", "name": "Saturnalia", "tags": ["feast", "luck"],
+	 "text": "Today is the Saturnalia. Masters wait on their slaves, everyone gives presents, and every house is laying on a feast."}
+]

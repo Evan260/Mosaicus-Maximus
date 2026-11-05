@@ -58,6 +58,12 @@ ART = {
     "ship_stone": "motif:boat",
     "good_dog": "dog",
     "library_10": "piece:scrolls",
+    "festival_prize": "motif:dove",
+    "all_festivals": "motif:lyre",
+    "good_nose": "icon:paw",
+    "first_panel": "motif:octopus",
+    "panel_set": "motif:shell@black_stone",
+    "wall_mosaic": "motif:sun@turquoise_glass",
 }
 
 

@@ -38,6 +38,9 @@ static func met(a: Dictionary, state: Dictionary) -> bool:
 		return Data.client_order.all(func(id: String) -> bool: return bool(state["clients"].get(id, {}).get("taste_known", false)))
 	if a.has("library"):
 		return Library.count() >= int(a["library"])
+	if a.has("festivals"):
+		var won := (stats.get("festivals", []) as Array).size()
+		return won >= (Data.festivals.size() if int(a["festivals"]) < 0 else int(a["festivals"]))
 	return false
 
 

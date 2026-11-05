@@ -14,6 +14,7 @@ var upgrades := {}
 var upgrade_order: Array = []
 var names := {}
 var achievements: Array = []
+var festivals: Array = []
 
 
 func _ready() -> void:
@@ -38,6 +39,7 @@ func reload() -> void:
 	upgrade_order = u[1]
 	names = _read("names.json", {})
 	achievements = _read("achievements.json", [])
+	festivals = _read("festivals.json", [])
 
 
 ## A balance number by its dotted path, such as "pricing.falloff".
@@ -73,6 +75,11 @@ func motif_with_article(id: String) -> String:
 		return str(m["a"])
 	var name := motif_name(id)
 	return ("an " if name.left(1) in ["a", "e", "i", "o", "u"] else "a ") + name
+
+
+## The rooms clients can ask for: every room but the bench's square for picture panels, and without walls when asked.
+func job_rooms(walls := true) -> Array:
+	return rooms.keys().filter(func(id: String) -> bool: return not bool(rooms[id].get("bench", false)) and (walls or not bool(rooms[id].get("wall", false))))
 
 
 func room(id: String) -> Dictionary:

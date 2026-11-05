@@ -23,5 +23,11 @@
 	{"id": "big_floor", "name": "Ten thousand stones", "text": "Lay a floor of 10,000 tiles or more", "stat": "biggest", "at": 10000},
 	{"id": "ship_stone", "name": "From over the sea", "text": "Buy stone off a merchant ship", "stat": "ship_stones", "at": 1},
 	{"id": "good_dog", "name": "Good dog", "text": "Pet your dog 25 times", "stat": "pets", "at": 25},
-	{"id": "library_10", "name": "A gallery of floors", "text": "Keep 10 floors in your library", "library": 10}
+	{"id": "library_10", "name": "A gallery of floors", "text": "Keep 10 floors in your library", "library": 10},
+	{"id": "festival_prize", "name": "Garlands for the winner", "text": "Win a festival prize", "festivals": 1},
+	{"id": "all_festivals", "name": "A year of feasts", "text": "Win the prize at every festival", "festivals": -1},
+	{"id": "good_nose", "name": "Good nose", "text": "Let your dog find an old floor", "stat": "dog_digs", "at": 1},
+	{"id": "first_panel", "name": "A small masterpiece", "text": "Lay a picture panel at the workbench", "stat": "panels_made", "at": 1},
+	{"id": "panel_set", "name": "Set in stone", "text": "Set one of your picture panels into a client's floor", "stat": "panels_set", "at": 1},
+	{"id": "wall_mosaic", "name": "Glass on the wall", "text": "Make a wall mosaic for a fountain niche", "stat": "walls", "at": 1}
 ]

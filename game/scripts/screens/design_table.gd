@@ -29,6 +29,7 @@ var _start: Button
 var _bottom: PanelContainer
 var _toolbar: PanelContainer
 var _fine_button: Button
+var _pair_button: Button
 var _chips: HFlowContainer
 var _palette: GridContainer
 var _stone_buttons := {}
@@ -69,10 +70,16 @@ func enter(args: Dictionary) -> void:
 		design = FloorDesign.for_room(job.get("room", Dev.get_arg("room", "study")))
 	if Dev.has("sample") and design.placements.is_empty():
 		design = Samples.make(Dev.get_arg("sample"))
+	if Dev.has("tab"):
+		tab = Dev.get_arg("tab")
+		if Dev.has("panels"):
+			Game.state["panels"] = [{"id": "p1", "motif": "dolphin", "stones": {}, "stars": 4, "size": 14}]
 	_build()
 	Nav.resized.connect(_layout_ui)
 	_layout_ui()
 	_fill_book()
+	if Dev.has("panels"):
+		_add_panel(Game.state["panels"][0])
 	if Dev.has("pick"):
 		_select(int(Dev.num("pick", 0)))
 	_refresh_chips()
@@ -256,7 +263,8 @@ func _build_toolbar() -> void:
 	var tools := Ui.hbox(_toolbar, 2)
 	Ui.icon_button(tools, "rotate", "Turn a quarter (R)", _turn)
 	Ui.icon_button(tools, "flip", "Mirror it (F)", _flip)
-	Ui.tip_on(Ui.button(tools, "Pair", _mirror), "Add a mirrored copy on the other side of the room (M)")
+	_pair_button = Ui.button(tools, "Pair", _mirror)
+	Ui.tip_on(_pair_button, "Add a mirrored copy on the other side of the room (M)")
 	_fine_button = Ui.button(tools, "Small tiles", _toggle_fine)
 	_fine_button.toggle_mode = true
 	Ui.tip_on(_fine_button, "Lay this picture in tiles half the size, for finer detail")
@@ -320,6 +328,9 @@ func _fill_book() -> void:
 			_add_border_slot(id, Data.borders[id]["name"])
 		return
 	_book_grid.columns = 4
+	if tab == "pictures" and _panels_open():
+		for panel in Game.state["panels"]:
+			_add_panel_slot(panel)
 	for id in Data.motif_order:
 		var m := Data.motif(id)
 		var is_picture: bool = m.get("kind", "") == "picture"
@@ -349,6 +360,49 @@ func _fill_book() -> void:
 				slot.set_drag_preview(_drag_preview(mid))
 				return {"motif": mid}, Callable(), Callable())
 		_book_grid.add_child(slot)
+
+
+## Whether this job can take a picture panel made at the bench: a client's floor or the contest, when there are any.
+func _panels_open() -> bool:
+	return not free and str(job.get("kind", "commission")) in ["commission", "contest"] and not (Game.state.get("panels", []) as Array).is_empty()
+
+
+func _add_panel_slot(panel: Dictionary) -> void:
+	var slot := Button.new()
+	slot.custom_minimum_size = Vector2(28, 28)
+	slot.icon = MotifIcons.motif(panel["motif"], 22, panel.get("stones", {}))
+	slot.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	slot.add_theme_stylebox_override("normal", UiTheme.panel("chip_on", 3, 2))
+	slot.add_theme_stylebox_override("hover", UiTheme.panel("chip_on", 3, 2))
+	slot.add_theme_stylebox_override("pressed", UiTheme.panel("chip_on", 3, 2))
+	slot.add_theme_stylebox_override("disabled", UiTheme.panel("slot", 3, 2))
+	var used := design.placements.any(func(p: Dictionary) -> bool: return str(p.get("panel", "")) == str(panel["id"]))
+	Ui.tip_on(slot, "Your %s panel, %d stars. Click to set it into this floor: it comes laid already, and the client pays extra for it." % [Data.motif_name(panel["motif"]), int(panel.get("stars", 0))] if not used else "This panel is already in the floor.")
+	slot.disabled = used
+	if not used:
+		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		slot.pressed.connect(func() -> void: _add_panel(panel))
+	_book_grid.add_child(slot)
+
+
+func _add_panel(panel: Dictionary) -> void:
+	_remember()
+	var size := minf(float(panel.get("size", 14)), minf(design.w, design.h) * 0.9)
+	var p := design.add(panel["motif"], design.w * 0.5, design.h * 0.5, size)
+	p["stones"] = (panel.get("stones", {}) as Dictionary).duplicate()
+	p["outline"] = str(panel.get("outline", ""))
+	p["fine"] = bool(panel.get("fine", false))
+	p["panel"] = panel["id"]
+	Audio.ui("tab", -8.0)
+	_select(design.placements.size() - 1)
+	_fill_book()
+	_dirty = true
+	_cost_dirty = true
+
+
+## A panel made at the bench keeps its size and stones; it can only be moved, turned or taken off.
+func _is_panel(i: int) -> bool:
+	return i >= 0 and i < design.placements.size() and str(design.placements[i].get("panel", "")) != ""
 
 
 func _add_border_slot(id: String, name: String) -> void:
@@ -385,7 +439,7 @@ func _add_border_slot(id: String, name: String) -> void:
 
 func _recompose() -> void:
 	var px := clampi(int(360.0 / maxf(design.w, design.h * 1.4)), 2, 6)
-	var img := Composer.compose(design, px)
+	var img := Composer.picture(design, px)
 	if _tex == null or _tex.get_size() != Vector2(img.get_size()):
 		_tex = ImageTexture.create_from_image(img)
 	else:
@@ -418,6 +472,10 @@ func _recost() -> void:
 	Ui.tip_on(_cost_label, "About %d tiles. Stone you already have in stock is used first." % tiles)
 	_warn_label.text = ""
 	_start.disabled = buy > Game.coins()
+	if str(job.get("kind", "")) == "panel" and design.placements.is_empty():
+		_start.disabled = true
+		_warn_label.text = "Put a picture on the panel first."
+		return
 	if _start.disabled:
 		var swap := Pricing.cheaper_swap(_counts, _stones_allowed())
 		_warn_label.text = "Not enough denarii."
@@ -438,10 +496,13 @@ func _refresh_brief() -> void:
 	elif kind == "contest":
 		Ui.label(_brief_box, "The floor contest", "Heading")
 		Ui.label(_brief_box, "Judged on looks alone. The rival's entries earn about %d stars." % Looks.stars(float(job.get("rival", 0.6))), "", 112)
+	elif kind == "panel":
+		Ui.label(_brief_box, "A picture panel", "Heading")
+		Ui.label(_brief_box, "Lay a picture at the bench. Sell it to a collector, or set it into a client's floor later.", "", 112)
 	elif kind == "copy":
 		Ui.label(_brief_box, "Copy this floor", "Heading")
 		if _target_tex == null:
-			_target_tex = ImageTexture.create_from_image(Composer.compose(FloorDesign.from_dict(job["target"]), 3))
+			_target_tex = ImageTexture.create_from_image(Composer.picture(FloorDesign.from_dict(job["target"]), 3))
 		var sketch := TextureRect.new()
 		sketch.texture = _target_tex
 		sketch.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -510,11 +571,14 @@ func _refresh_chips() -> void:
 	if selected >= 0:
 		var p: Dictionary = design.placements[selected]
 		var m := Data.motif(p["motif"])
-		_fine_button.visible = m.get("kind", "") == "picture" and (free or int(Game.state["chapter"]) >= 3)
+		_fine_button.visible = m.get("kind", "") == "picture" and (free or int(Game.state["chapter"]) >= 3) and not _is_panel(selected)
+		_pair_button.visible = not _is_panel(selected)
 		_fine_button.button_pressed = bool(p.get("fine", false))
-		for r in MotifLibrary.roles_of(p["motif"]):
+		if _is_panel(selected):
+			Ui.label(_chips, "From the bench, laid already", "MutedLabel")
+		for r in ([] if _is_panel(selected) else MotifLibrary.roles_of(p["motif"])):
 			_chip(str(r), MotifIcons.part(p["motif"], 18, r, p["stones"], p.get("outline", "")), _stone_of(selected, str(r)), "Part %d" % r)
-		if p.get("outline", "") != "":
+		if p.get("outline", "") != "" and not _is_panel(selected):
 			_chip("outline", MotifIcons.part(p["motif"], 18, 7, p["stones"], p["outline"]), p["outline"], "Outline")
 		if role == "" or not role in _chip_buttons:
 			role = _chip_buttons.keys()[0] if not _chip_buttons.is_empty() else ""
@@ -578,6 +642,9 @@ func _stone_of(placement: int, key: String) -> String:
 
 
 func _apply_stone(stone_id: String) -> void:
+	if _is_panel(selected):
+		Audio.ui("nope")
+		return
 	Audio.ui("click", -10.0)
 	_remember()
 	if selected >= 0:
@@ -735,7 +802,7 @@ func _on_drag(tile: Vector2) -> void:
 
 ## Grabbing a corner pins the opposite one, so the motif grows and shrinks from there, keeping its shape.
 func _on_handle(corner: int) -> void:
-	if selected < 0:
+	if selected < 0 or _is_panel(selected):
 		return
 	var r := _rect_of(design.placements[selected])
 	var cs := [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]
@@ -814,7 +881,7 @@ func _add_motif(motif_id: String, at: Vector2) -> void:
 
 ## Grows or shrinks the picked motif by about a tenth, one tile at a time when it is small.
 func _resize(steps: int) -> void:
-	if selected < 0:
+	if selected < 0 or _is_panel(selected):
 		return
 	var p: Dictionary = design.placements[selected]
 	var m := Data.motif(p["motif"])
@@ -845,7 +912,7 @@ func _flip() -> void:
 
 ## Adds a copy of the selected motif mirrored across the middle of the room, since Roman floors are usually symmetrical.
 func _mirror() -> void:
-	if selected < 0:
+	if selected < 0 or _is_panel(selected):
 		return
 	_remember()
 	var copy: Dictionary = (design.placements[selected] as Dictionary).duplicate(true)
@@ -870,7 +937,10 @@ func _remove() -> void:
 	if selected < 0:
 		return
 	_remember()
+	var was_panel := _is_panel(selected)
 	design.placements.remove_at(selected)
+	if was_panel:
+		_fill_book()
 	Audio.ui("rustle", -10.0)
 	_select(-1)
 	_dirty = true

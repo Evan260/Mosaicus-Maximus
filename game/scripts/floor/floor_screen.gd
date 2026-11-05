@@ -30,6 +30,8 @@ var _time := 0.0
 var _started_msec := 0
 var _task := -1
 var _layout: MosaicLayout
+## The area of picture panels set into this floor, which come already laid.
+var _made := PackedByteArray()
 var _loading: LoadingCard
 var _paused: PanelContainer
 
@@ -43,6 +45,8 @@ func enter(args: Dictionary) -> void:
 		brush_tiles = 5.0
 	if design == null and Dev.has("sample"):
 		design = Samples.make(Dev.get_arg("sample"))
+		if Dev.has("panels"):
+			design.placements[0]["panel"] = "test"
 	_loading = LoadingCard.new()
 	Nav.ui.add_child(_loading)
 	_loading.show_text("Marking out the floor")
@@ -55,6 +59,7 @@ func enter(args: Dictionary) -> void:
 		if d:
 			img = Composer.compose(d, TILE_PX)
 			fine = Composer.fine_mask(d, TILE_PX)
+			_made = Composer.panel_mask(d, TILE_PX)
 		else:
 			img = (load(TEST_DESIGN) as Texture2D).get_image()
 		layout.build(img, TILE_PX, fine))
@@ -65,8 +70,18 @@ func _ready_floor() -> void:
 	var layout := _layout
 	_loading.queue_free()
 	floor_view = FloorView.new()
+	var room := Data.room(str(job.get("room", design.room if design else "")))
+	floor_view.door_visible = not (bool(room.get("wall", false)) or bool(room.get("bench", false)))
 	Nav.world.add_child(floor_view)
 	floor_view.setup(layout)
+	if not _made.is_empty():
+		var made := PackedInt32Array()
+		var w := layout.w
+		for i in layout.tile_count():
+			var at := Vector2i(layout.pos[i])
+			if at.x >= 0 and at.y >= 0 and at.x < w and at.y < layout.h and _made[at.y * w + at.x] == 1:
+				made.append(i)
+		floor_view.prelay(made)
 	floor_view.tiles_landed.connect(Audio.on_landed)
 	floor_view.phase_changed.connect(_on_phase)
 	if job.get("kind", "") == "restoration" or Dev.has("restore"):

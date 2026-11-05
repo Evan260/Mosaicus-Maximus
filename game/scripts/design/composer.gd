@@ -11,6 +11,15 @@ const MAX_PARTS := 29
 
 
 static func compose(design: FloorDesign, px: int = 6) -> Image:
+	return _to_image(_labels(design, px), design.w * px, design.h * px)
+
+
+## The design as a picture to look at, clear outside the room's shape, such as the corners beside an apse.
+static func picture(design: FloorDesign, px: int = 6) -> Image:
+	return _to_image(_labels(design, px), design.w * px, design.h * px, true)
+
+
+static func _labels(design: FloorDesign, px: int) -> PackedByteArray:
 	var w := design.w * px
 	var h := design.h * px
 	var labels := PackedByteArray()
@@ -23,7 +32,7 @@ static func compose(design: FloorDesign, px: int = 6) -> Image:
 	BorderPainter.paint(labels, w, h, px, design.room_data(), design.border, inside)
 	for p in design.placements:
 		_stamp(labels, inside, w, h, px, p)
-	return _to_image(labels, w, h)
+	return labels
 
 
 ## Which part of the design each pixel belongs to (the PART_ codes, NO_TILE outside), so a click can pick a part.
@@ -55,10 +64,13 @@ static func stone_counts(design: FloorDesign) -> Dictionary:
 	var px := 3
 	var img := compose(design, px)
 	var fine := fine_mask(design, px)
+	var made := panel_mask(design, px)
 	var data := img.get_data()
 	var by_colour := Stones.lookup()
 	var px_counts := {}
 	for i in img.get_width() * img.get_height():
+		if not made.is_empty() and made[i] == 1:
+			continue
 		var key := (data[i * 3] << 16) | (data[i * 3 + 1] << 8) | data[i * 3 + 2]
 		var s: int = by_colour.get(key, 0)
 		if s != Stones.NO_TILE:
@@ -101,6 +113,25 @@ static func fine_mask(design: FloorDesign, px: int) -> PackedByteArray:
 				if gx >= 0 and gx < w and mask[y * size.x + x] > 0:
 					out[gy * w + gx] = 1
 	return out
+
+
+## 1 for every design pixel of a picture panel set into the floor, which is laid already. Empty if there are none.
+static func panel_mask(design: FloorDesign, px: int) -> PackedByteArray:
+	var panels := design.placements.filter(func(p: Dictionary) -> bool: return str(p.get("panel", "")) != "")
+	var out := PackedByteArray()
+	if panels.is_empty():
+		return out
+	var w := design.w * px
+	var h := design.h * px
+	var labels := PackedByteArray()
+	labels.resize(w * h)
+	var inside := PackedByteArray()
+	inside.resize(w * h)
+	inside.fill(1)
+	var codes := PackedByteArray([1, 1, 1, 1, 1, 1, 1, 1])
+	for p in panels:
+		_stamp(labels, inside, w, h, px, p, codes)
+	return labels
 
 
 static func _shape(design: FloorDesign, w: int, h: int, px: int) -> PackedByteArray:
@@ -220,21 +251,24 @@ static func _ring(mask: PackedByteArray, size: Vector2i, px: int) -> PackedByteA
 	return ring
 
 
-static func _to_image(labels: PackedByteArray, w: int, h: int) -> Image:
+static func _to_image(labels: PackedByteArray, w: int, h: int, clear := false) -> Image:
+	var n := 4 if clear else 3
 	var table := PackedByteArray()
-	table.resize(256 * 3)
+	table.resize(256 * n)
 	for i in Stones.LIST.size():
 		var c: Color = Stones.LIST[i]["map"]
-		table[i * 3] = c.r8
-		table[i * 3 + 1] = c.g8
-		table[i * 3 + 2] = c.b8
-	table[Stones.NO_TILE * 3] = 255
-	table[Stones.NO_TILE * 3 + 2] = 255
-	var rgb := PackedByteArray()
-	rgb.resize(w * h * 3)
+		table[i * n] = c.r8
+		table[i * n + 1] = c.g8
+		table[i * n + 2] = c.b8
+		if clear:
+			table[i * n + 3] = 255
+	if not clear:
+		table[Stones.NO_TILE * n] = 255
+		table[Stones.NO_TILE * n + 2] = 255
+	var out := PackedByteArray()
+	out.resize(w * h * n)
 	for i in w * h:
-		var s := labels[i] * 3
-		rgb[i * 3] = table[s]
-		rgb[i * 3 + 1] = table[s + 1]
-		rgb[i * 3 + 2] = table[s + 2]
-	return Image.create_from_data(w, h, false, Image.FORMAT_RGB8, rgb)
+		var s := labels[i] * n
+		for k in n:
+			out[i * n + k] = table[s + k]
+	return Image.create_from_data(w, h, false, Image.FORMAT_RGBA8 if clear else Image.FORMAT_RGB8, out)

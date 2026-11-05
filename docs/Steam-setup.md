@@ -41,6 +41,12 @@ Each achievement also needs two 64 by 64 icons in Steamworks: one for when it is
 | `ship_stone` | From over the sea | Buy stone off a merchant ship |
 | `good_dog` | Good dog | Pet your dog 25 times |
 | `library_10` | A gallery of floors | Keep 10 floors in your library |
+| `festival_prize` | Garlands for the winner | Win a festival prize |
+| `all_festivals` | A year of feasts | Win the prize at every festival |
+| `good_nose` | Good nose | Let your dog find an old floor |
+| `first_panel` | A small masterpiece | Lay a picture panel at the workbench |
+| `panel_set` | Set in stone | Set one of your picture panels into a client's floor |
+| `wall_mosaic` | Glass on the wall | Make a wall mosaic for a fountain niche |
 
 ## 3. Steam Cloud
 

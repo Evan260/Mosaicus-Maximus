@@ -42,6 +42,7 @@ func defaults() -> Dictionary:
 		"story_seen": [],
 		"pending_events": [],
 		"achievements": [],
+		"panels": [],
 		"stats": {"earned": 0, "five_stars": 0, "restorations": 0, "contests_won": 0, "perfect_copies": 0, "biggest": 0, "ship_stones": 0, "pets": 0},
 		"ledger": [],
 		"played_seconds": 0.0,

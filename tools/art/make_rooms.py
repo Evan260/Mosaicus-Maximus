@@ -5,7 +5,8 @@ draws that shape itself, in the room's own proportions, so the floor's four corn
 paints the walls and, one at a time, the furniture standing against them; the floor is never repainted, and where it
 still shows the painting is left clear so the game can lay the player's floor there in perspective.
 
-Usage: python tools/art/make_rooms.py [room ...]
+Usage: python tools/art/make_rooms.py [room ...] [--preview]
+With --preview it only draws each room's shape and masks, to check them before paying for any painting.
 Writes tools/art/sources/rooms/<room>_*.png while it works, and game/assets/art/rooms/<room>.png and rooms.json.
 """
 import json
@@ -103,6 +104,45 @@ ROOMS = {
             ("statue", (0.76, 0.95, 0.95, 0.12), "a white marble statue of a goddess on a plinth filling the whole area, standing on the floor against the back wall"),
         ],
     },
+    "atrium": {
+        "walls": "a grand atrium with deep red and yellow painted walls and a column at each corner",
+        "around": ", a shallow rectangular pool of rainwater with a stone rim set into the middle of the floor",
+        "furniture": [
+            ("table", (0.36, 0.64, 0.6, 0.10), "a carved marble table on lion's legs filling the whole area, standing on the floor against the back wall"),
+            ("brazier", (0.76, 0.95, 0.7, 0.10), "a bronze brazier on three legs and a potted laurel filling the whole area, standing on the floor against the back wall"),
+        ],
+    },
+    "corridor": {
+        "walls": "a long covered garden walk, the walls painted with fruit trees, birds and trellises, with slim columns along the back wall",
+        "furniture": [
+            ("bench", (0.08, 0.32, 0.4, 0.14), "a stone garden bench filling the whole area, standing on the floor against the back wall"),
+            ("urn", (0.72, 0.86, 0.65, 0.14), "a tall carved stone urn spilling with flowers filling the whole area, standing on the floor against the back wall"),
+        ],
+    },
+    "nymphaeum": {
+        "walls": "a fountain house, the walls set with shells and blue glass, water splashing from a bronze lion's head into the back wall, ferns",
+        "around": ", the floor beside the curved end of the room is plain wet grey stone",
+        "furniture": [
+            ("basin", (0.30, 0.70, 0.5, 0.12), "a round stone fountain basin full of water filling the whole area, standing on the floor against the back wall"),
+        ],
+    },
+    "temple": {
+        "walls": "a temple hall with tall white marble columns, deep red walls hung with gilded garlands, and a statue of Venus in a niche in the back wall",
+        "around": ", plain white marble steps beside the curved end of the floor",
+        "furniture": [
+            ("altar", (0.40, 0.60, 0.45, 0.14), "a white marble altar with a small fire and a curl of incense smoke filling the whole area, standing on the floor against the back wall"),
+        ],
+    },
+    "forum": {
+        "walls": "a grand basilica hall with a row of tall columns, high windows letting in sunlight, and statues of magistrates along the back wall",
+        "furniture": [
+            ("dais", (0.30, 0.70, 0.45, 0.12), "a raised stone platform with a magistrate's ivory chair filling the whole area, standing on the floor against the back wall"),
+        ],
+    },
+    "niche": {
+        "walls": "a fountain house wall of cream stone with carved columns on either side of a tall arched niche, ferns and shells, and a stone basin of water on the floor in front of the wall",
+        "furniture": [],
+    },
 }
 
 
@@ -111,21 +151,62 @@ def room_data():
 
 
 def geometry(room):
-    """The floor's corners and the walls, from the room's width and depth, in the picture's pixels."""
-    aspect = room["w"] / room["h"]
+    """The floor's corners, the walls, and the mosaic's corners (on the back wall for a niche), in picture pixels."""
+    wall = bool(room.get("wall", False))
+    aspect = 1.3 if wall else room["w"] / room["h"]
     r = 1.0 + FRONT_W / (aspect * FOCAL)
     back_y = HORIZON + (FRONT_Y - HORIZON) / r
     back_w = FRONT_W / r
     bl, br = (VX - back_w / 2, back_y), (VX + back_w / 2, back_y)
     fl, fr = (VX - FRONT_W / 2, FRONT_Y), (VX + FRONT_W / 2, FRONT_Y)
     up_back, up_front = WALL_HEIGHT * back_w, WALL_HEIGHT * FRONT_W
+    mosaic = [bl, br, fr, fl]
+    if wall:
+        tall = up_back - 8
+        wide = tall * room["w"] / room["h"]
+        top = back_y - 4 - tall
+        mosaic = [(VX - wide / 2, top), (VX + wide / 2, top), (VX + wide / 2, top + tall), (VX - wide / 2, top + tall)]
     return {
         "floor": [bl, br, fr, fl],
+        "mosaic": mosaic,
         "back": [(bl[0], back_y - up_back), (br[0], back_y - up_back), br, bl],
         "left": [(fl[0], FRONT_Y - up_front), (bl[0], back_y - up_back), bl, fl],
         "right": [(br[0], back_y - up_back), (fr[0], FRONT_Y - up_front), fr, br],
-        "back_y": back_y, "back_w": back_w, "up_back": up_back,
+        "back_y": back_y, "back_w": back_w, "up_back": up_back, "wall": wall,
     }
+
+
+def to_plan(quad):
+    """Maps picture pixels onto the plan, 0 to 1 across and back to front, given its back left, back right, front right, front left."""
+    src = [(0, 0), (1, 0), (1, 1), (0, 1)]
+    rows, rhs = [], []
+    for (u, v), (x, y) in zip(src, quad):
+        rows.append([u, v, 1, 0, 0, 0, -u * x, -v * x])
+        rhs.append(x)
+        rows.append([0, 0, 0, u, v, 1, -u * y, -v * y])
+        rhs.append(y)
+    h = np.linalg.solve(np.array(rows, float), np.array(rhs, float))
+    inverse = np.linalg.inv(np.array([[h[0], h[1], h[2]], [h[3], h[4], h[5]], [h[6], h[7], 1.0]]))
+
+    def apply(xs, ys):
+        p = inverse @ np.stack([xs.ravel(), ys.ravel(), np.ones(xs.size)])
+        return (p[0] / p[2]).reshape(xs.shape), (p[1] / p[2]).reshape(xs.shape)
+    return apply
+
+
+def mosaic_area(g, room):
+    """Where the mosaic shows: inside its corners and the room's shape, so an apse's corners and a pool are painted."""
+    ys, xs = np.mgrid[0:H, 0:W].astype(float)
+    u, v = to_plan(g["mosaic"])(xs + 0.5, ys + 0.5)
+    inside = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
+    x, y = u * room["w"], v * room["h"]
+    if room.get("shape") == "apse":
+        r = room["w"] / 2
+        inside &= ~((y < r) & ((x - r) ** 2 + (y - r) ** 2 > r * r))
+    elif room.get("shape") == "pool" and len(room.get("pool", [])) == 4:
+        px, py, pw, ph = room["pool"]
+        inside &= ~((u >= px) & (u < px + pw) & (v >= py) & (v < py + ph))
+    return inside
 
 
 def polygon_mask(points):
@@ -134,12 +215,17 @@ def polygon_mask(points):
     return m
 
 
-def base(g):
+def base(g, area):
     img = Image.new("RGB", (W, H), VOID)
     d = ImageDraw.Draw(img)
     for part in ("back", "left", "right"):
         d.polygon([(round(x), round(y)) for x, y in g[part]], fill=PLASTER)
     d.polygon([(round(x), round(y)) for x, y in g["floor"]], fill=FLOOR)
+    if g["wall"]:
+        pixels = np.asarray(img).copy()
+        pixels[area] = FLOOR
+        img = Image.fromarray(pixels)
+        d = ImageDraw.Draw(img)
     # The cut tops and front edges of the walls, as a cutaway model shows them.
     for a, b in ((g["left"][0], g["left"][1]), (g["back"][0], g["back"][1]), (g["right"][0], g["right"][1]),
                  (g["left"][0], g["left"][3]), (g["right"][1], g["right"][2])):
@@ -147,15 +233,18 @@ def base(g):
     return img
 
 
-def walls_mask(g):
+def walls_mask(g, area):
+    """What the walls step paints: the walls, and any floor the mosaic leaves bare, but never the mosaic's own area."""
     m = Image.new("L", (W, H), 0)
     d = ImageDraw.Draw(m)
-    for part in ("back", "left", "right"):
+    for part in ("back", "left", "right", "floor"):
         d.polygon([(round(x), round(y)) for x, y in g[part]], fill=255)
     for a, b in ((g["left"][0], g["left"][1]), (g["back"][0], g["back"][1]), (g["right"][0], g["right"][1]),
                  (g["left"][0], g["left"][3]), (g["right"][1], g["right"][2])):
         d.line([(round(a[0]), round(a[1])), (round(b[0]), round(b[1]))], fill=0, width=3)
-    return m
+    pixels = np.asarray(m).copy()
+    pixels[area] = 0
+    return Image.fromarray(pixels)
 
 
 def furniture_box(g, box):
@@ -179,10 +268,10 @@ def inpaint(image_path, mask_path, description, out_path):
     raise SystemExit(f"could not paint {out_path}")
 
 
-def floor_alpha(img, g, touched):
+def floor_alpha(img, area, touched):
     """Clear wherever the plain floor still shows, keep furniture, and keep shadows on it as see-through dark."""
     a = np.asarray(img.convert("RGB")).astype(np.float32)
-    inside = np.asarray(polygon_mask(g["floor"])) > 0
+    inside = area
     base_c = np.array(FLOOR, np.float32)
     diff = np.abs(a - base_c).sum(axis=2)
     shade = a.sum(axis=2) / base_c.sum()
@@ -198,18 +287,27 @@ def floor_alpha(img, g, touched):
     return Image.fromarray(out, "RGBA")
 
 
-def make(room_id, info):
+def make(room_id, info, preview=False):
     room = room_data()[room_id]
     g = geometry(room)
+    area = mosaic_area(g, room)
     SRC.mkdir(parents=True, exist_ok=True)
     step = SRC / f"{room_id}_0.png"
     if not step.exists():
-        base(g).save(step)
+        base(g, area).save(step)
     mask = SRC / f"{room_id}_mask_walls.png"
-    walls_mask(g).save(mask)
+    walls_mask(g, area).save(mask)
+    if preview:
+        sheet = Image.new("RGB", (W * 2, H), VOID)
+        sheet.paste(Image.open(step).convert("RGB"), (0, 0))
+        sheet.paste(Image.open(mask).convert("RGB"), (W, 0))
+        for name, box, _ in info["furniture"]:
+            ImageDraw.Draw(sheet).rectangle(furniture_box(g, box), outline=(255, 0, 0))
+        sheet.resize((W * 4, H * 2), Image.NEAREST).save(SRC / f"{room_id}_preview.png")
+        return None
     walled = SRC / f"{info.get('walls_from', room_id)}_1.png"
     if not walled.exists():
-        inpaint(step, mask, info["walls"], walled)
+        inpaint(step, mask, info["walls"] + info.get("around", ""), walled)
     current = walled
     touched = np.zeros((H, W), bool)
     for n, (name, box, description) in enumerate(info["furniture"], 2):
@@ -225,18 +323,23 @@ def make(room_id, info):
         current = nxt
     # The walls step keeps the floor as it was, so only furniture can stand on it.
     painted = Image.open(current).convert("RGB")
-    cut = floor_alpha(painted, g, touched)
+    cut = floor_alpha(painted, area, touched)
     OUT.mkdir(parents=True, exist_ok=True)
     cut.resize((W * SCALE, H * SCALE), Image.NEAREST).save(OUT / f"{room_id}.png")
-    return {"floor": [[round(x * SCALE, 1), round(y * SCALE, 1)] for x, y in g["floor"]], "size": [W * SCALE, H * SCALE]}
+    return {"floor": [[round(x * SCALE, 1), round(y * SCALE, 1)] for x, y in g["mosaic"]], "size": [W * SCALE, H * SCALE]}
 
 
 def main():
-    wanted = sys.argv[1:] or list(ROOMS)
+    preview = "--preview" in sys.argv
+    wanted = [a for a in sys.argv[1:] if not a.startswith("--")] or list(ROOMS)
     layout_path = OUT / "rooms.json"
     layout = json.loads(layout_path.read_text(encoding="utf-8")) if layout_path.exists() else {}
     for room_id in wanted:
-        layout[room_id] = make(room_id, ROOMS[room_id])
+        made = make(room_id, ROOMS[room_id], preview)
+        if made is None:
+            print("preview", SRC / f"{room_id}_preview.png")
+            continue
+        layout[room_id] = made
         print("made", room_id)
     layout_path.write_text(json.dumps(layout, indent="\t"), encoding="utf-8", newline="\n")
 

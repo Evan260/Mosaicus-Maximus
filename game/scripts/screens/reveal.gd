@@ -23,6 +23,7 @@ var _order := PackedInt32Array()
 ## The stones the player mended gaps with, by tile, so a restored floor is shown as they left it.
 var _stones := {}
 var _room: RoomView
+var _panel_bonus := 0
 var _wrap := 190.0
 
 
@@ -73,6 +74,8 @@ func _setup() -> void:
 		_setup_room()
 		return
 	_floor = FloorView.new()
+	var room := Data.room(design.room)
+	_floor.door_visible = not (bool(room.get("wall", false)) or bool(room.get("bench", false)))
 	Nav.world.add_child(_floor)
 	_floor.setup(_layout)
 	_floor.show_finished()
@@ -113,8 +116,9 @@ func _setup_room() -> void:
 
 
 func _build_card() -> void:
-	var free: bool = job.get("free", false)
 	var kind := str(job.get("kind", "commission"))
+	# A panel at the bench is shown like free design: nobody pays for it yet.
+	var free: bool = job.get("free", false) or kind == "panel"
 	if kind == "contest":
 		_paid = int(job.get("budget", 0)) if _won else 0
 		_rep = int(Data.num("contest.win_reputation", 8) if _won else Data.num("contest.lose_reputation", 2))
@@ -122,6 +126,8 @@ func _build_card() -> void:
 		var asked := int(job.get("asked", job.get("budget", 0)))
 		_paid = Pricing.payment(asked, _score, float(job.get("expected", 0.5)))
 		_rep = Pricing.reputation(_score, _layout.tile_count())
+		_panel_bonus = _panels_bonus()
+		_paid += _panel_bonus
 	_card = Ui.panel(Nav.ui, "PagePanel")
 	var col := Ui.vbox(_card, 3)
 	if not free:
@@ -131,7 +137,7 @@ func _build_card() -> void:
 		Ui.label(who, "The judges" if kind == "contest" else str(job.get("client_name", "")), "Heading", 110)
 		_star_row(who, int(_verdict["stars"]))
 	else:
-		Ui.label(col, "Your floor", "Heading")
+		Ui.label(col, "Your picture panel" if kind == "panel" else "Your floor", "Heading")
 		_star_row(col, int(_verdict["stars"]))
 	Ui.label(col, _reaction(), "", _wrap)
 	if kind == "contest":
@@ -151,6 +157,12 @@ func _build_card() -> void:
 		var r := Ui.hbox(col, 3)
 		Ui.texture(r, MotifIcons.motif(found, 16))
 		Ui.label(r, "New in your pattern book: %s" % Data.motif_with_article(found), "", _wrap - 50)
+	if kind == "panel":
+		Ui.label(col, "Your picture panel is ready. A collector would pay about %d d for it at the workbench, or you can set it into a client's floor from the Pictures page of the pattern book." % Story.panel_value(Game.state, int(_verdict["stars"])), "", _wrap)
+	if _panel_bonus > 0:
+		var r := Ui.hbox(col, 3)
+		Ui.icon(r, "star")
+		Ui.label(r, "Your picture panel: +%d d" % _panel_bonus, "", _wrap - 20)
 	if not free:
 		var pay := Ui.hbox(col, 4)
 		Ui.icon(pay, "coin")
@@ -166,7 +178,7 @@ func _build_card() -> void:
 	var buttons: BoxContainer = Ui.hbox(col, 3) if _room else col
 	_keep = Ui.button(buttons, "Keep" if _room else "Keep in my library", _keep_it, "book")
 	Ui.tip_on(_keep, "Keeps a picture of this floor, and the way you laid it, in your library")
-	var back := Ui.button(buttons, "Back to the workshop" if not free else "Back", _finish, "arrow_r", true)
+	var back := Ui.button(buttons, "Back" if job.get("free", false) else "Back to the workshop", _finish, "arrow_r", true)
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_card.modulate.a = 0.0
 	_card.create_tween().tween_property(_card, "modulate:a", 1.0, 0.5).set_delay(1.4)
@@ -193,7 +205,7 @@ func _star_row(parent: Node, n: int) -> void:
 func _reaction() -> String:
 	var kind := str(job.get("kind", "commission"))
 	var looks: Dictionary = _verdict.get("looks", {})
-	if job.get("free", false):
+	if job.get("free", false) or kind == "panel":
 		return "Laid, grouted and polished. " + (str(Looks.PRAISE[looks["best"]]) if not looks.is_empty() else "")
 	if kind == "contest":
 		if _won:
@@ -264,7 +276,22 @@ func _keep_it() -> void:
 	Audio.ui("page_turn", -8.0)
 
 
+## What the client adds for the picture panels from the bench set into the floor.
+func _panels_bonus() -> int:
+	var total := 0
+	for p in design.placements:
+		for panel in Game.state.get("panels", []):
+			if str(p.get("panel", "")) == str(panel["id"]):
+				total += int(Story.panel_value(Game.state, int(panel.get("stars", 0))) * Data.num("panel.set_scale", 1.3))
+	return total
+
+
 func _finish() -> void:
+	if job.get("kind", "") == "panel":
+		Story.finish_panel(Game.state, job, {"score": _score, "design": design.to_dict()})
+		Saves.save()
+		Nav.go("workshop")
+		return
 	if job.get("free", false):
 		Game.state["gallery"].append(design.to_dict())
 		Nav.go("title")
@@ -272,8 +299,12 @@ func _finish() -> void:
 	if _paid > 0:
 		Game.earn(_paid, "Floor for " + str(job.get("client_name", "")))
 	var events := Story.finish_job(Game.state, job, {"score": _score, "paid": _paid, "reputation": _rep, "design": design.to_dict(), "tiles": _layout.tile_count(),
-		"won": _won, "likeness": float(_verdict.get("likeness", 0.0))})
+		"won": _won, "likeness": float(_verdict.get("likeness", 0.0)), "stones": _stones})
 	for e in events:
 		Game.state["pending_events"].append(e)
+	var used := design.placements.map(func(p: Dictionary) -> String: return str(p.get("panel", ""))).filter(func(id: String) -> bool: return id != "")
+	if not used.is_empty():
+		Game.state["panels"] = (Game.state.get("panels", []) as Array).filter(func(p: Dictionary) -> bool: return not p["id"] in used)
+		Game.bump("panels_set", used.size())
 	Saves.save()
 	Nav.go("workshop")

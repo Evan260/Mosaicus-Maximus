@@ -6,18 +6,21 @@ var _book: PanelContainer
 
 
 func enter(_args: Dictionary) -> void:
+	if Dev.has("day"):
+		Game.state["day"] = int(Dev.num("day", 1))
 	Story.morning(Game.state)
 	_root = Ui.panel(Nav.ui, "BoardPanel")
 	var col := Ui.vbox(_root, 5)
 	var head := Ui.hbox(col, 6)
-	Ui.label(head, "Notices for day %d" % int(Game.state["day"]), "LightHeading")
+	var fest := Story.festival(Game.state)
+	Ui.label(head, "Notices for day %d" % int(Game.state["day"]) + ("" if fest.is_empty() else ": the %s" % fest["name"]), "LightHeading")
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(spacer)
 	var left := Story.jobs_left(Game.state)
 	var busy: Dictionary = Game.state["active_job"]
 	if not busy.is_empty():
-		_closed(col, "A floor is waiting", "%s's floor is still on your table. Finish it before taking another job." % busy.get("client_name", "The last client"),
+		_closed(col, "A floor is waiting", ("Your picture panel is still on the bench. Finish it before taking a job." if busy.get("kind", "") == "panel" else "%s's floor is still on your table. Finish it before taking another job." % busy.get("client_name", "The last client")),
 			"Carry on with it", func() -> void: Nav.go("floor" if busy.get("kind", "") == "restoration" else "design_table", {"job": busy}), "brush")
 	elif left <= 0:
 		var why := "You can take one job a day." if int(Game.state["apprentices"]) == 0 else "You and your apprentices have taken every job you can manage today."
@@ -82,6 +85,14 @@ func _notice(job: Dictionary) -> Control:
 	var room := Data.room(job.get("room", ""))
 	Ui.label(who, "%s, %d by %d" % [room.get("name", ""), int(room.get("w", 0)), int(room.get("h", 0))], "MutedLabel")
 	var kind := str(job.get("kind", "commission"))
+	if bool(job.get("dog", false)):
+		var r := Ui.hbox(col, 2)
+		Ui.icon(r, "paw")
+		Ui.label(r, "Found by %s" % str((Game.state.get("dog", {}) as Dictionary).get("name", "your dog")), "", 110)
+	if str(job.get("festival", "")) != "":
+		var r := Ui.hbox(col, 2)
+		Ui.icon(r, "laurel")
+		Ui.label(r, "For the festival: pays more today", "", 110)
 	if kind == "restoration":
 		var r := Ui.hbox(col, 2)
 		Ui.icon(r, "trowel")

@@ -22,6 +22,22 @@ static func board(state: Dictionary, rng: RandomNumberGenerator) -> Array:
 			job = commission(state, rng, used, false)
 		job["id"] = "%d_%d" % [int(state["day"]), k]
 		jobs.append(job)
+	var fest := Story.festival(state)
+	var tag := Story.festival_tag(state, fest) if not fest.is_empty() else ""
+	if tag != "":
+		# The townsfolk keep the festival, so there is always one of them on the board that day.
+		if not jobs.any(func(j: Dictionary) -> bool: return j["kind"] == "commission" and j["client"] == ""):
+			var extra := _townsfolk(state, rng, false)
+			extra["id"] = "%d_festival" % int(state["day"])
+			jobs.append(extra)
+		for job in jobs:
+			if job["kind"] == "commission" and job["client"] == "":
+				# First, so the notice shows the festival's wish before any other.
+				job["brief"]["tags"].erase(tag)
+				job["brief"]["tags"].push_front(tag)
+				job["budget"] = int(job["budget"] * Data.num("festival.pay_scale", 1.25))
+				job["festival"] = fest["id"]
+				job["line"] = str(job["line"]) + " It's the %s, after all!" % fest["name"]
 	if int(state["day"]) % int(Data.num("contest.every", 7)) == 0:
 		var entry := contest(state, rng)
 		entry["id"] = "%d_contest" % int(state["day"])
@@ -112,7 +128,7 @@ static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: boo
 	var first: String = who[0]
 	var trade: String = names["trade"][rng.randi() % names["trade"].size()]
 	var chapter := int(state["chapter"])
-	var rooms := Data.rooms.keys().filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and r != "forum" and r != "temple")
+	var rooms := Data.job_rooms().filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and r != "forum" and r != "temple")
 	if small:
 		rooms.sort_custom(func(a, b) -> bool: return _area(a) < _area(b))
 		rooms = rooms.slice(0, 2)
@@ -141,6 +157,11 @@ static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: boo
 	var rate := Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter
 	var budget := int(_area(room) * rate * wealth * rng.randf_range(0.88, 1.15))
 	var want: String = str(names["wants"][rng.randi() % names["wants"].size()]).replace("{room}", str(Data.room(room).get("name", room)).to_lower())
+	if bool(Data.room(room).get("wall", false)):
+		want = "wants a wall mosaic that glitters in the fountain niche."
+		var glass := (state["unlocked_stones"] as Array).filter(func(s: String) -> bool: return Stones.LIST[Stones.index(s)]["material"] in [Stones.Kind.GLASS, Stones.Kind.GOLD])
+		if not glass.is_empty():
+			brief["want_stones"] = [glass[rng.randi() % glass.size()]]
 	var taste := []
 	var line := "%s %s" % [first, want]
 	if rng.randf() < Data.num("board.townsfolk_taste", 0.7):
@@ -155,7 +176,7 @@ static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: boo
 ## A collector wants a famous floor copied from a rubbing, in a room small enough to copy in one go.
 static func copy(state: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 	var chapter := int(state["chapter"])
-	var rooms := Data.rooms.keys().filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and _area(r) <= 2600.0)
+	var rooms := Data.job_rooms(false).filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and _area(r) <= 2600.0)
 	var room: String = rooms[rng.randi() % rooms.size()]
 	var target := _only_unlocked(RandomDesign.make(room, chapter, rng), state)
 	var places := ["Alexandria", "the House of the Faun in Pompeii", "the old palace at Antioch", "a villa on Capri", "the baths at Ostia"]
@@ -214,7 +235,7 @@ static func _only_unlocked(d: FloorDesign, state: Dictionary) -> FloorDesign:
 ## An old floor found under the town. The client supplies the stone for repairs, so there is always something affordable to do.
 static func restoration(state: Dictionary, rng: RandomNumberGenerator, small: bool = false) -> Dictionary:
 	var chapter := int(state["chapter"])
-	var rooms := Data.rooms.keys().filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and r != "forum")
+	var rooms := Data.job_rooms(false).filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and r != "forum")
 	if small:
 		rooms.sort_custom(func(a, b) -> bool: return _area(a) < _area(b))
 		rooms = rooms.slice(0, 2)
@@ -276,7 +297,6 @@ static func tag_open(tag: String, state: Dictionary) -> bool:
 	return false
 
 
-## A townsperson's first name and a portrait to match: the men are pictures 1 and 3, the women 2 and 4.
 ## "he", "him" and "his", or "she", "her" and "her", for the person a job's portrait shows.
 static func pronouns(job: Dictionary) -> Dictionary:
 	if str(job.get("portrait", "")) in WOMEN:
@@ -284,6 +304,7 @@ static func pronouns(job: Dictionary) -> Dictionary:
 	return {"he": "he", "him": "him", "his": "his"}
 
 
+## A townsperson's first name and a portrait to match: the men are pictures 1 and 3, the women 2 and 4.
 static func person(rng: RandomNumberGenerator) -> Array:
 	var woman := rng.randf() < 0.5
 	var names: Array = Data.names["women" if woman else "men"]

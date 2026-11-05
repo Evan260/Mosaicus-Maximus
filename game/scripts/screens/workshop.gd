@@ -9,7 +9,7 @@ const PIECES := [
 	["board", "The job board", "job_board"],
 	["scrolls", "Your library", "library"],
 	["shelves", "Stone shelves: buy stone", "merchant"],
-	["bench", "Workbench: improve the workshop", "upgrades"],
+	["bench", "Workbench: picture panels and upgrades", "bench"],
 	["plants", "", "plants"],
 	["amphorae", "", "amphorae"],
 	["lamps", "", "lamps"],
@@ -89,6 +89,9 @@ func enter(_args: Dictionary) -> void:
 		"upgrades":
 			Game.state["upgrades"] = ["big_brush"]
 			_open_upgrades()
+		"bench":
+			Game.state["panels"] = [{"id": "p1", "motif": "dolphin", "stones": {}, "stars": 4, "size": 14}, {"id": "p2", "motif": "dove", "stones": {}, "stars": 5, "size": 12}]
+			_open_bench()
 		"chapters":
 			_panel = ChaptersPanel.open(_root)
 		"achievements":
@@ -280,6 +283,8 @@ func _use(what: String) -> void:
 			_open_merchant()
 		"upgrades":
 			_open_upgrades()
+		"bench":
+			_open_bench()
 		"library":
 			Nav.go("library", {"back": "workshop"})
 
@@ -504,6 +509,56 @@ func _open_merchant() -> void:
 				Audio.ui("nope"), "sack", true)
 	Ui.button(col, "Done", _close_panel, "tick").size_flags_horizontal = Control.SIZE_SHRINK_END
 	_layout.call_deferred()
+
+
+## The workbench: a picture panel to lay today, the panels made so far for collectors to buy, and the upgrades.
+func _open_bench() -> void:
+	_close_panel()
+	_panel = Ui.panel(_root, "PagePanel")
+	var col := Ui.vbox(_panel, 4)
+	var head := Ui.hbox(col, 4)
+	Ui.label(head, "The workbench", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	Ui.button(head, "Done", _close_panel, "tick")
+	Ui.label(col, "Lay a small picture panel here, one a day. A collector will buy it, or you can set it into a client's floor, where it comes laid already and the client pays extra.", "MutedLabel", 270)
+	var lay := Ui.button(col, "Lay a picture panel", _start_panel, "brush", true)
+	if not Story.can_make_panel(Game.state):
+		lay.disabled = true
+		Ui.tip_on(lay, "Finish the job on your table first." if not (Game.state["active_job"] as Dictionary).is_empty() else "One panel a day. The bench is free again tomorrow.")
+	var panels: Array = Game.state.get("panels", [])
+	if not panels.is_empty():
+		Ui.label(col, "Your panels", "Heading")
+		var scroll := ScrollContainer.new()
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.custom_minimum_size = Vector2(270, minf(panels.size(), 4) * 26)
+		col.add_child(scroll)
+		var list := Ui.vbox(scroll, 2)
+		list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for panel in panels:
+			var row := Ui.hbox(list, 4)
+			Ui.texture(row, MotifIcons.motif(panel["motif"], 18, panel.get("stones", {})))
+			var name := Ui.label(row, "%s, %d stars" % [str(Data.motif(panel["motif"]).get("name", "A picture")), int(panel.get("stars", 0))])
+			name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var value := Story.panel_value(Game.state, int(panel.get("stars", 0)))
+			var sold: Dictionary = panel
+			Ui.button(row, "Sell: %d d" % value, func() -> void: _sell_panel(sold, value), "coin")
+	Ui.button(col, "Improve the workshop", _open_upgrades, "hammer")
+	_layout.call_deferred()
+
+
+func _start_panel() -> void:
+	var job := {"kind": "panel", "room": "panel", "client": "", "client_name": "Your picture panel", "portrait": "", "brief": {},
+		"budget": 0, "arc_step": -1, "taste": [], "id": "panel_%d" % int(Game.state["day"])}
+	Game.state["active_job"] = job
+	Nav.go("design_table", {"job": job})
+
+
+func _sell_panel(panel: Dictionary, value: int) -> void:
+	Game.state["panels"] = (Game.state["panels"] as Array).filter(func(p: Dictionary) -> bool: return p["id"] != panel["id"])
+	Game.earn(value, "Picture panel")
+	Game.bump("panels_sold")
+	Audio.ui("coins")
+	Saves.save()
+	_open_bench()
 
 
 func _open_upgrades() -> void:

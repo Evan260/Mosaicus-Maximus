@@ -36,6 +36,22 @@ A collector brings a painted sketch of a famous floor and wants it copied. The s
 
 Every seventh day the town holds a floor contest. There is no client and no brief: the judges score how the floor looks, and the rival workshop enters too. Beating the rival wins a prize and a lot of reputation.
 
+**Festivals**
+
+Every tenth day is a Roman festival, in turn the Floralia, Neptunalia, Vinalia, Consualia and Saturnalia. A letter in the morning says which. That day the townsfolk's notices ask for the festival's theme (flowers, the sea, wine and food, the races, a feast) and pay a quarter more, and the first floor of four stars or more laid for the festival wins the festival prize and some reputation.
+
+**Picture panels**
+
+Once a day, between jobs, you can lay a small picture panel at the workbench, as Roman workshops made their emblemata. It is designed and laid like a small square floor. A collector buys it at the workbench, for more the more stars it earns, or you can set it into a client's floor or a contest entry from the Pictures page of the pattern book. A panel set into a floor keeps its size and stones, comes already laid, needs no stone bought for it, and the client pays extra for it.
+
+**Wall mosaics**
+
+In the last chapter, the baths, the temple and the rich ask for wall mosaics too: an arched fountain niche, which is designed and laid like a floor and suits glass and gold. At the reveal it is shown in its niche on the wall.
+
+**The dog finds digs**
+
+Some mornings the dog comes home covered in dirt, having found an old floor at the bottom of a hole next door. A letter says so, and the dig goes up on the job board with a paw on its notice; it always hides a pattern.
+
 Restorations grow in size and importance, ending with the grand floor buried beneath the forum.
 
 ## The business
@@ -116,11 +132,11 @@ There are eight screens. The workshop is the hub, and every other screen opens f
 5. **The floor (top-down, at the client's house).** You look down at the room's bare mortar bed, with your design sketched on it in faint red chalk, as Roman craftsmen did. The room's walls frame the edges, and the client's family sometimes peeks in at the door. Along the bottom is a tray with what the job in hand needs: your stones, with how many of each are left to lay, or the trowel, the chisel, the sponge and the cloth. Nothing in it is picked until you pick it.
 6. **The dig (top-down).** This is the same view for restorations, but the floor is buried. The tools are the trowel for soil, the chisel for plaster, the brush for dust and the sponge for washing, and then the same repair tools as a new floor. A meter shows how much of the floor is uncovered.
 7. **The reveal.** The finished floor is shown in the client's own room: a painted cutaway seen from above the front, like a dollhouse, with the room's walls and furniture (a desk and scroll cupboard in a study, couches in a dining room, an altar in the temple) and your floor laid in it, while a band of light runs across the new stone. There are no people in the room. The client comes in on the left with their stars and what they think, coins pour into your purse, and the brief card shows what you met. A restoration also shows the pattern it added to your book, and a contest shows the judges' verdict against the rival. One button keeps the floor in your library.
-8. **The town map.** This is a painted pixel-art map of the town from above, reached through the street door. It shows the harbour, the forum, the baths and the villas on the hill. Every house with one of your floors is marked, and clicking it shows that room with its owners going about their day. The rival workshop and active digs are marked too. New districts open as your reputation grows.
+8. **The town map.** This is a painted pixel-art map of the town from above, reached through the street door. It shows the harbour, the forum, the baths and the villas on the hill. Every house with one of your floors is marked, and clicking it shows your floor in its room, painted as at the reveal, with its stars and what its owner thought of it. The rival workshop and active digs are marked too. New districts open as your reputation grows.
 
 **The library** opens from the scroll rack in the workshop and from the title screen. It is a shelf of every floor you kept, from any workshop and from free design. Choosing one shows it large, and you can watch it being laid again, tile by tile in the order you laid it, with its sounds. A button copies the picture and a time-lapse GIF to a folder in your Pictures, for sharing.
 
-The stone merchant and workshop upgrades are panels that open over the workshop screen, not separate screens. Free design uses the design table and floor screens, with an empty villa room and no client.
+The stone merchant, the workbench (picture panels and workshop upgrades) are panels that open over the workshop screen, not separate screens. Free design uses the design table and floor screens, with an empty villa room and no client.
 
 ## Modes
 

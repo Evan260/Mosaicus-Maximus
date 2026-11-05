@@ -64,6 +64,8 @@ var repaired := {}
 var repair_stone := -1
 ## Off when the floor is drawn into a painted room, which has walls of its own.
 var walls_visible := true
+## Off for a wall mosaic or a panel at the bench, which have no doorway.
+var door_visible := true
 var _finish_mats: Array[ShaderMaterial] = []
 ## Every tile in the order it was laid, for the time-lapse.
 var order := PackedInt32Array()
@@ -290,6 +292,21 @@ func mend_all() -> void:
 		if not repaired.has(i):
 			repaired[i] = layout.stone[i]
 			_schedule(i, now + _rng.randf() * 0.5)
+
+
+## Puts tiles down at once, already laid, as a picture panel made earlier at the bench comes.
+func prelay(tiles: PackedInt32Array) -> void:
+	for i in tiles:
+		if _start[i] != UNSET:
+			continue
+		_start[i] = now - 30.0
+		_landed_mm.set_instance_custom_data(i, Color(_start[i], _packed[i], -100.0, layout.angle[i]))
+		laid += 1
+		order.append(i)
+		_stone_placed[layout.stone[i]] = _stone_placed.get(layout.stone[i], 0) + 1
+		_stone_laid[layout.stone[i]] = _stone_laid.get(layout.stone[i], 0) + 1
+		_patch_left[layout.patch[i]] -= 1
+		_rub_chalk(layout.pos[i], layout.size[i] * 0.75)
 
 
 ## How many gaps of an old floor are still without a stone.
@@ -719,7 +736,7 @@ func _draw_walls(c: Node2D) -> void:
 	c.draw_rect(Rect2(-t, -t, fw + 2 * t, t), plaster)
 	c.draw_rect(Rect2(-t, 0, t, fh), plaster)
 	c.draw_rect(Rect2(fw, 0, t, fh), plaster)
-	var door := 16 * tile_world()
+	var door := 16 * tile_world() if door_visible else 0.0
 	var door_x := (fw - door) * 0.5
 	c.draw_rect(Rect2(-t, fh, door_x + t, t), plaster)
 	c.draw_rect(Rect2(door_x + door, fh, fw - door_x - door + t, t), plaster)
