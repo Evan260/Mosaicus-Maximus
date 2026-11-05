@@ -10,7 +10,7 @@ You inherit a dusty workshop from your uncle, a once-famous mosaic maker, in a s
 
 ## A day in the workshop
 
-Each day you take one job, or two once you have apprentices. New notices go up on the job board every morning.
+Each day you take one job, or two once you take on an apprentice. New notices go up on the job board every morning.
 
 **New floors**
 
@@ -68,13 +68,13 @@ Restorations grow in size and importance, ending with the grand floor buried ben
   The design table shows the stars a floor will earn while you work on it, a tick or cross for each of the five, and the next thing to fix. Dotted lines on the plan mark the room's middle, side to side and top to bottom. Pay, tips and reputation all rise with the stars.
 - **Tastes:** every client also has a taste, such as loving a mirrored floor, wanting it busy, wanting it calm, loving colour or wanting a strong border. Townsfolk say theirs when they visit. The named clients don't: you find out from what they say at the reveal, and from then on their taste is written in your notebook and counts on the design table's stars.
 - **The notebook** on the job board lists every named client you've met, what you know of their taste, and how far their story has gone.
-- **Merchant ships** put into the harbour every few days with a stone the town can't usually get. The stone merchant sells it that day only, and once you've bought it, it's yours to use from then on.
+- **Merchant ships** put into the harbour every few days with a stone the town can't usually get. The stone merchant sells it that day only, and once you've bought it, it's yours to use from then on. When no such stone is left, a ship brings one of the rarest stones the town already has, and sells a sack of it for less than the merchant asks.
 - **Choosing jobs:** offers differ in pay, size, difficulty and how much the job does for your reputation.
 - **Setting the price:** you name your price by sliding the coins, up to about one and a half times their budget. A higher price raises the client's expectations. Ask too much and the client names their own price instead, and the slider moves to it; ask too much a second time and they leave for your rival.
 - **The rival workshop** competes with you for the big jobs and poaches clients who leave unhappy.
 - **Word of mouth:** a great floor brings the client's friends and neighbours. Each client's requests follow a small story of their own, such as a feud, a wedding or a new fortune.
 - **Costs:** stone, apprentice wages and workshop upgrades. A floor is laid only from stone in stock, bought in sacks of 100 at the stone merchant's shelves; the design table lists any stone a floor is short of and can buy just those sacks, and what is left over stays in stock.
-- **Apprentices** let you take a second job each day.
+- **An apprentice** lets you take a second job each day.
 - **The day passes** while you play, from morning to night, as in Farmus Maximus. The sky through the door and window turns from blue to gold to stars, the room's light follows it, and the lamps flicker and light the room after dark. A day ends when you choose to end it; the job board says so plainly once the day's jobs are done.
 
 ## Materials and techniques

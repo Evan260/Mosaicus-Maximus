@@ -313,7 +313,7 @@ func test_pacing_report() -> void:
 				rep = int(Data.num("contest.win_reputation", 8) if won else Data.num("contest.lose_reputation", 2))
 			game.earn(paid, "job")
 			Story.finish_job(game.state, job, {"score": score, "paid": paid, "reputation": rep})
-		if game.coins() > 220 and int(game.state["apprentices"]) < 2:
+		if game.coins() > 220 and int(game.state["apprentices"]) < 1:
 			game.spend(90, "apprentice")
 			game.state["apprentices"] = int(game.state["apprentices"]) + 1
 		lowest = mini(lowest, game.coins())
@@ -799,3 +799,342 @@ func test_audit_fixes() -> void:
 	game.state["coins"] = 1000
 	var swap := Pricing.cheaper_swap({"white_marble": 500}, ["limestone", "white_marble", "black_stone", "grey_stone"])
 	check(swap.is_empty() or int(swap["saving"]) == Game.shortfall_cost({"white_marble": 500}) - Game.shortfall_cost({str(swap["to"]): 500}), "the swap hint counts what the sacks really cost (%s)" % [swap])
+
+
+func test_upgrades_save_on_every_sack() -> void:
+	game.new_game("Savings")
+	Story.unlock(game.state, 4)
+	var plain := {}
+	for s in Stones.LIST:
+		plain[s["id"]] = game.sack_price(s["id"])
+	game.state["upgrades"] = ["cutting_bench"]
+	for s in Stones.LIST:
+		check(game.sack_price(s["id"]) < int(plain[s["id"]]), "the cutting bench saves on a sack of %s (%d against %d)" % [s["id"], game.sack_price(s["id"]), plain[s["id"]]])
+	game.state["upgrades"] = ["glass_furnace"]
+	for s in Stones.LIST:
+		var glass: bool = s["material"] == Stones.Kind.GLASS
+		check((game.sack_price(s["id"]) < int(plain[s["id"]])) == glass, "the glass furnace saves on %s only if it is glass" % s["id"])
+	var third := float(plain["blue_glass"]) * (1.0 - Data.num("savings.glass_furnace", 0.33))
+	check(absf(game.sack_price("blue_glass") - third) < 1.0, "the furnace takes a third off glass (%d)" % game.sack_price("blue_glass"))
+	var furnace := int(game.sack_price("blue_glass"))
+	game.state["upgrades"] = ["glass_furnace", "cutting_bench"]
+	check(game.sack_price("blue_glass") < furnace, "and the bench saves on top of it (%d)" % game.sack_price("blue_glass"))
+
+
+func test_one_apprentice_brings_one_more_job() -> void:
+	game.new_game("Hands")
+	check(Story.jobs_allowed(game.state) == 1, "one job a day alone")
+	check(int(Data.upgrades["apprentice"].get("repeat", 1)) == 1, "the workbench hires one apprentice")
+	game.state["apprentices"] = 1
+	check(Story.jobs_allowed(game.state) == 2, "an apprentice brings a second job")
+	game.state["apprentices"] = 3
+	check(Story.jobs_allowed(game.state) == 2, "an old save with three apprentices still has two jobs a day")
+	var coins := int(game.coins())
+	var t := Story.end_day(game.state)
+	var wage := int(Data.num("wage", 6))
+	check(int(t["wages"]) == wage and game.coins() == coins - wage, "and pays one wage (%d)" % int(t["wages"]))
+
+
+func test_a_crowded_floor_is_called_crowded() -> void:
+	var d := FloorDesign.for_room("vestibule")
+	for x in range(4, 48, 8):
+		for y in range(4, 36, 8):
+			d.add("lozenge", x, y, 14)
+	var share: float = Looks.coverage(Composer.compose(d, Looks.PX), Stones.index(d.ground))["share"]
+	check(share > Looks.ideal_fill([]).y, "the packed floor really is crowded (%.2f)" % share)
+	var packed := Looks.judge(d)
+	check(bool(packed["crowded"]) and Looks.complaint(packed, "fill") == Looks.COMPLAINTS["crowded"], "a crowded floor is called crowded, not bare")
+	check(str(packed["hints"].get("fill", "")).begins_with("Too crowded"), "and its hint says so")
+	var bare := Looks.judge(FloorDesign.for_room("vestibule"))
+	check(not bool(bare["crowded"]) and Looks.complaint(bare, "fill") == Looks.COMPLAINTS["fill"], "a bare floor is called bare")
+
+
+func test_a_niche_never_bans_the_stone_it_wants() -> void:
+	game.new_game("Niche")
+	Story.unlock(game.state, 4)
+	var niches := 0
+	var clashes := 0
+	for seed in 3000:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed
+		var job := JobFactory._townsfolk(game.state, rng, false)
+		if job["room"] == "niche":
+			niches += 1
+			check(Stones.LIST[Stones.index(job["brief"]["want_stones"][0])]["material"] in [Stones.Kind.GLASS, Stones.Kind.GOLD], "a niche wants glass or gold")
+			for s in job["brief"]["ban_stones"]:
+				if s in job["brief"]["want_stones"]:
+					clashes += 1
+	check(niches > 50, "niches are asked for (%d)" % niches)
+	check(clashes == 0, "no niche notice both wants and bans a stone (%d of %d)" % [clashes, niches])
+
+
+func test_the_festival_prize_is_in_the_takings() -> void:
+	game.new_game("Garlands")
+	game.state["day"] = 5
+	Story.morning(game.state)
+	var f := Story.festival(game.state)
+	var themed := (game.state["board"] as Array).filter(func(j: Dictionary) -> bool: return str(j.get("festival", "")) == f["id"])
+	check(not themed.is_empty(), "there is a festival notice to win with")
+	if themed.is_empty():
+		return
+	var earned := int(game.state["stats"]["earned"])
+	Story.finish_job(game.state, themed[0], {"score": 0.95, "paid": 0, "reputation": 0})
+	var prize := Story.festival_prize(game.state)
+	check(int(game.state["stats"]["earned"]) == earned + prize, "the prize counts as earned")
+	check((game.state["ledger"] as Array).any(func(e: Dictionary) -> bool: return int(e["day"]) == 5 and int(e["amount"]) == prize), "the prize is in the ledger")
+	var t := Story.end_day(game.state)
+	check(int(t["earned"]) == prize, "the day's Earned line counts it (%d)" % int(t["earned"]))
+
+
+func test_story_steps_wait_for_their_rooms() -> void:
+	game.new_game("Livia")
+	Story.unlock(game.state, 2)
+	game.state["clients"]["livia"] = {"step": 1}
+	var early := 0
+	for seed in 300:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed
+		if JobFactory.commission(game.state, rng, {}, false)["client"] == "livia":
+			early += 1
+	check(early == 0, "Livia's house with an atrium waits for the atrium (%d notices in chapter 2)" % early)
+	Story.unlock(game.state, 3)
+	var rooms := {}
+	for seed in 300:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed
+		var job := JobFactory.commission(game.state, rng, {}, false)
+		if job["client"] == "livia":
+			rooms[job["room"]] = true
+	check(rooms.keys() == ["atrium"], "then her notice is for the atrium (%s)" % [rooms.keys()])
+	for chapter in range(1, 5):
+		game.new_game("Rooms")
+		Story.unlock(game.state, chapter)
+		for seed in 200:
+			var rng := RandomNumberGenerator.new()
+			rng.seed = seed
+			var job := JobFactory.commission(game.state, rng, {}, false)
+			if job["client"] != "":
+				var step := int(job["arc_step"])
+				check(job["room"] == JobFactory.step_room(job["client"], step) and int(Data.room(job["room"]).get("tier", 1)) <= chapter, "chapter %d: %s's step %d is in a room that is open (%s)" % [chapter, job["client"], step, job["room"]])
+
+
+func test_ships_still_come_in_the_last_chapter() -> void:
+	game.new_game("Harbour")
+	game.state["seed"] = 11
+	game.state["coins"] = 5000
+	var first := ""
+	for day in range(3, 40):
+		game.state["day"] = day
+		Story.morning(game.state)
+		first = Story.ship_stone(game.state)
+		if first != "":
+			break
+	check(first != "" and game.ship_sack_price() > game.sack_price(first), "a ship's new stone costs more than the shelves would (%s)" % first)
+	check(game.buy_from_ship() and game.has_stone(first) and Story.ship_stone(game.state) == "", "buying it makes it the workshop's, and the ship has no more")
+	game.new_game("Harbour")
+	game.state["seed"] = 11
+	game.state["coins"] = 5000
+	Story.unlock(game.state, 4)
+	var ships := 0
+	for day in range(3, 40):
+		game.state["day"] = day
+		Story.morning(game.state)
+		var cargo := Story.ship_stone(game.state)
+		if cargo == "":
+			continue
+		ships += 1
+		check(game.ship_sack_price() < game.sack_price(cargo), "in the last chapter a ship's %s is cheaper than the shelves' (%d against %d)" % [cargo, game.ship_sack_price(), game.sack_price(cargo)])
+		if int(game.state["stats"].get("ship_stones", 0)) == 0:
+			check(game.buy_from_ship() and Story.ship_stone(game.state) == "", "a sack can be bought off it, one to a ship")
+	check(ships >= 2, "ships still come once the town has every stone (%d)" % ships)
+	var award: Array = Achievements.all().filter(func(a: Dictionary) -> bool: return a["id"] == "ship_stone")
+	check(not award.is_empty() and Achievements.met(award[0], game.state), "From over the sea can still be earned in the last chapter")
+
+
+func test_the_board_keeps_its_promises_to_a_broke_workshop() -> void:
+	game.new_game("Broke festival")
+	game.state["coins"] = 0
+	game.state["stock"] = {}
+	# Day 35 is both a contest day and a festival.
+	game.state["day"] = 35
+	var tag := Story.festival_tag(game.state, Story.festival(game.state))
+	Story.morning(game.state)
+	var board: Array = game.state["board"]
+	var contest: Array = board.filter(func(j: Dictionary) -> bool: return j["kind"] == "contest")
+	check(not contest.is_empty(), "the contest is still held")
+	check(not contest.is_empty() and not JobFactory.affordable(contest[0], game.state), "a contest needs money for its stone")
+	check(board.filter(func(j: Dictionary) -> bool: return JobFactory.affordable(j, game.state)).size() >= 2, "there are still two jobs a broke workshop can do")
+	check(tag == "" or board.any(func(j: Dictionary) -> bool: return j.has("festival")), "a festival notice stays up for the letter's promise")
+
+
+func test_a_client_on_the_table_is_not_on_the_board() -> void:
+	game.new_game("Busy")
+	var seen := func() -> int:
+		var n := 0
+		for seed in 200:
+			var rng := RandomNumberGenerator.new()
+			rng.seed = seed
+			if JobFactory.commission(game.state, rng, {}, false)["client"] == "septimus":
+				n += 1
+		return n
+	check(seen.call() > 0, "Septimus asks for a floor on a free morning")
+	game.state["active_job"] = {"kind": "commission", "client": "septimus", "arc_step": 0}
+	check(seen.call() == 0, "but not while his last one is still on the table")
+
+
+func test_stone_counts_are_the_tiles_laid() -> void:
+	var designs := {"corridor": RandomDesign.make("corridor", 3, _seeded_rng(4)), "niche": RandomDesign.make("niche", 4, _seeded_rng(2)),
+		"sea": Samples.make("sea"), "apse": Samples.make("apse")}
+	var fine := FloorDesign.for_room("vestibule")
+	fine.set_border("key")
+	fine.add("dolphin", 16, 18, 16)["fine"] = true
+	fine.add("fish", 34, 18, 12)["panel"] = "test"
+	fine.add("rosette", 34, 18, 5)
+	designs["fine and panel"] = fine
+	for name in designs:
+		var d: FloorDesign = designs[name]
+		var counts := Composer.stone_counts(d)
+		var layout := MosaicLayout.new()
+		layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6))
+		var fv := FloorView.new()
+		add_child(fv)
+		fv.setup(layout)
+		fv.prelay(Composer.prelaid(layout, Composer.panel_mask(d, 6)))
+		var same := true
+		var stones := {}
+		for st in fv.stones_used():
+			stones[Stones.id_of(st)] = fv.stone_unplaced(st)
+		for id in stones:
+			same = same and int(counts.get(id, 0)) == int(stones[id])
+		for id in counts:
+			same = same and stones.has(id)
+		check(same, "%s: the stone bought is the stone laid (%s against %s)" % [name, counts, stones])
+		fv.free()
+	check(Composer.stone_counts(fine) == Composer.stone_counts(FloorDesign.from_dict(fine.to_dict())), "a design counted again gives the same count")
+
+
+func _seeded_rng(n: int) -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = n
+	return rng
+
+
+func test_masks_follow_the_order_motifs_are_laid_in() -> void:
+	var px := 3
+	for key in ["fine", "panel"]:
+		var d := FloorDesign.for_room("vestibule")
+		var under := d.add("dolphin", 24, 18, 16)
+		under[key] = true if key == "fine" else "test"
+		d.add("rosette", 24, 18, 7)
+		var mask := Composer.fine_mask(d, px) if key == "fine" else Composer.panel_mask(d, px)
+		var parts := Composer.part_map(d, px)
+		var wrong := 0
+		var over := 0
+		for i in parts.size():
+			if parts[i] >= Composer.PART_MOTIF + 8 and parts[i] < Composer.PART_MOTIF + 16:
+				over += 1
+				wrong += mask[i]
+			elif parts[i] >= Composer.PART_MOTIF + 1 and parts[i] < Composer.PART_MOTIF + 7 and mask[i] == 0:
+				wrong += 1
+		check(over > 0 and wrong == 0, "a motif laid over a %s takes its place in the mask (%d pixels wrong)" % [key, wrong])
+
+
+func test_part_map_marks_placements_past_the_last_code() -> void:
+	var d := FloorDesign.for_room("vestibule")
+	for n in Composer.MAX_PARTS + 1:
+		d.add("rosette", 24, 18, 10)
+	var px := 3
+	var parts := Composer.part_map(d, px)
+	var c := Composer.PART_COVERED
+	check(c != Stones.NO_TILE and c != Composer.PART_GROUND and (c < Composer.PART_BORDER or c >= Composer.PART_BORDER + 4) and c < Composer.PART_MOTIF, "the covered code is a code of its own")
+	check(parts[18 * px * d.w * px + 24 * px] == c, "the last placement covers the first, so the plan names no hidden one")
+	check(not Array(parts).any(func(v: int) -> bool: return v >= Composer.PART_MOTIF and v < Composer.PART_MOTIF + 8), "nothing names the buried first rosette")
+
+
+func test_a_tile_set_twice_is_laid_once() -> void:
+	var d := FloorDesign.for_room("shop")
+	var layout := MosaicLayout.new()
+	layout.build(Composer.compose(d, 6), 6)
+	var fv := FloorView.new()
+	add_child(fv)
+	fv.setup(layout)
+	fv.setup_restoration(PackedInt32Array([40, 41]))
+	fv._finish_channel(2)
+	fv.repair_stone = layout.stone[40]
+	var at := layout.pos[40] * FloorView.WORLD
+	fv.repair(at, at, 0.6 * fv.tile_world())
+	fv._process(1.0)
+	fv.lift(at, at, 0.6 * fv.tile_world())
+	fv.repair(at, at, 0.6 * fv.tile_world())
+	fv._process(1.0)
+	check(Array(fv.order).count(40) == 1, "a lifted tile set again is in the order once")
+	fv.replay(fv.order, 1.0)
+	fv._process(5.0)
+	check(fv.laid == layout.tile_count(), "the time-lapse lays every tile once (%d of %d)" % [fv.laid, layout.tile_count()])
+	fv.free()
+
+
+func test_chalk_under_a_set_in_panel_is_rubbed_out() -> void:
+	var d := FloorDesign.for_room("shop")
+	var layout := MosaicLayout.new()
+	layout.build(Composer.compose(d, 6), 6)
+	var fv := FloorView.new()
+	add_child(fv)
+	fv.setup(layout)
+	fv.prelay(PackedInt32Array([0, 1, 2]))
+	fv._process(0.016)
+	check(not fv._chalk_dirty, "the chalk a panel covers is cleared before anything is laid")
+	fv.free()
+
+
+func test_wipes_count_only_the_floor() -> void:
+	var d := FloorDesign.new()
+	d.w = 30
+	d.h = 24
+	d.shape = "apse"
+	var layout := MosaicLayout.new()
+	layout.build(Composer.compose(d, 6), 6)
+	var fv := FloorView.new()
+	add_child(fv)
+	fv.setup(layout)
+	fv.phase = FloorView.Phase.GROUT
+	var cell := FloorView.WORLD * FloorView.STATE_DIV
+	var sw := int(ceil(layout.w / float(FloorView.STATE_DIV)))
+	var sh := int(ceil(layout.h / float(FloorView.STATE_DIV)))
+	for ch in 2:
+		for y in sh:
+			for x in sw:
+				var px := mini(x * FloorView.STATE_DIV, layout.w - 1)
+				var py := mini(y * FloorView.STATE_DIV, layout.h - 1)
+				if layout.labels[py * layout.w + px] != Stones.NO_TILE:
+					var at := (Vector2(x, y) + Vector2(0.5, 0.5)) * cell
+					fv.paint(at, at, cell * 0.75, ch)
+	check(fv.phase == FloorView.Phase.DONE, "grouting and polishing the floor itself finishes it, with the corners beside the apse left bare")
+	fv.free()
+
+
+func test_old_floors_keep_their_patterns_on_the_floor() -> void:
+	var px := 2
+	var worst := 1.0
+	var at := ""
+	for room in ["atrium", "nymphaeum", "temple"]:
+		for seed in 12:
+			var d := RandomDesign.make(room, 1 + seed % 4, _seeded_rng(seed))
+			var by_code := PackedInt32Array()
+			by_code.resize(256)
+			for v in Composer.part_map(d, px):
+				by_code[v] += 1
+			for n in d.placements.size():
+				var p: Dictionary = d.placements[n]
+				if "frame" in Data.motif(p["motif"]).get("tags", []):
+					continue
+				var t := MotifLibrary.tiles(p["motif"], float(p["size"]))
+				var mask := MotifLibrary.mask(p["motif"], Vector2i(maxi(1, int(t.x * px)), maxi(1, int(t.y * px))), 0, false)
+				var full := mask.size() - mask.count(0)
+				var shown := 0
+				for r in range(1, 7):
+					shown += by_code[Composer.PART_MOTIF + n * 8 + r]
+				if float(shown) / maxf(1.0, full) < worst:
+					worst = float(shown) / maxf(1.0, full)
+					at = "%s seed %d, %s" % [room, seed, p["motif"]]
+	check(worst > 0.9, "every motif of an old floor lies on the floor, clear of a pool or an apse (worst %.2f, %s)" % [worst, at])

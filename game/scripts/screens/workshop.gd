@@ -43,6 +43,9 @@ var _glows: Array = []
 var _flames: TextureRect
 var _end_day: Button
 var _t := 0.0
+var _leaving := false
+var _sold_at := -1000
+var _stone_scroll: ScrollContainer
 
 
 func enter(_args: Dictionary) -> void:
@@ -70,6 +73,7 @@ func enter(_args: Dictionary) -> void:
 	_tip_label = Ui.label(_tip, "", "LightLabel")
 	_tip.visible = false
 	_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.child_entered_tree.connect(_adopt_panel)
 	Nav.resized.connect(_layout)
 	_layout()
 	Game.changed.connect(_refresh)
@@ -83,15 +87,17 @@ func enter(_args: Dictionary) -> void:
 	_show_next_event()
 	match Dev.get_arg("panel"):
 		"settings":
-			SettingsPanel.open(_root, true)
+			_show_panel(SettingsPanel.open(_root, true))
 		"dog":
-			DogPanel.open(_root)
+			_show_panel(DogPanel.open(_root))
 		"upgrades":
 			Game.state["upgrades"] = ["big_brush"]
 			_open_upgrades()
 		"merchant":
-			Story.unlock(Game.state, 3)
-			Game.state["ship"] = {"day": Game.state["day"], "stone": "blue_glass", "port": "Alexandria"}
+			var n := int(Dev.num("chapter", 3))
+			Story.unlock(Game.state, n)
+			var ahead := Stones.LIST.filter(func(st: Dictionary) -> bool: return int(st["tier"]) == n + 1)
+			Game.state["ship"] = {"day": Game.state["day"], "stone": ahead[0]["id"] if not ahead.is_empty() else "gold", "port": "Alexandria", "bargain": ahead.is_empty()}
 			_open_merchant()
 		"bench":
 			Game.state["panels"] = [{"id": "p1", "motif": "dolphin", "stones": {}, "stars": 4, "size": 14}, {"id": "p2", "motif": "dove", "stones": {}, "stars": 5, "size": 12}]
@@ -101,9 +107,9 @@ func enter(_args: Dictionary) -> void:
 				Game.state["active_job"] = {"kind": "panel", "room": "panel", "design": d.to_dict(), "stone_paid": true, "stone_taken": {"limestone": 300}}
 			_open_bench()
 		"chapters":
-			_panel = ChaptersPanel.open(_root)
+			_show_panel(ChaptersPanel.open(_root))
 		"achievements":
-			AchievementsPanel.open(_root)
+			_show_panel(AchievementsPanel.open(_root))
 		"letter":
 			Story.unlock(Game.state, 2)
 			Game.state["reputation"] = 40
@@ -123,10 +129,12 @@ func _layout() -> void:
 		g.get_parent().position = _scene.position
 	_bar.position = Vector2(4, 3)
 	_fit_bar()
-	if _popup:
+	if is_instance_valid(_popup):
 		_popup.reset_size()
 		_popup.position = ((s - _popup.size) * 0.5).floor()
-	if _panel:
+	if is_instance_valid(_panel):
+		if is_instance_valid(_stone_scroll) and _panel.is_ancestor_of(_stone_scroll):
+			_fit_stones()
 		_panel.reset_size()
 		_panel.position = ((s - _panel.size) * 0.5).floor()
 
@@ -306,9 +314,7 @@ func _build_bar() -> void:
 	var row := Ui.hbox(_bar, 4)
 	Ui.icon(row, "coin")
 	_coins = Ui.label(row, "", "LightLabel")
-	_rep = Ui.button(row, "", func() -> void:
-		_close_panel()
-		_panel = ChaptersPanel.open(_root), "laurel")
+	_rep = Ui.button(row, "", func() -> void: _show_panel(ChaptersPanel.open(_root)), "laurel")
 	Ui.icon(row, "sun")
 	_day = Ui.label(row, "", "LightLabel")
 	var spacer := Control.new()
@@ -316,7 +322,7 @@ func _build_bar() -> void:
 	row.add_child(spacer)
 	_jobs = Ui.label(row, "", "LightLabel")
 	_end_day = Ui.button(row, "End the day", func() -> void: Nav.go("day_end"), "sun")
-	Ui.icon_button(row, "gear", "Settings", func() -> void: SettingsPanel.open(_root, true))
+	Ui.icon_button(row, "gear", "Settings", func() -> void: _show_panel(SettingsPanel.open(_root, true)))
 	Ui.icon_button(row, "house", "Save and go back to the title", _save_and_quit)
 
 
@@ -422,16 +428,17 @@ func _queue_event(e: Dictionary) -> void:
 	Game.state["pending_events"].push_front(e)
 
 
-## Shows the next letter waiting: a new chapter, or what a client said about their floor.
+## Shows the next letter waiting, a new chapter or a client's news, which stays waiting in the save until Carry on.
 func _show_next_event() -> void:
 	var pending: Array = Game.state.get("pending_events", [])
-	if _popup:
+	if is_instance_valid(_popup):
 		return
 	if pending.is_empty():
 		_guide.call_deferred()
 		return
-	var e: Dictionary = pending.pop_front()
+	var e: Dictionary = pending[0]
 	_popup = Ui.panel(_root, "PagePanel")
+	var popup := _popup
 	var sides := Ui.hbox(_popup, 10)
 	var col := Ui.vbox(sides, 5)
 	var news: bool = e.get("kind", "") == "chapter" and int(e.get("n", 1)) > 1
@@ -446,6 +453,9 @@ func _show_next_event() -> void:
 	if e.get("kind", "") == "chapter":
 		_chapter_news(sides, col, int(e.get("n", 1)))
 	var ok := Ui.button(col, "Carry on", func() -> void:
+		if _popup != popup:
+			return
+		pending.erase(e)
 		_popup.queue_free()
 		_popup = null
 		_show_next_event(), "tick", true)
@@ -459,16 +469,14 @@ func _guide() -> void:
 	var floors := (Game.state["floors"] as Array).size()
 	var busy := not (Game.state["active_job"] as Dictionary).is_empty()
 	if floors == 0 and not busy:
-		var board: TextureRect = _layers["board"]
 		Guide.note("workshop", "Welcome to your uncle's workshop. Money is counted in denarii, the Roman silver coin, and your purse is at the top left. First, find a client: click the job board on the wall by the door.",
-			"bottom_right", Rect2(_scene.position + board.position, board.texture.get_size()))
-	elif floors == 0:
-		var table: TextureRect = _layers["table"]
+			"bottom_right", _layers["board"])
+	elif floors == 0 and str(Game.state["active_job"].get("kind", "")) != "panel":
 		Guide.note("resume", "Your job is waiting on the design table at the front of the room. Click the table to carry on.",
-			"bottom_right", Rect2(_scene.position + table.position, table.texture.get_size()))
+			"bottom_right", _layers["table"])
 	elif floors == 1 and not busy:
 		Guide.note("first_floor", "Well done: your first floor! You can take one job a day. When you have finished for the day, click End the day at the top. New notices go up every morning.",
-			"bottom_left", _end_day.get_global_rect())
+			"bottom_left", _end_day)
 
 
 ## Beside a chapter's letter, what it adds to the workshop, and under it how far off the next one is.
@@ -490,9 +498,24 @@ func _chapter_news(sides: HBoxContainer, col: VBoxContainer, n: int) -> void:
 
 
 func _close_panel() -> void:
-	if _panel:
+	if is_instance_valid(_panel):
 		_panel.queue_free()
-		_panel = null
+	_panel = null
+
+
+## Makes a panel the one open in the workshop, closing any other, so it is centred on every resize.
+func _show_panel(p: Control) -> void:
+	if p == _panel:
+		return
+	_close_panel()
+	_panel = p
+	_layout.call_deferred()
+
+
+## The settings panel opens the dog and achievements panels itself, so they are caught as they join the room.
+func _adopt_panel(node: Node) -> void:
+	if node is SettingsPanel or node is DogPanel or node is AchievementsPanel or node is ChaptersPanel:
+		_show_panel(node as Control)
 
 
 func _open_merchant() -> void:
@@ -502,13 +525,15 @@ func _open_merchant() -> void:
 	var head := Ui.hbox(col, 4)
 	Ui.label(head, "The stone merchant", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	Ui.button(head, "Done", _close_panel, "tick")
-	Ui.label(col, "Stone comes in sacks of 100 tiles; the prices are for a sack. A floor is laid only from stone in stock.", "MutedLabel")
-	# Two stones to a row, so every stone fits on the screen at once.
+	Ui.label(col, "Prices are for a sack of 100 tiles, and a floor is laid only from stone in stock.", "MutedLabel")
+	_stone_scroll = ScrollContainer.new()
+	_stone_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	col.add_child(_stone_scroll)
 	var grid := GridContainer.new()
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 1)
-	col.add_child(grid)
+	_stone_scroll.add_child(grid)
 	for id in Game.state["unlocked_stones"]:
 		var cell := Ui.hbox(grid, 4)
 		Ui.texture(cell, MotifIcons.swatch(id, 10))
@@ -524,26 +549,32 @@ func _open_merchant() -> void:
 			else:
 				Audio.ui("nope"), "sack")
 	var cargo := Story.ship_stone(Game.state)
-	if cargo != "" and not cargo in Game.state["unlocked_stones"]:
+	if cargo != "":
 		var ship := Ui.panel(col, "CardPanel")
 		var row := Ui.hbox(ship, 6)
 		Ui.texture(row, MotifIcons.swatch(cargo, 12))
-		var name := str(Stones.LIST[Stones.index(cargo)]["name"])
 		var text := Ui.vbox(row, 0)
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		Ui.label(text, "%s, off the ship from %s. Today only: buy a sack and it's yours to use from now on." % [name, Game.state["ship"].get("port", "abroad")], "", 300)
-		var price := int(ceil(Data.stone_price(cargo) * Data.num("ship.price_scale", 1.5) * Data.num("sack", 100)))
-		Ui.button(row, "Buy a sack: %s" % Ui.coins_text(price), func() -> void:
-			if Game.spend(price, "Stone off the ship: " + name):
-				Game.bump("ship_stones")
-				Game.state["unlocked_stones"].append(cargo)
-				Game.add_stock(cargo, int(Data.num("sack", 100)))
+		Ui.label(text, Story.ship_offer(Game.state), "", 270)
+		Ui.button(row, "Buy a sack: %s" % Ui.coins_text(Game.ship_sack_price()), func() -> void:
+			if Game.buy_from_ship():
 				Audio.ui("coins")
 				Saves.save()
 				_open_merchant()
 			else:
 				Audio.ui("nope"), "sack", true)
 	_layout.call_deferred()
+
+
+## Two stones to a row, and with every stone in a late chapter and a ship in, the rows scroll so the card fits.
+func _fit_stones() -> void:
+	var grid := _stone_scroll.get_child(0) as GridContainer
+	_stone_scroll.custom_minimum_size.y = 0.0
+	var spare := Nav.ui_size().y - 8.0 - _panel.get_combined_minimum_size().y
+	var full := grid.get_combined_minimum_size().y
+	var gap := float(grid.get_theme_constant("v_separation"))
+	var row := (full + gap) / maxf(ceilf(grid.get_child_count() / float(grid.columns)), 1.0)
+	_stone_scroll.custom_minimum_size.y = minf(full, maxf(floorf((spare + gap) / row), 1.0) * row - gap)
 
 
 ## The workbench: a picture panel to lay today, the panels made so far for collectors to buy, and the upgrades.
@@ -610,6 +641,10 @@ func _give_up_panel() -> void:
 
 
 func _sell_panel(panel: Dictionary, value: int) -> void:
+	# The bench is rebuilt at once, so a double-click would land on the next panel's Sell button.
+	if Time.get_ticks_msec() - _sold_at < 400:
+		return
+	_sold_at = Time.get_ticks_msec()
 	Game.state["panels"] = (Game.state["panels"] as Array).filter(func(p: Dictionary) -> bool: return p["id"] != panel["id"])
 	Game.earn(value, "Picture panel")
 	Game.bump("panels_sold")
@@ -654,6 +689,8 @@ func _open_upgrades() -> void:
 
 
 func _buy(id: String, cost: int) -> void:
+	if _leaving:
+		return
 	if not Game.spend(cost, Data.upgrades[id]["name"]):
 		Audio.ui("nope")
 		return
@@ -663,4 +700,5 @@ func _buy(id: String, cost: int) -> void:
 		Game.state["upgrades"].append(id)
 	Audio.ui("coins")
 	Saves.save()
+	_leaving = true
 	Nav.go("workshop")

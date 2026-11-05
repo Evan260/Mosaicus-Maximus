@@ -7,6 +7,10 @@ extends Control
 const ART := "res://assets/art/rooms/"
 
 var floor_view: FloorView
+var _viewport: SubViewport
+var _camera: Camera2D
+var _world := Vector2.ONE
+var _floor_width := 0.0
 
 static var _rooms := {}
 
@@ -33,13 +37,13 @@ func setup(room: String, layout: MosaicLayout, stones: Dictionary) -> void:
 		box = box.expand(c)
 	box.position = box.position.floor()
 	box.end = box.end.ceil()
-	var world := Vector2(layout.w, layout.h) * FloorView.WORLD
-	var wide := clampi(int(box.size.x * Nav.scale_factor() * 1.25), 512, 2048)
+	_world = Vector2(layout.w, layout.h) * FloorView.WORLD
+	_floor_width = box.size.x
 	var vp := SubViewport.new()
-	vp.size = Vector2i(wide, int(ceil(wide * world.y / world.x)))
 	vp.transparent_bg = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(vp)
+	_viewport = vp
 	floor_view = FloorView.new()
 	floor_view.walls_visible = false
 	vp.add_child(floor_view)
@@ -47,11 +51,12 @@ func setup(room: String, layout: MosaicLayout, stones: Dictionary) -> void:
 	floor_view.chalk_visible = false
 	floor_view.show_finished()
 	floor_view.apply_stones(stones)
-	var cam := Camera2D.new()
-	cam.position = world * 0.5
-	cam.zoom = Vector2.ONE * wide / world.x
-	vp.add_child(cam)
-	cam.make_current()
+	_camera = Camera2D.new()
+	_camera.position = _world * 0.5
+	vp.add_child(_camera)
+	_camera.make_current()
+	_fit_floor()
+	Nav.resized.connect(_fit_floor)
 	var floor_rect := ColorRect.new()
 	floor_rect.position = box.position
 	floor_rect.size = box.size
@@ -69,3 +74,10 @@ func setup(room: String, layout: MosaicLayout, stones: Dictionary) -> void:
 	painting.texture = load(ART + room + ".png")
 	painting.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(painting)
+
+
+## Draws the floor at about the size it shows on screen, so it stays sharp when the interface's scale changes.
+func _fit_floor() -> void:
+	var wide := clampi(int(_floor_width * Nav.scale_factor() * 1.25), 512, 2048)
+	_viewport.size = Vector2i(wide, int(ceil(wide * _world.y / _world.x)))
+	_camera.zoom = Vector2.ONE * wide / _world.x

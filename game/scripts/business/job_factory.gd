@@ -43,8 +43,17 @@ static func board(state: Dictionary, rng: RandomNumberGenerator) -> Array:
 		entry["id"] = "%d_contest" % int(state["day"])
 		jobs.push_front(entry)
 	var need := int(Data.num("board.min_affordable", 2))
-	var k := 0
-	while jobs.filter(func(j: Dictionary) -> bool: return affordable(j, state)).size() < need and k < jobs.size():
+	# The contest and one festival notice, an affordable one if any, are never swapped, since the day promises them.
+	var spare := []
+	var festive := []
+	for i in jobs.size():
+		if jobs[i]["kind"] != "contest":
+			(festive if jobs[i].has("festival") else spare).append(i)
+	festive.sort_custom(func(a: int, b: int) -> bool: return affordable(jobs[a], state) and not affordable(jobs[b], state))
+	spare += festive.slice(1)
+	for k in spare:
+		if jobs.filter(func(j: Dictionary) -> bool: return affordable(j, state)).size() >= need:
+			break
 		if not affordable(jobs[k], state):
 			var fresh := restoration(state, rng, true)
 			for _try in 6:
@@ -53,13 +62,12 @@ static func board(state: Dictionary, rng: RandomNumberGenerator) -> Array:
 				fresh = restoration(state, rng, true)
 			jobs[k] = fresh
 			jobs[k]["id"] = "%d_r%d" % [int(state["day"]), k]
-		k += 1
 	return jobs
 
 
-## Whether the player could lay at least the plainest floor for this job with what they have.
+## Whether the player could lay at least the plainest floor for this job with what they have; only a restoration's stone is supplied.
 static func affordable(job: Dictionary, state: Dictionary) -> bool:
-	if job.get("kind", "") in ["restoration", "contest"]:
+	if job.get("kind", "") == "restoration":
 		return true
 	var r := Data.room(job["room"])
 	var tiles := int(r.get("w", 40)) * int(r.get("h", 30)) * Composer.TILES_PER_SQUARE
@@ -74,16 +82,18 @@ static func affordable(job: Dictionary, state: Dictionary) -> bool:
 
 static func commission(state: Dictionary, rng: RandomNumberGenerator, used: Dictionary, small: bool) -> Dictionary:
 	var chapter := int(state["chapter"])
+	var busy := str((state.get("active_job", {}) as Dictionary).get("client", ""))
 	var named := []
 	for id in Data.client_order:
 		var c := Data.client(id)
 		var progress: Dictionary = state["clients"].get(id, {})
-		if int(c.get("chapter", 1)) > chapter or used.has(id) or int(progress.get("step", 0)) >= (c.get("arc", []) as Array).size():
+		var step := int(progress.get("step", 0))
+		if int(c.get("chapter", 1)) > chapter or used.has(id) or id == busy or step >= (c.get("arc", []) as Array).size():
 			continue
 		if int(progress.get("away_until", 0)) > int(state["day"]):
 			continue
-		var beat: Dictionary = c["arc"][int(progress.get("step", 0))]
-		if int(beat.get("chapter", 1)) > chapter or not possible(beat, state):
+		var beat: Dictionary = c["arc"][step]
+		if int(beat.get("chapter", 1)) > chapter or int(Data.room(step_room(id, step)).get("tier", 1)) > chapter or not possible(beat, state):
 			continue
 		named.append(id)
 	if not small and not named.is_empty() and rng.randf() < 0.65:
@@ -97,10 +107,7 @@ static func _named(id: String, state: Dictionary, rng: RandomNumberGenerator) ->
 	var c := Data.client(id)
 	var step := int(state["clients"].get(id, {}).get("step", 0))
 	var beat: Dictionary = c["arc"][step]
-	var rooms := (c["rooms"] as Array).filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= int(state["chapter"]))
-	if rooms.is_empty():
-		rooms = [c["rooms"][0]]
-	var room: String = beat.get("room", rooms[mini(step, rooms.size() - 1)])
+	var room := step_room(id, step)
 	if bool(beat.get("restoration", false)):
 		var job := restoration(state, rng)
 		var d := RandomDesign.make(room, 4, rng)
@@ -120,6 +127,13 @@ static func _named(id: String, state: Dictionary, rng: RandomNumberGenerator) ->
 	return {"kind": "commission", "client": id, "client_name": c["name"], "trade": c.get("trade", ""), "portrait": c.get("portrait", ""),
 		"room": room, "brief": brief, "budget": budget, "arc_step": step, "line": beat.get("line", c.get("greeting", "")), "taste": c.get("taste", []),
 		"greeting": c.get("greeting", ""), "text": "%s, %s, wants a new floor for the %s." % [c["name"], c.get("trade", ""), str(Data.room(room).get("name", room)).to_lower()]}
+
+
+## The room a client's story step is set in: the step's own, or the client's room for that step, the last for any after.
+static func step_room(id: String, step: int) -> String:
+	var c := Data.client(id)
+	var rooms: Array = c.get("rooms", [])
+	return str(c["arc"][step].get("room", rooms[mini(step, rooms.size() - 1)]))
 
 
 static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: bool, used: Dictionary = {}) -> Dictionary:
@@ -148,8 +162,13 @@ static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: boo
 		tags[pool[rng.randi() % pool.size()]] = true
 	var brief := {"tags": tags.keys(), "must": [], "want_stones": [], "ban_stones": [], "border": rng.randf() < 0.3, "min_motifs": 0}
 	var colours := (state["unlocked_stones"] as Array).filter(func(s) -> bool: return not Stones.is_ground(Stones.index(s)))
+	var wall := bool(Data.room(room).get("wall", false))
 	if rng.randf() < 0.45 and not colours.is_empty():
 		brief["want_stones"] = [colours[rng.randi() % colours.size()]]
+	if wall:
+		var glass := (state["unlocked_stones"] as Array).filter(func(s: String) -> bool: return Stones.LIST[Stones.index(s)]["material"] in [Stones.Kind.GLASS, Stones.Kind.GOLD])
+		if not glass.is_empty():
+			brief["want_stones"] = [glass[rng.randi() % glass.size()]]
 	if rng.randf() < 0.25 and colours.size() > 1:
 		var ban: String = colours[rng.randi() % colours.size()]
 		if not ban in brief["want_stones"]:
@@ -158,11 +177,8 @@ static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: boo
 	var rate := Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter
 	var budget := int(_area(room) * rate * wealth * rng.randf_range(0.88, 1.15))
 	var want: String = str(names["wants"][rng.randi() % names["wants"].size()]).replace("{room}", str(Data.room(room).get("name", room)).to_lower())
-	if bool(Data.room(room).get("wall", false)):
+	if wall:
 		want = "wants a wall mosaic that glitters in the fountain niche."
-		var glass := (state["unlocked_stones"] as Array).filter(func(s: String) -> bool: return Stones.LIST[Stones.index(s)]["material"] in [Stones.Kind.GLASS, Stones.Kind.GOLD])
-		if not glass.is_empty():
-			brief["want_stones"] = [glass[rng.randi() % glass.size()]]
 	var taste := []
 	var line := "%s %s" % [first, want]
 	if rng.randf() < Data.num("board.townsfolk_taste", 0.7):

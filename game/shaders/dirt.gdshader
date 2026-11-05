@@ -4,6 +4,12 @@ shader_type canvas_item;
 uniform vec2 size_px = vec2(600.0, 420.0);
 uniform float now = 0.0;
 
+varying vec4 modulate;
+
+void vertex() {
+	modulate = COLOR;
+}
+
 float h21(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
 	p += dot(p, p + 45.32);
@@ -27,5 +33,5 @@ void fragment() {
 	vec3 c = mix(soil, plaster, step(0.62, noise(p * 0.04 + 7.0)));
 	float crumb = step(0.86, h21(floor(p * 0.5)));
 	c *= 1.0 - crumb * 0.15;
-	COLOR = vec4(c, 1.0 - edge);
+	COLOR = vec4(c, 1.0 - edge) * modulate;
 }

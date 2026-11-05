@@ -241,6 +241,13 @@ def figure_roles(src, tier, dark=False):
     roles = majority(roles, fill)
     roles = merge_specks(roles, 14)
     roles = majority(roles, fill)
+    # Smoothing can swallow a stone's every pixel, so the roles left are numbered again from 1.
+    present = [r for r in range(1, len(keep) + 1) if (roles == r).any()]
+    renumber = np.zeros(len(keep) + 1, np.uint8)
+    for new, r in enumerate(present, 1):
+        renumber[r] = new
+    roles = renumber[roles]
+    stones = [stones[r - 1] for r in present]
     ys, xs = np.nonzero(roles)
     roles = roles[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
     return roles, stones

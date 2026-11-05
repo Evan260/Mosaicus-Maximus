@@ -1,6 +1,8 @@
 class_name Composer
 ## Turns a floor design into the colour map the layout reads: one colour per stone, magenta where nothing is laid.
 
+## Design pixels to a tile on the floor screen.
+const TILE_PX := 6
 ## Tiles the layout makes for each tile-sized square of floor, measured on real floors, for costing before laying.
 const TILES_PER_SQUARE := 1.07
 ## In a part map, motif parts start here: PART_MOTIF + 8 * placement + role, with role 7 for the outline.
@@ -8,6 +10,12 @@ const PART_MOTIF := 16
 const PART_GROUND := 1
 const PART_BORDER := 2
 const MAX_PARTS := 29
+## In a part map, wherever a placement at MAX_PARTS or later shows, since it has no codes of its own.
+const PART_COVERED := 15
+const COUNTS_KEPT := 32
+
+static var _counted := {}
+static var _counted_lock := Mutex.new()
 
 
 static func compose(design: FloorDesign, px: int = 6) -> Image:
@@ -50,17 +58,65 @@ static func part_map(design: FloorDesign, px: int) -> PackedByteArray:
 	var border := design.border.duplicate(true)
 	border["stones"] = range(4).map(func(k: int) -> String: return Stones.id_of(PART_BORDER + k))
 	BorderPainter.paint(labels, w, h, px, design.room_data(), border, inside)
-	for n in mini(design.placements.size(), MAX_PARTS):
-		var codes := PackedByteArray()
-		codes.resize(8)
-		for r in 8:
-			codes[r] = PART_MOTIF + n * 8 + r
+	var covered := PackedByteArray([PART_COVERED, PART_COVERED, PART_COVERED, PART_COVERED, PART_COVERED, PART_COVERED, PART_COVERED, PART_COVERED])
+	for n in design.placements.size():
+		var codes := covered
+		if n < MAX_PARTS:
+			codes = PackedByteArray()
+			codes.resize(8)
+			for r in 8:
+				codes[r] = PART_MOTIF + n * 8 + r
 		_stamp(labels, inside, w, h, px, design.placements[n], codes)
 	return labels
 
 
-## How many tiles of each stone the floor will need, keyed by stone id. Picture panels need four small tiles a square.
+## The floor screen's own tiles for a design, built into the layout given.
+static func lay_out(design: FloorDesign, layout: MosaicLayout = MosaicLayout.new()) -> MosaicLayout:
+	layout.build(compose(design, TILE_PX), TILE_PX, fine_mask(design, TILE_PX))
+	return layout
+
+
+## The tiles of a layout whose centres lie in a panel_mask, which come already laid.
+static func prelaid(layout: MosaicLayout, made: PackedByteArray) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	if made.is_empty():
+		return out
+	for i in layout.tile_count():
+		var at := Vector2i(layout.pos[i])
+		if at.x >= 0 and at.y >= 0 and at.x < layout.w and at.y < layout.h and made[at.y * layout.w + at.x] == 1:
+			out.append(i)
+	return out
+
+
+## How many tiles of each stone laying the floor takes, keyed by stone id, counted on the very tiles the floor screen lays.
 static func stone_counts(design: FloorDesign) -> Dictionary:
+	# Laying out a big floor takes seconds, so each count is kept, behind a lock so it can be counted on a worker thread.
+	var key := JSON.stringify(design.to_dict(), "", true, true)
+	_counted_lock.lock()
+	var known: Variant = _counted.get(key)
+	_counted_lock.unlock()
+	if known != null:
+		return (known as Dictionary).duplicate()
+	var layout := lay_out(design)
+	var made := PackedByteArray()
+	made.resize(layout.tile_count())
+	for i in prelaid(layout, panel_mask(design, TILE_PX)):
+		made[i] = 1
+	var out := {}
+	for i in layout.tile_count():
+		if made[i] == 0:
+			var id := Stones.id_of(layout.stone[i])
+			out[id] = int(out.get(id, 0)) + 1
+	_counted_lock.lock()
+	_counted[key] = out
+	while _counted.size() > COUNTS_KEPT:
+		_counted.erase(_counted.keys()[0])
+	_counted_lock.unlock()
+	return out.duplicate()
+
+
+## A quick guess at stone_counts from each stone's area, to show in the moment before the exact count is ready.
+static func stone_estimate(design: FloorDesign) -> Dictionary:
 	var px := 3
 	var img := compose(design, px)
 	var fine := fine_mask(design, px)
@@ -77,61 +133,37 @@ static func stone_counts(design: FloorDesign) -> Dictionary:
 			px_counts[s] = px_counts.get(s, 0) + (4 if not fine.is_empty() and fine[i] == 1 else 1)
 	var out := {}
 	for s in px_counts:
-		out[Stones.id_of(s)] = int(round(px_counts[s] / float(px * px) * TILES_PER_SQUARE))
+		out[Stones.id_of(s)] = maxi(1, int(round(px_counts[s] / float(px * px) * TILES_PER_SQUARE)))
 	return out
 
 
 ## 1 for every design pixel inside a picture panel, which the layout fills with half-size tiles. Empty if there are none.
 static func fine_mask(design: FloorDesign, px: int) -> PackedByteArray:
-	var out := PackedByteArray()
-	var any := false
-	for p in design.placements:
-		any = any or bool(p.get("fine", false))
-	if not any:
-		return out
-	var w := design.w * px
-	var h := design.h * px
-	out.resize(w * h)
-	for p in design.placements:
-		if not bool(p.get("fine", false)):
-			continue
-		var motif: String = p.get("motif", "")
-		var t := MotifLibrary.tiles(motif, float(p.get("size", 10)))
-		var rot := int(p.get("rot", 0))
-		if rot % 2 == 1:
-			t = Vector2(t.y, t.x)
-		var size := Vector2i(maxi(1, int(t.x * px)), maxi(1, int(t.y * px)))
-		var mask := MotifLibrary.mask(motif, size, rot, bool(p.get("flip", false)))
-		var ox := int((float(p.get("x", 0)) - t.x * 0.5) * px)
-		var oy := int((float(p.get("y", 0)) - t.y * 0.5) * px)
-		for y in size.y:
-			var gy := oy + y
-			if gy < 0 or gy >= h:
-				continue
-			for x in size.x:
-				var gx := ox + x
-				if gx >= 0 and gx < w and mask[y * size.x + x] > 0:
-					out[gy * w + gx] = 1
-	return out
+	if not design.placements.any(func(p: Dictionary) -> bool: return bool(p.get("fine", false))):
+		return PackedByteArray()
+	return _top_mask(design, px, func(p: Dictionary) -> bool: return bool(p.get("fine", false)), false)
 
 
 ## 1 for every design pixel of a picture panel set into the floor, which is laid already. Empty if there are none.
 static func panel_mask(design: FloorDesign, px: int) -> PackedByteArray:
-	var panels := design.placements.filter(func(p: Dictionary) -> bool: return str(p.get("panel", "")) != "")
-	var out := PackedByteArray()
-	if panels.is_empty():
-		return out
+	if not design.placements.any(func(p: Dictionary) -> bool: return str(p.get("panel", "")) != ""):
+		return PackedByteArray()
+	return _top_mask(design, px, func(p: Dictionary) -> bool: return str(p.get("panel", "")) != "", true)
+
+
+## 1 where the placement on top is one that wanted picks, stamped in order as _labels paints; ring says if its outline counts.
+static func _top_mask(design: FloorDesign, px: int, wanted: Callable, ring: bool) -> PackedByteArray:
 	var w := design.w * px
 	var h := design.h * px
-	var labels := PackedByteArray()
-	labels.resize(w * h)
+	var out := PackedByteArray()
+	out.resize(w * h)
 	var inside := PackedByteArray()
 	inside.resize(w * h)
 	inside.fill(1)
-	var codes := PackedByteArray([1, 1, 1, 1, 1, 1, 1, 1])
-	for p in panels:
-		_stamp(labels, inside, w, h, px, p, codes)
-	return labels
+	for p in design.placements:
+		var on := 1 if wanted.call(p) else 0
+		_stamp(out, inside, w, h, px, p, PackedByteArray([0, on, on, on, on, on, on, on if ring else 0]))
+	return out
 
 
 static func _shape(design: FloorDesign, w: int, h: int, px: int) -> PackedByteArray:

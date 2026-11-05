@@ -3,6 +3,7 @@ extends Node
 ## The client comes in on the left to say what they think and pay, and the workshop's story moves on.
 
 const JobBoard := preload("res://scripts/screens/job_board.gd")
+const ClientVisit := preload("res://scripts/screens/client_visit.gd")
 
 var job := {}
 var design: FloorDesign
@@ -25,6 +26,8 @@ var _stones := {}
 var _room: RoomView
 var _panel_bonus := 0
 var _wrap := 190.0
+var _wishes: ScrollContainer
+var _done := false
 
 
 func enter(args: Dictionary) -> void:
@@ -144,14 +147,20 @@ func _build_card() -> void:
 		Ui.label(col, "Your floor: %d stars. The rival's: %d stars." % [int(_verdict["stars"]), Looks.stars(float(job.get("rival", 0.6)))], "MutedLabel", _wrap)
 	elif kind == "copy":
 		Ui.label(col, "Likeness: %d%%" % int(round(float(_verdict.get("likeness", 0.0)) * 100.0)), "MutedLabel")
+	_wishes = ScrollContainer.new()
+	_wishes.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	col.add_child(_wishes)
+	var list := Ui.vbox(_wishes, 1)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for w in _verdict.get("wishes", []):
-		var r := Ui.hbox(col, 2)
+		var r := Ui.hbox(list, 2)
 		Ui.icon(r, "tick" if w["met"] else "cross")
 		Ui.label(r, w["text"], "", _wrap - 20)
 	if _first_taste:
-		var r := Ui.hbox(col, 2)
+		var r := Ui.hbox(list, 2)
 		Ui.icon(r, "book")
 		Ui.label(r, "Noted: %s." % " and ".join((Data.client(job["client"])["taste"] as Array).map(func(t: String) -> String: return Looks.TASTES[t]["text"])), "MutedLabel", _wrap - 20)
+	_wishes.visible = list.get_child_count() > 0
 	var found := str(job.get("discovery", ""))
 	if found != "" and not found in Game.state["unlocked_motifs"]:
 		var r := Ui.hbox(col, 3)
@@ -186,6 +195,7 @@ func _build_card() -> void:
 		Guide.note("reveal", "The client pays you, and your reputation grows. Enough reputation opens the next chapter, with new stone and patterns.", "top_right" if _room else "top_left")
 	var place := func() -> void:
 		var s := Nav.ui_size()
+		ClientVisit.fit_list(_card, _wishes, s.y - 8.0)
 		_card.reset_size()
 		_card.position = Vector2(6.0 if _room else s.x - _card.size.x - 6, floorf((s.y - _card.size.y) * 0.5))
 	Nav.resized.connect(place)
@@ -289,6 +299,9 @@ func _panels_bonus() -> int:
 
 
 func _finish() -> void:
+	if _done:
+		return
+	_done = true
 	if job.get("kind", "") == "panel":
 		Story.finish_panel(Game.state, job, {"score": _score, "design": design.to_dict()})
 		Saves.save()

@@ -58,6 +58,9 @@ var _state_img: Image
 var _state_tex: ImageTexture
 var _state_dirty := false
 var _covered := [0, 0, 0]
+## 1 for each grout cell over the floor, so the corners beside an apse and an atrium's pool don't count towards a wipe.
+var _floor_cells := PackedByteArray()
+var _floor_total := 1
 ## For a restoration: the tiles missing from the old floor, the stone the player chose for each, and the stone in use.
 var missing := {}
 var repaired := {}
@@ -152,11 +155,16 @@ func replay(sequence: PackedInt32Array, seconds: float) -> void:
 	if sequence.is_empty():
 		lay_rest(seconds)
 		return
-	var n := sequence.size()
 	var seen := {}
+	var once := PackedInt32Array()
+	# A floor in the library can list a tile twice, and each tile must land only once for the count of laid tiles to hold.
+	for i in sequence:
+		if not seen.has(i):
+			seen[i] = true
+			once.append(i)
+	var n := once.size()
 	for k in n:
-		seen[sequence[k]] = true
-		_schedule(sequence[k], now + float(k) / maxf(1.0, n) * seconds)
+		_schedule(once[k], now + float(k) / maxf(1.0, n) * seconds)
 	for i in layout.tile_count():
 		if not seen.has(i):
 			_schedule(i, now + seconds + _rng.randf() * 0.3)
@@ -174,7 +182,7 @@ func wash(seconds: float) -> void:
 		_state.fill(int(v))
 		_state_dirty = true, 0.0, 255.0, seconds)
 	tw.tween_callback(func() -> void:
-		_covered = [_state_w() * _state_h(), _state_w() * _state_h(), _state_w() * _state_h()]
+		_covered = [_floor_total, _floor_total, _floor_total]
 		phase = Phase.DONE)
 
 
@@ -243,7 +251,7 @@ func _bury() -> void:
 		for x in sw:
 			var clear := clampf((noise[y * sw + x] - 0.06) * 3.2, 0.0, 1.0)
 			_state[(y * sw + x) * 3 + 2] = int(clear * 255.0)
-			if clear >= 0.5:
+			if clear >= 0.5 and _floor_cells[y * sw + x] == 1:
 				_covered[2] += 1
 	_state_dirty = true
 
@@ -272,6 +280,9 @@ func lift(from: Vector2, to: Vector2, radius: float) -> int:
 			repaired.erase(i)
 			_stone_laid[layout.stone[i]] = int(_stone_laid.get(layout.stone[i], 0)) - 1
 			laid -= 1
+			var at := order.rfind(i)
+			if at >= 0:
+				order.remove_at(at)
 			_start[i] = UNSET
 			_landed_mm.set_instance_custom_data(i, Color(UNSET, _packed[i], -100.0, layout.angle[i]))
 			count += 1
@@ -384,7 +395,7 @@ func show_finished() -> void:
 	laid = layout.tile_count()
 	_done = true
 	_state.fill(255)
-	_covered = [_state_w() * _state_h(), _state_w() * _state_h(), _state_w() * _state_h()]
+	_covered = [_floor_total, _floor_total, _floor_total]
 	_state_dirty = true
 	_chalk.visible = false
 	phase = Phase.DONE
@@ -424,8 +435,6 @@ func _process(delta: float) -> void:
 		_state_dirty = false
 		_state_img.set_data(_state_w(), _state_h(), false, Image.FORMAT_RGB8, _state)
 		_state_tex.update(_state_img)
-	if _flying.is_empty():
-		return
 	var still := PackedInt32Array()
 	var batch := PackedInt32Array()
 	for i in _flying:
@@ -565,6 +574,12 @@ func _add_mortar() -> void:
 	_state.resize(_state_w() * _state_h() * 3)
 	for i in _state_w() * _state_h():
 		_state[i * 3 + 2] = 255
+	_floor_cells.resize(_state_w() * _state_h())
+	_floor_cells.fill(0)
+	for i in w * h:
+		if layout.labels[i] != Stones.NO_TILE:
+			_floor_cells[(i / w) / STATE_DIV * _state_w() + (i % w) / STATE_DIV] = 1
+	_floor_total = maxi(1, _floor_cells.count(1))
 	_state_img = Image.create_from_data(_state_w(), _state_h(), false, Image.FORMAT_RGB8, _state)
 	_state_tex = ImageTexture.create_from_image(_state_img)
 	var bed_sprite := Sprite2D.new()
@@ -634,10 +649,10 @@ func paint(from: Vector2, to: Vector2, radius: float, ch: int = 0) -> float:
 				var old := _state[i]
 				if v > old:
 					_state[i] = v
-					if old < 128 and v >= 128:
+					if old < 128 and v >= 128 and _floor_cells[y * sw + x] == 1:
 						_covered[ch] += 1
 	_state_dirty = true
-	var total := float(sw * sh)
+	var total := float(_floor_total)
 	if _covered[ch] / total >= FINISH_AT[ch]:
 		_finish_channel(ch)
 	return (_covered[ch] - before) / total
@@ -645,7 +660,7 @@ func paint(from: Vector2, to: Vector2, radius: float, ch: int = 0) -> float:
 
 ## How far the job in hand has come, from 0 to 1, for the bar at the top of the screen.
 func progress() -> float:
-	var total := float(_state_w() * _state_h())
+	var total := float(_floor_total)
 	match phase:
 		Phase.LAY:
 			return float(laid) / maxf(1.0, layout.tile_count())
@@ -659,7 +674,7 @@ func progress() -> float:
 
 
 func coverage() -> float:
-	var total := float(_state_w() * _state_h())
+	var total := float(_floor_total)
 	if phase == Phase.GROUT:
 		return (_covered[0] + _covered[1]) * 0.5 / total
 	if phase == Phase.POLISH:
@@ -686,13 +701,13 @@ func _finish_channel(ch: int) -> void:
 	var all := _state_w() * _state_h()
 	for i in all:
 		_state[i * 3 + ch] = 255
-	_covered[ch] = all
+	_covered[ch] = _floor_total
 	_state_dirty = true
 	if ch == 2:
 		phase = Phase.REPAIR if not missing.is_empty() else Phase.GROUT
 		phase_changed.emit(phase)
 		return
-	if _covered[0] < all or _covered[1] < all:
+	if _covered[0] < _floor_total or _covered[1] < _floor_total:
 		return
 	phase = Phase.DONE
 	if phase == Phase.DONE:

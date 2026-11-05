@@ -3,7 +3,12 @@ class_name Story
 
 
 static func jobs_allowed(state: Dictionary) -> int:
-	return 1 + (1 if int(state["apprentices"]) > 0 else 0)
+	return 1 + apprentices(state)
+
+
+## The apprentices at work, each worth a job a day and a wage: no more than the workbench hires, whatever an older save says.
+static func apprentices(state: Dictionary) -> int:
+	return mini(int(state["apprentices"]), int(Data.upgrades.get("apprentice", {}).get("repeat", 1)))
 
 
 static func jobs_left(state: Dictionary) -> int:
@@ -67,26 +72,51 @@ static func _dog_dig(state: Dictionary, rng: RandomNumberGenerator) -> void:
 		"text": "%s came home covered in dirt. Next door, at the bottom of a fresh hole, is the corner of an old mosaic floor. It's on the job board." % dog})
 
 
-## A merchant ship with a stone the town can't usually get, one chapter ahead, sold today only.
+## A merchant ship, today only: a stone the town can't usually get, a chapter ahead, or once it has them all, a rare one for less.
 static func _ship(state: Dictionary, rng: RandomNumberGenerator) -> void:
 	var day := int(state["day"])
 	if day < 3 or day - int(state.get("ship", {}).get("day", -9)) < 3 or rng.randf() > Data.num("ship.chance", 0.3):
 		return
-	var cargo := Stones.LIST.filter(func(st: Dictionary) -> bool: return int(st["tier"]) <= int(state["chapter"]) + 1 and not st["id"] in state["unlocked_stones"])
-	if cargo.is_empty():
-		return
+	var reach := int(state["chapter"]) + 1
+	var cargo := Stones.LIST.filter(func(st: Dictionary) -> bool: return int(st["tier"]) <= reach and not st["id"] in state["unlocked_stones"])
+	var bargain := cargo.is_empty()
+	if bargain:
+		var top := 0
+		for st in Stones.LIST:
+			if int(st["tier"]) <= reach:
+				top = maxi(top, int(st["tier"]))
+		cargo = Stones.LIST.filter(func(st: Dictionary) -> bool: return int(st["tier"]) == top)
 	var stone: Dictionary = cargo[rng.randi() % cargo.size()]
 	var ports := ["Alexandria", "Carthage", "Athens", "Antioch", "Massilia"]
 	var port: String = ports[rng.randi() % ports.size()]
-	state["ship"] = {"day": day, "stone": stone["id"], "port": port}
-	state["pending_events"].append({"kind": "ship", "title": "A ship in the harbour",
-		"text": "A ship from %s has come in with %s. The stone merchant has it today only; buy a sack and it's yours to use from now on." % [port, str(stone["name"]).to_lower()]})
+	state["ship"] = {"day": day, "stone": stone["id"], "port": port, "bargain": bargain}
+	var text := "A ship from %s has come in with %s. The stone merchant has it today only; buy a sack and it's yours to use from now on." % [port, str(stone["name"]).to_lower()]
+	if bargain:
+		text = "A ship from %s has come in with %s. The stone merchant has a sack of it today, for less than the usual price." % [port, str(stone["name"]).to_lower()]
+	state["pending_events"].append({"kind": "ship", "title": "A ship in the harbour", "text": text})
 
 
-## The stone a ship brought today, or nothing.
+## The stone today's ship still offers, or nothing: one sack, and a stone the town couldn't get only until it can.
 static func ship_stone(state: Dictionary) -> String:
 	var ship: Dictionary = state.get("ship", {})
-	return str(ship.get("stone", "")) if int(ship.get("day", -1)) == int(state["day"]) else ""
+	var id := str(ship.get("stone", ""))
+	if int(ship.get("day", -1)) != int(state["day"]) or bool(ship.get("sold", false)):
+		return ""
+	if id in state["unlocked_stones"] and not bool(ship.get("bargain", false)):
+		return ""
+	return id
+
+
+## What the merchant says of today's ship, for the card beside the shelves.
+static func ship_offer(state: Dictionary) -> String:
+	var id := ship_stone(state)
+	if id == "":
+		return ""
+	var ship: Dictionary = state["ship"]
+	var name := str(Stones.LIST[Stones.index(id)]["name"])
+	if bool(ship.get("bargain", false)):
+		return "%s, off the ship from %s. Today only: one sack, for less than the shelf price." % [name, ship.get("port", "abroad")]
+	return "%s, off the ship from %s. Today only: buy a sack and it's yours to use from now on." % [name, ship.get("port", "abroad")]
 
 
 ## What the player knows of a job's client's taste: what townsfolk said, or what a named client showed before.
@@ -126,8 +156,7 @@ static func finish_job(state: Dictionary, job: Dictionary, result: Dictionary) -
 	if not f.is_empty() and str(job.get("festival", "")) == str(f["id"]) and stars >= int(Data.num("festival.stars", 4)) and int(state.get("festival_won", -1)) != int(state["day"]):
 		var prize := festival_prize(state)
 		state["festival_won"] = state["day"]
-		state["coins"] = int(state["coins"]) + prize
-		stats["earned"] = int(stats.get("earned", 0)) + prize
+		Game.earn(prize, "The %s prize" % f["name"])
 		state["reputation"] = int(state["reputation"]) + int(Data.num("festival.reputation", 4))
 		var won: Array = stats.get("festivals", [])
 		if not f["id"] in won:
@@ -279,7 +308,7 @@ static func refuse(state: Dictionary, job: Dictionary) -> void:
 ## Closes the day: pays the apprentices, lets the rival grow, and returns the day's tally for the wax tablet.
 static func end_day(state: Dictionary) -> Dictionary:
 	var day := int(state["day"])
-	var wages := int(state["apprentices"]) * int(Data.num("wage", 6))
+	var wages := apprentices(state) * int(Data.num("wage", 6))
 	var paid := mini(wages, int(state["coins"]))
 	state["coins"] = int(state["coins"]) - paid
 	if paid > 0:

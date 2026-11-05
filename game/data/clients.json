@@ -10,7 +10,7 @@
 	 "greeting": "Thieves, everywhere! I want every one of them to know there's a dog in this house. There is no dog. That's the point.",
 	 "arc": [
 		{"must": ["dog"], "line": "A guard dog by the door, please, and big. Bigger than that.", "after": "Not one thief since! Mind you, there wasn't one before either."},
-		{"must": ["cave_canem"], "line": "The dog worked so well I want the words too. CAVE CANEM, large, so even the stupid ones understand.", "after": "My neighbour asked to borrow the dog. I said it was busy."},
+		{"must": ["cave_canem"], "room": "vestibule", "line": "The dog worked so well I want the words too. CAVE CANEM, large, so even the stupid ones understand.", "after": "My neighbour asked to borrow the dog. I said it was busy."},
 		{"tags": ["garden"], "line": "I've taken in a lodger. A cat. I'd like something pretty for the bedroom.", "after": "The cat sleeps on it every afternoon. High praise."}
 	 ]},
 	{"id": "felix", "name": "Felix the baker", "trade": "the baker by the fountain", "portrait": "felix", "chapter": 1, "rooms": ["shop", "bakery", "dining_room"],
@@ -56,7 +56,7 @@
 		{"tags": ["feast"], "line": "My guests should look down and see a feast. Fish, loaves, wine. They'll be hungry before the food arrives.", "after": "A senator laughed so hard he fell off his couch. Perfect."},
 		{"tags": ["myth"], "want_stones": ["gold"], "line": "Gold. More gold. And Medusa, to frighten my brother-in-law.", "after": "He hasn't visited since. Worth every denarius."}
 	 ]},
-	{"id": "valeria", "name": "Valeria", "trade": "a priestess of Venus", "portrait": "valeria", "chapter": 3, "rooms": ["nymphaeum", "temple", "niche"],
+	{"id": "valeria", "name": "Valeria", "trade": "a priestess of Venus", "portrait": "valeria", "chapter": 4, "rooms": ["nymphaeum", "temple", "niche"],
 	 "likes": ["myth", "sea"], "loves": ["gold", "blue_glass", "pink_marble"], "hates": [], "taste": ["mirrored", "calm"], "budget": [240, 380],
 	 "greeting": "Venus was born from the sea foam. Her house should remember it.",
 	 "arc": [

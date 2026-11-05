@@ -147,9 +147,19 @@ func short_of(counts: Dictionary) -> Dictionary:
 	return short
 
 
-## What a sack of a stone costs at the merchant's.
+## What a sack of a stone costs at the merchant's, after the workshop's upgrades.
 func sack_price(id: String) -> int:
-	return int(ceil(stone_price(id) * Data.num("sack", 100)))
+	var p := roundi(Data.stone_price(id) * Data.num("sack", 100))
+	if "glass_furnace" in state["upgrades"] and Stones.LIST[Stones.index(id)]["material"] == Stones.Kind.GLASS:
+		p = _less(p, Data.num("savings.glass_furnace", 0.33))
+	if "cutting_bench" in state["upgrades"]:
+		p = _less(p, Data.num("savings.cutting_bench", 0.1))
+	return p
+
+
+## A price with a share taken off, in whole denarii; the saving is never less than a denarius, so a cheap sack still costs less.
+static func _less(price: int, share: float) -> int:
+	return maxi(1, price - maxi(1, roundi(price * share)))
 
 
 ## How many sacks of each stone would cover what a floor is short of.
@@ -199,12 +209,30 @@ func buy_sack(id: String) -> bool:
 
 ## A stone's price per tile after the workshop's upgrades.
 func stone_price(id: String) -> float:
-	var p := Data.stone_price(id)
-	if "cutting_bench" in state["upgrades"]:
-		p *= 0.9
-	if "glass_furnace" in state["upgrades"] and Stones.LIST[Stones.index(id)]["material"] == Stones.Kind.GLASS:
-		p *= 0.67
-	return p
+	return sack_price(id) / Data.num("sack", 100)
+
+
+## What the sack on today's ship costs: more than the merchant's for a stone the town can't get, less for one it can.
+func ship_sack_price() -> int:
+	var id := Story.ship_stone(state)
+	if id == "":
+		return 0
+	if bool(state["ship"].get("bargain", false)):
+		return _less(sack_price(id), Data.num("ship.bargain", 0.25))
+	return int(ceil(roundi(Data.stone_price(id) * Data.num("sack", 100)) * Data.num("ship.price_scale", 1.5)))
+
+
+## Buys the sack on today's ship; a stone the town couldn't get is the workshop's to use from then on.
+func buy_from_ship() -> bool:
+	var id := Story.ship_stone(state)
+	if id == "" or not spend(ship_sack_price(), "Stone off the ship: " + str(Stones.LIST[Stones.index(id)]["name"])):
+		return false
+	state["ship"]["sold"] = true
+	bump("ship_stones")
+	if not has_stone(id):
+		state["unlocked_stones"].append(id)
+	add_stock(id, int(Data.num("sack", 100)))
+	return true
 
 
 func has_stone(id: String) -> bool:

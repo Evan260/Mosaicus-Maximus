@@ -18,6 +18,7 @@ varying float seed;
 varying float stone_f;
 varying float shimmer_t;
 varying float ang;
+varying vec4 modulate;
 
 const float QUAD = 1.8;
 
@@ -40,6 +41,7 @@ void vertex() {
 	seed = (INSTANCE_CUSTOM.y - stone_f * 1000.0) / 1000.0;
 	shimmer_t = now - INSTANCE_CUSTOM.z;
 	ang = INSTANCE_CUSTOM.w;
+	modulate = COLOR;
 }
 
 void fragment() {
@@ -136,5 +138,5 @@ void fragment() {
 			discard;
 		}
 	}
-	COLOR = col;
+	COLOR = col * modulate;
 }

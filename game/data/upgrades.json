@@ -1,5 +1,5 @@
 [
-	{"id": "apprentice", "name": "Take on an apprentice", "cost": 90, "chapter": 1, "repeat": 3, "text": "A second job each day, for a wage of 6 denarii a day."},
+	{"id": "apprentice", "name": "Take on an apprentice", "cost": 90, "chapter": 1, "text": "A second job each day, for a wage of 6 denarii a day."},
 	{"id": "big_brush", "name": "Wide laying trowel", "cost": 60, "chapter": 1, "text": "A bigger brush for laying tiles."},
 	{"id": "amphorae", "name": "Wine jars for the corner", "cost": 30, "chapter": 1, "text": "A touch of comfort. The dog likes to sleep behind them."},
 	{"id": "plants", "name": "Potted plants", "cost": 40, "chapter": 1, "text": "A little green for the workshop."},

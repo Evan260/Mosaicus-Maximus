@@ -5,6 +5,7 @@ const JobBoard := preload("res://scripts/screens/job_board.gd")
 
 var job := {}
 var _root: Control
+var _desk: PanelContainer
 var _card: PanelContainer
 var _speech: Label
 var _price: HSlider
@@ -13,6 +14,7 @@ var _mood: Label
 var _expect: Label
 var _shake: Button
 var _buttons: HBoxContainer
+var _wishes: ScrollContainer
 var _done := false
 ## How many more times the client will hear a price they think too high before walking out.
 var _patience := 2
@@ -31,7 +33,7 @@ func enter(args: Dictionary) -> void:
 	var restore := kind == "restoration"
 	_root = Control.new()
 	Nav.ui.add_child(_root)
-	var desk := Ui.panel(_root, "BoardPanel")
+	_desk = Ui.panel(_root, "BoardPanel")
 	_card = Ui.panel(_root, "PagePanel")
 	var row := Ui.hbox(_card, 8)
 	var left := Ui.vbox(row, 4)
@@ -39,18 +41,25 @@ func enter(args: Dictionary) -> void:
 	Ui.label(left, str(job.get("client_name", "")), "Heading", 90)
 	var room := Data.room(job.get("room", ""))
 	Ui.label(left, "%s, %d by %d tiles" % [room.get("name", ""), int(room.get("w", 0)), int(room.get("h", 0))], "MutedLabel", 90)
-	var right := Ui.vbox(row, 5)
+	var right := Ui.vbox(row, 4)
 	var bubble := Ui.panel(right, "CardPanel")
 	_speech = Ui.label(bubble, _opening_line(), "", 290)
+	var p := JobFactory.pronouns(job)
 	if kind == "commission":
 		var wishes := Brief.score(job.get("brief", {}), FloorDesign.new())["wishes"] as Array
 		if not wishes.is_empty():
-			Ui.label(right, "What %s wants" % JobFactory.pronouns(job)["he"], "Heading")
-			for w in wishes:
-				Ui.tip_on(Ui.label(right, "• " + str(w["text"]), "", 290), Brief.help(w, Game.state["unlocked_motifs"]))
+			Ui.label(right, "What %s wants" % p["he"], "Heading")
+		_wishes = ScrollContainer.new()
+		_wishes.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		right.add_child(_wishes)
+		var list := Ui.vbox(_wishes, 1)
+		list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for w in wishes:
+			Ui.tip_on(Ui.label(list, "• " + str(w["text"]), "", 290), Brief.help(w, Game.state["unlocked_motifs"]))
 		var known := Story.known_taste(Game.state, job)
 		if not known.is_empty() and not bool(job.get("taste_said", false)):
-			Ui.label(right, "From your notebook: %s " % JobFactory.pronouns(job)["he"] + " and ".join(known.map(func(t: String) -> String: return Looks.TASTES[t]["text"])) + ".", "MutedLabel", 290)
+			Ui.label(list, "From your notebook: %s " % p["he"] + " and ".join(known.map(func(t: String) -> String: return Looks.TASTES[t]["text"])) + ".", "MutedLabel", 290)
+		_wishes.visible = list.get_child_count() > 0
 	elif kind == "copy":
 		var sketch := TextureRect.new()
 		sketch.texture = ImageTexture.create_from_image(Composer.picture(FloorDesign.from_dict(job["target"]), 3))
@@ -58,7 +67,7 @@ func enter(args: Dictionary) -> void:
 		sketch.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		sketch.custom_minimum_size = Vector2(150, 76)
 		right.add_child(sketch)
-		Ui.label(right, "They pay for likeness: the closer the copy, the more.", "MutedLabel", 290)
+		Ui.label(right, "%s pays for likeness: the closer the copy, the more." % p["he"].capitalize(), "MutedLabel", 290)
 	var budget := int(job.get("budget", 0))
 	if kind == "contest":
 		Ui.label(right, "The prize is %s. You pay for your own stone." % Ui.coins_text(budget), "", 290)
@@ -67,7 +76,7 @@ func enter(args: Dictionary) -> void:
 		_shake = Ui.button(right, "Enter the contest", _take, "tick", true)
 		Ui.button(right, "Not this time", _decline, "cross")
 	elif restore:
-		Ui.label(right, "They pay %s, and supply the stone for any repairs." % Ui.coins_text(budget), "", 230)
+		Ui.label(right, "%s pays %s, and supplies the stone for any repairs." % [p["he"].capitalize(), Ui.coins_text(budget)], "", 230)
 		job["asked"] = budget
 		job["expected"] = 0.5
 		_shake = Ui.button(right, "Take the job", _take, "tick", true)
@@ -91,19 +100,40 @@ func enter(args: Dictionary) -> void:
 		_shake.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		Ui.button(_buttons, "Turn it down", _decline, "cross")
 		_update_price()
-	var place := func() -> void:
-		var s := Nav.ui_size()
-		_root.size = s
-		Ui.put(desk, Vector2.ZERO, s)
-		_card.reset_size()
-		_card.position = ((s - _card.size) * 0.5).floor()
-	Nav.resized.connect(place)
-	place.call_deferred()
+	Nav.resized.connect(_place)
+	_place.call_deferred()
 	Audio.ui("rustle", -8.0)
 	if str(job.get("kind", "commission")) in ["commission", "copy"]:
-		Guide.note("visit", "The client says what they want. Slide the coins to set your price: the more you ask, the more they expect, and ask too much and they'll haggle. Then shake on it.", "top_left")
+		Guide.note("visit", "The client says what %s wants. Slide the coins to set your price: the more you ask, the more %s expects, and ask too much and %s'll haggle. Then shake on it." % [p["he"], p["he"], p["he"]], "bottom_right")
 	else:
-		Guide.note("visit", "Read what's wanted here, then take the job or turn it down.", "top_left")
+		Guide.note("visit", "Read what's wanted here, then take the job or turn it down.", "bottom_right")
+
+
+## The card in the middle, with the wish list only as tall as fits, so the price and buttons always show.
+func _place() -> void:
+	var s := Nav.ui_size()
+	_root.size = s
+	Ui.put(_desk, Vector2.ZERO, s)
+	if _wishes:
+		fit_list(_card, _wishes, s.y - 8.0)
+	_card.reset_size()
+	_card.position = ((s - _card.size) * 0.5).floor()
+
+
+## Gives a card's scrolling list as many whole lines as fit once the card fits in the height; the rest scroll.
+static func fit_list(card: Control, scroll: ScrollContainer, height: float) -> void:
+	scroll.custom_minimum_size.y = 0.0
+	var spare := height - card.get_combined_minimum_size().y
+	var list := scroll.get_child(0) as BoxContainer
+	var gap := float(list.get_theme_constant("separation"))
+	var shown := 0.0
+	var bottom := -gap
+	for c in list.get_children():
+		bottom += gap + (c as Control).get_combined_minimum_size().y
+		if bottom > spare:
+			break
+		shown = bottom
+	scroll.custom_minimum_size.y = shown
 
 
 func _opening_line() -> String:
@@ -165,6 +195,7 @@ func _shake_on_it() -> void:
 		_speech.text = "\"%s? No, no. I could go to %s, and that's generous.\"" % [Ui.coins_text(asked), Ui.coins_text(_offer)]
 		_price.value = _offer
 		_update_price()
+		_place.call_deferred()
 		return
 	_done = true
 	_speech.text = "\"%s? That's twice now. I'll try the workshop up on the hill.\"" % Ui.coins_text(asked)
@@ -174,9 +205,12 @@ func _shake_on_it() -> void:
 		c.queue_free()
 	_price.editable = false
 	Ui.button(_buttons, "Back to the job board", func() -> void: Nav.go("job_board"), "arrow_l", true).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_place.call_deferred()
 
 
 func _take() -> void:
+	if _done:
+		return
 	_done = true
 	Audio.ui("coins", -8.0)
 	Game.state["active_job"] = job
@@ -189,6 +223,9 @@ func _take() -> void:
 
 
 func _decline() -> void:
+	if _done:
+		return
+	_done = true
 	Story.refuse(Game.state, job)
 	Saves.save()
 	Nav.go("job_board")

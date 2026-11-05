@@ -13,6 +13,7 @@ var _mask: Image
 var _targets: Array[CanvasItem] = []
 var _glow := 0.0
 var _tween: Tween
+var _pressed := false
 
 
 ## A hotspot over a rectangle, or over the visible pixels of a picture placed at the rectangle's corner.
@@ -60,9 +61,12 @@ func _has_point(point: Vector2) -> bool:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()
-		clicked.emit()
+		# The release comes here even off the shape, since this took the press, so letting go elsewhere cancels.
+		if not event.pressed and _pressed and _has_point(event.position):
+			clicked.emit()
+		_pressed = event.pressed
 
 
 func _fade(to: float) -> void:

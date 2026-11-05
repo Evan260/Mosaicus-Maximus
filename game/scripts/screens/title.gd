@@ -9,6 +9,7 @@ var _layout: MosaicLayout
 var _t := 0.0
 var _name_edit: LineEdit
 var _chooser: DogChooser
+var _begun := false
 
 
 func enter(_args: Dictionary) -> void:
@@ -147,6 +148,8 @@ func _show_new() -> void:
 
 
 func _begin() -> void:
+	if _begun:
+		return
 	var slot := Saves.free_slot()
 	if slot == 0:
 		Audio.ui("nope")
@@ -154,6 +157,7 @@ func _begin() -> void:
 	var who := _name_edit.text.strip_edges()
 	if who == "":
 		who = _name_edit.placeholder_text
+	_begun = true
 	Game.new_game(who, _chooser.chosen())
 	Saves.slot = slot
 	Saves.save(slot)

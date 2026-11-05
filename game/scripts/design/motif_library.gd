@@ -2,20 +2,27 @@ class_name MotifLibrary
 ## Motif pictures as masks of numbered colour areas ("roles") at any size, turn and mirror, smoothed as they grow.
 
 static var _cache := {}
+static var _lock := Mutex.new()
 # Role colour bits (red 1, green 2, blue 4) mapped to role numbers.
 const CODE_TO_ROLE := {1: 1, 2: 2, 4: 3, 3: 4, 5: 5, 6: 6}
 
 
 static func source(id: String) -> Image:
-	if _cache.has(id):
-		return _cache[id]
+	# Floors are composed on worker threads while the design table composes on the main one.
+	_lock.lock()
+	var known: Image = _cache.get(id)
+	_lock.unlock()
+	if known:
+		return known
 	var m := Data.motif(id)
 	if m.is_empty() or not ResourceLoader.exists(m["file"]):
 		return null
 	var img := (load(m["file"]) as Texture2D).get_image()
 	img.decompress()
 	img.convert(Image.FORMAT_RGBA8)
+	_lock.lock()
 	_cache[id] = img
+	_lock.unlock()
 	return img
 
 

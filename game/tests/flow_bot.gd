@@ -36,6 +36,12 @@ func _run() -> void:
 			wanted = wanted or t in m.get("tags", [])
 		if wanted and Game.has_motif(id) and design.placements.size() < 3:
 			design.add(id, design.w * (0.3 + 0.2 * design.placements.size()), design.h * 0.5, minf(design.w, design.h) * 0.3)
+	# Like the design table, every motif is laid in the nearest stone the workshop has.
+	for p in design.placements:
+		for k in p["stones"]:
+			p["stones"][k] = Stones.nearest(p["stones"][k], Game.state["unlocked_stones"])
+		if str(p.get("outline", "")) != "":
+			p["outline"] = Stones.nearest(p["outline"], Game.state["unlocked_stones"])
 	for s in job["brief"].get("want_stones", []):
 		if not design.placements.is_empty():
 			design.placements[0]["stones"]["1"] = s

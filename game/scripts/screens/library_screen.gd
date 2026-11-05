@@ -30,8 +30,11 @@ var _layout_for := ""
 var _task := -1
 var _gif_task := -1
 var _gif := PackedByteArray()
-var _after_build := ""
+var _gif_for := {}
+## What to do once the chosen floor's tiles are set out: "watch", "copy" or both.
+var _after_build: Array = []
 var _slots := {}
+var _leaving := false
 
 
 func enter(args: Dictionary) -> void:
@@ -161,6 +164,8 @@ func _choose(e: Dictionary) -> void:
 	var line := ", ".join(bits)
 	_info.text = line[0].to_upper() + line.substr(1)
 	_note.text = ""
+	_after_build.clear()
+	_copy.disabled = _gif_task >= 0
 	_remove.remove_meta("armed")
 	_remove.modulate = Color.WHITE
 	_watch.text = "Watch it being laid"
@@ -170,34 +175,36 @@ func _process(_delta: float) -> void:
 	if _task >= 0 and WorkerThreadPool.is_task_completed(_task):
 		WorkerThreadPool.wait_for_task_completion(_task)
 		_task = -1
-		var next := _after_build
-		_after_build = ""
-		if next == "watch":
-			_start_replay()
-		elif next == "copy":
-			_make_gif()
+		var next := _after_build.duplicate()
+		_after_build.clear()
+		for n in next:
+			_with_layout(n)
 	if _gif_task >= 0 and WorkerThreadPool.is_task_completed(_gif_task):
 		WorkerThreadPool.wait_for_task_completion(_gif_task)
 		_gif_task = -1
-		var ok := Library.export_picture(_chosen) and Library.export_gif(_chosen, _gif)
-		_note.text = "Copied to Pictures, in a Mosaicus Maximus folder." if ok else "That couldn't be copied."
-		_copy.disabled = false
-		Audio.ui("page_turn", -8.0)
+		_gif_done()
 
 
-## Builds the floor's tiles from its design on a worker thread, then carries on with what was asked for.
+func _gif_done() -> void:
+	var ok := Library.export_picture(_gif_for) and Library.export_gif(_gif_for, _gif)
+	_note.text = "Copied to Pictures, in a Mosaicus Maximus folder." if ok else "That couldn't be copied."
+	_copy.disabled = false
+	Audio.ui("page_turn", -8.0)
+
+
+## Builds the chosen floor's tiles on a worker thread, after any build already running, then does what was asked.
 func _with_layout(next: String) -> void:
-	if _layout and _layout_for == str(_chosen["id"]):
-		_after_build = ""
+	if _task < 0 and _layout and _layout_for == str(_chosen["id"]):
 		if next == "watch":
 			_start_replay()
 		else:
 			_make_gif()
 		return
+	if not next in _after_build:
+		_after_build.append(next)
+	_note.text = "Setting out the tiles..."
 	if _task >= 0:
 		return
-	_after_build = next
-	_note.text = "Setting out the tiles..."
 	var design := FloorDesign.from_dict(_chosen["design"])
 	var layout := MosaicLayout.new()
 	_layout = layout
@@ -206,6 +213,8 @@ func _with_layout(next: String) -> void:
 
 
 func _watch_it() -> void:
+	if _leaving:
+		return
 	if _vp:
 		_stop_replay()
 		_watch.text = "Watch it being laid"
@@ -260,7 +269,7 @@ func _stop_replay() -> void:
 
 
 func _copy_it() -> void:
-	if _gif_task >= 0:
+	if _leaving or _gif_task >= 0:
 		return
 	_copy.disabled = true
 	_with_layout("copy")
@@ -268,25 +277,40 @@ func _copy_it() -> void:
 
 func _make_gif() -> void:
 	_note.text = "Making the time-lapse..."
+	_gif_for = _chosen
 	var layout := _layout
 	var order := Library.order_of(_chosen)
 	_gif_task = WorkerThreadPool.add_task(func() -> void: _gif = Timelapse.make(layout, order))
 
 
 func _remove_it() -> void:
+	if _leaving:
+		return
 	if not _remove.has_meta("armed"):
 		_remove.set_meta("armed", true)
 		_remove.modulate = Color(1.0, 0.6, 0.5)
 		Ui.tip_on(_remove, "Click again to take this floor out of the library")
 		return
+	_finish_tasks()
 	Library.remove(_chosen)
 	Audio.ui("rustle")
 	Nav.go("library", {"back": _back_to})
 
 
 func _leave() -> void:
+	if _leaving:
+		return
+	_finish_tasks()
+	Nav.go(_back_to)
+
+
+## Waits for the worker threads before the screen goes, since the time-lapse is written into it.
+func _finish_tasks() -> void:
+	_leaving = true
 	if _task >= 0:
 		WorkerThreadPool.wait_for_task_completion(_task)
+		_task = -1
 	if _gif_task >= 0:
 		WorkerThreadPool.wait_for_task_completion(_gif_task)
-	Nav.go(_back_to)
+		_gif_task = -1
+		_gif_done()

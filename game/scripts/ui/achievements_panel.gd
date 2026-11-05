@@ -35,7 +35,10 @@ func _build() -> void:
 		Ui.label(text, str(a["text"]), "" if earned else "MutedLabel", 220)
 	var done := Ui.button(col, "Done", func() -> void: queue_free(), "tick", true)
 	done.size_flags_horizontal = Control.SIZE_SHRINK_END
-	var place := func() -> void:
-		reset_size()
-		position = ((Nav.ui_size() - size) * 0.5).floor()
-	place.call_deferred()
+	Nav.resized.connect(_place)
+	_place.call_deferred()
+
+
+func _place() -> void:
+	reset_size()
+	position = ((Nav.ui_size() - size) * 0.5).floor()

@@ -18,6 +18,8 @@ const GOLD := Color8(236, 196, 96)
 var texture: Texture2D
 var tiles := Vector2(40, 28)
 var selection := Rect2()
+## False for a picture panel set into the floor, which keeps the size it was made at, so it has no corner handles.
+var resizable := true
 ## Pictures the size of the plan: the part being coloured, and the part under the mouse, each drawn as an outline.
 var chosen_part: Texture2D:
 	set(t):
@@ -107,7 +109,7 @@ func _draw() -> void:
 	if selection.size != Vector2.ZERO:
 		var s := _to_local_rect(selection)
 		draw_rect(s.grow(1), GOLD, false, 1.0)
-		for c in _corners(s):
+		for c in (_corners(s) if resizable else []):
 			draw_rect(Rect2(c - Vector2(2, 2), Vector2(5, 5)), Color8(58, 38, 30))
 			draw_rect(Rect2(c - Vector2(1, 1), Vector2(3, 3)), GOLD)
 
@@ -129,7 +131,7 @@ func _corners(s: Rect2) -> Array:
 
 ## Which corner handle is under a point, 0 to 3 clockwise from the top left, or -1.
 func handle_at(local: Vector2) -> int:
-	if selection.size == Vector2.ZERO:
+	if selection.size == Vector2.ZERO or not resizable:
 		return -1
 	var cs := _corners(_to_local_rect(selection))
 	for i in 4:

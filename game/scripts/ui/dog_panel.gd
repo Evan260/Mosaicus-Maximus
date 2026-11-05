@@ -23,7 +23,10 @@ func _build() -> void:
 		Saves.save()
 		Nav.go("workshop"), "tick", true)
 	ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var place := func() -> void:
-		reset_size()
-		position = ((Nav.ui_size() - size) * 0.5).floor()
-	place.call_deferred()
+	Nav.resized.connect(_place)
+	_place.call_deferred()
+
+
+func _place() -> void:
+	reset_size()
+	position = ((Nav.ui_size() - size) * 0.5).floor()

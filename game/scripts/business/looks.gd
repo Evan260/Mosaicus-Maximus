@@ -29,15 +29,17 @@ const GOOD := 0.7
 const PX := 2
 
 
-## Judges a design: {qualities: {id: value}, hints: {id: text}, beauty: 0 to 1, best: id, worst: id}.
+## Judges a design: {qualities: {id: value}, hints: {id: text}, beauty: 0 to 1, best: id, worst: id, crowded: too much pattern}.
 static func judge(design: FloorDesign, taste: Array = []) -> Dictionary:
 	var img := Composer.compose(design, PX)
 	var counts := _counts(img)
 	var ground := Stones.index(design.ground)
+	var cover := coverage(img, ground)
+	var crowded: bool = float(cover["share"]) > ideal_fill(taste).y
 	var q := {
 		"symmetry": symmetry(design),
 		"centre": _centre(design, "big_centre" in taste),
-		"fill": _fill(img, ground, taste),
+		"fill": _fill(cover, taste),
 		"colour": _colour(counts, ground, taste),
 		"frame": _frame(design, "framed" in taste),
 	}
@@ -63,7 +65,7 @@ static func judge(design: FloorDesign, taste: Array = []) -> Dictionary:
 	for st in counts:
 		if st != Stones.NO_TILE:
 			shown.append(Stones.id_of(st))
-	return {"qualities": q, "hints": _hints(q, img, ground, taste, counts), "beauty": beauty, "best": best, "worst": worst, "shown": shown}
+	return {"qualities": q, "hints": _hints(q, crowded, ground, taste, counts), "beauty": beauty, "best": best, "worst": worst, "shown": shown, "crowded": crowded}
 
 
 ## How far motifs answer each other across a middle line, weighed by size; a pair in other stones counts a little less.
@@ -150,8 +152,7 @@ static func ideal_fill(taste: Array) -> Vector2:
 	return Vector2(0.24, 0.55)
 
 
-static func _fill(img: Image, ground: int, taste: Array) -> float:
-	var c := coverage(img, ground)
+static func _fill(c: Dictionary, taste: Array) -> float:
 	var ideal := ideal_fill(taste)
 	var f: float = c["share"]
 	var amount := 1.0
@@ -219,15 +220,14 @@ static func _counts(img: Image) -> Dictionary:
 
 
 ## What to do about every quality that falls short, said plainly enough to act on.
-static func _hints(q: Dictionary, img: Image, ground: int, taste: Array, counts: Dictionary) -> Dictionary:
+static func _hints(q: Dictionary, crowded: bool, ground: int, taste: Array, counts: Dictionary) -> Dictionary:
 	var out := {}
 	if q["symmetry"] < GOOD:
 		out["symmetry"] = "Make both halves match: put each picture on a dotted line, or give it a twin on the other side with Pair."
 	if q["centre"] < GOOD:
 		out["centre"] = "Put one big pattern where the dotted lines cross, bigger than the rest."
 	if q["fill"] < GOOD:
-		var share: float = coverage(img, ground)["share"]
-		out["fill"] = "Too crowded. Make things smaller, or take some away." if share > ideal_fill(taste).y else "Too much plain floor. Add more, or make them bigger."
+		out["fill"] = "Too crowded. Make things smaller, or take some away." if crowded else "Too much plain floor. Add more, or make them bigger."
 	if q["colour"] < GOOD:
 		var total := 0
 		for st in counts:
@@ -287,6 +287,6 @@ const TASTE_SAID := {
 
 ## The complaint about a quality, telling a crowded floor from a bare one.
 static func complaint(looks: Dictionary, id: String) -> String:
-	if id == "fill" and str(looks.get("hints", {}).get("fill", "")).begins_with("It's crowded"):
+	if id == "fill" and bool(looks.get("crowded", false)):
 		return COMPLAINTS["crowded"]
 	return COMPLAINTS.get(id, "")

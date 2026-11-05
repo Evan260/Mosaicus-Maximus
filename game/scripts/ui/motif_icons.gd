@@ -1,13 +1,19 @@
 class_name MotifIcons
 ## Small pictures of motifs and stones for the pattern book and the stone tray, coloured in real stone.
 
+const KEEP := 256
+const KEEP_PARTS := 64
+
+## Pictures by what they show, least recently used first, the oldest dropped past KEEP.
 static var _cache := {}
+## Part chips change with every stone picked, so they have a pool of their own and never push the book's pictures out.
+static var _parts := {}
 
 
 static func motif(id: String, size: int, stones: Dictionary = {}) -> ImageTexture:
 	var key := "%s|%d|%s" % [id, size, JSON.stringify(stones)]
 	if _cache.has(key):
-		return _cache[key]
+		return _used(_cache, key)
 	var t := MotifLibrary.tiles(id, 1.0)
 	var dims := Vector2i(maxi(1, int(round(size * t.x))), maxi(1, int(round(size * t.y))))
 	var mask := MotifLibrary.mask(id, dims, 0, false)
@@ -26,16 +32,15 @@ static func motif(id: String, size: int, stones: Dictionary = {}) -> ImageTextur
 				colours[role] = Stones.LIST[Stones.index(sid)]["tile"]
 			img.set_pixel(ox + x, oy + y, colours[role])
 	var tex := ImageTexture.create_from_image(img)
-	_cache[key] = tex
-	return tex
+	return _keep(_cache, key, tex)
 
 
 ## A motif with one part in its stone and the rest faded, for the chip that picks that part. Role 7 is the outline,
 ## drawn as a ring round the whole shape.
 static func part(id: String, size: int, role: int, stones: Dictionary, outline: String = "") -> ImageTexture:
-	var key := "part|%s|%d|%d|%s|%s" % [id, size, role, JSON.stringify(stones), outline]
-	if _cache.has(key):
-		return _cache[key]
+	var key := "%s|%d|%d|%s|%s" % [id, size, role, JSON.stringify(stones), outline]
+	if _parts.has(key):
+		return _used(_parts, key)
 	var t := MotifLibrary.tiles(id, 1.0)
 	var inner := size - 2
 	var dims := Vector2i(maxi(1, int(round(inner * t.x))), maxi(1, int(round(inner * t.y))))
@@ -58,8 +63,7 @@ static func part(id: String, size: int, role: int, stones: Dictionary, outline: 
 			if c.a > 0.0 and ox + x >= 0 and oy + y >= 0 and ox + x < size and oy + y < size:
 				img.set_pixel(ox + x, oy + y, c)
 	var tex := ImageTexture.create_from_image(img)
-	_cache[key] = tex
-	return tex
+	return _keep(_parts, key, tex, KEEP_PARTS)
 
 
 ## A floor part in its stone, the rest faded: the ground as a tiny plan of the floor, a border stripe as its corner.
@@ -98,7 +102,7 @@ static func floor_part(design: FloorDesign, key: String, size: int) -> ImageText
 static func swatch(stone_id: String, size: int = 10) -> ImageTexture:
 	var key := "stone|%s|%d" % [stone_id, size]
 	if _cache.has(key):
-		return _cache[key]
+		return _used(_cache, key)
 	var c: Color = Stones.LIST[Stones.index(stone_id)]["tile"]
 	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
 	img.fill(c)
@@ -108,14 +112,13 @@ static func swatch(stone_id: String, size: int = 10) -> ImageTexture:
 		img.set_pixel(i, size - 1, c.darkened(0.3))
 		img.set_pixel(size - 1, i, c.darkened(0.3))
 	var tex := ImageTexture.create_from_image(img)
-	_cache[key] = tex
-	return tex
+	return _keep(_cache, key, tex)
 
 
 static func border(id: String, w: int = 40, h: int = 10) -> ImageTexture:
 	var key := "border|%s|%d" % [id, w]
 	if _cache.has(key):
-		return _cache[key]
+		return _used(_cache, key)
 	var d := FloorDesign.new()
 	d.w = 40
 	d.h = 18
@@ -125,5 +128,19 @@ static func border(id: String, w: int = 40, h: int = 10) -> ImageTexture:
 	var crop := img.get_region(Rect2i(0, 0, w * 2, int(d.border["width"]) * 2 + 2))
 	crop.resize(w, maxi(4, int(d.border["width"]) + 1), Image.INTERPOLATE_NEAREST)
 	var tex := ImageTexture.create_from_image(crop)
-	_cache[key] = tex
+	return _keep(_cache, key, tex)
+
+
+## A cached picture, moved to the back of the queue so it is dropped last.
+static func _used(cache: Dictionary, key: String) -> ImageTexture:
+	var tex: ImageTexture = cache[key]
+	cache.erase(key)
+	cache[key] = tex
+	return tex
+
+
+static func _keep(cache: Dictionary, key: String, tex: ImageTexture, most: int = KEEP) -> ImageTexture:
+	cache[key] = tex
+	if cache.size() > most:
+		cache.erase(cache.keys()[0])
 	return tex

@@ -3,7 +3,7 @@ extends Node
 ## Opened with {design: FloorDesign, job: Dictionary}, or with nothing to lay the test floor.
 
 const TEST_DESIGN := "res://designs/test_floor.png"
-const TILE_PX := 6
+const TILE_PX := Composer.TILE_PX
 const ZOOM_MIN := 0.2
 const ZOOM_MAX := 6.0
 
@@ -54,15 +54,11 @@ func enter(args: Dictionary) -> void:
 	var layout := MosaicLayout.new()
 	_layout = layout
 	_task = WorkerThreadPool.add_task(func() -> void:
-		var img: Image
-		var fine := PackedByteArray()
 		if d:
-			img = Composer.compose(d, TILE_PX)
-			fine = Composer.fine_mask(d, TILE_PX)
+			Composer.lay_out(d, layout)
 			_made = Composer.panel_mask(d, TILE_PX)
 		else:
-			img = (load(TEST_DESIGN) as Texture2D).get_image()
-		layout.build(img, TILE_PX, fine))
+			layout.build((load(TEST_DESIGN) as Texture2D).get_image(), TILE_PX))
 
 
 ## Runs once the floor has been worked out on its worker thread: builds the floor, camera and interface.
@@ -75,13 +71,7 @@ func _ready_floor() -> void:
 	Nav.world.add_child(floor_view)
 	floor_view.setup(layout)
 	if not _made.is_empty():
-		var made := PackedInt32Array()
-		var w := layout.w
-		for i in layout.tile_count():
-			var at := Vector2i(layout.pos[i])
-			if at.x >= 0 and at.y >= 0 and at.x < w and at.y < layout.h and _made[at.y * w + at.x] == 1:
-				made.append(i)
-		floor_view.prelay(made)
+		floor_view.prelay(Composer.prelaid(layout, _made))
 	floor_view.tiles_landed.connect(Audio.on_landed)
 	floor_view.phase_changed.connect(_on_phase)
 	if job.get("kind", "") == "restoration" or Dev.has("restore"):

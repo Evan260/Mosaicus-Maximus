@@ -23,7 +23,7 @@ func enter(_args: Dictionary) -> void:
 		_closed(col, "A floor is waiting", ("Your picture panel is still on the bench. Finish it, or give it up at the workbench, before taking a job." if busy.get("kind", "") == "panel" else "%s's floor is still on your table. Finish it before taking another job." % busy.get("client_name", "The last client")),
 			"Carry on with it", func() -> void: Nav.go("floor" if busy.get("kind", "") == "restoration" else "design_table", {"job": busy}), "brush")
 	elif left <= 0:
-		var why := "You can take one job a day." if int(Game.state["apprentices"]) == 0 else "You and your apprentices have taken every job you can manage today."
+		var why := "You can take one job a day." if int(Game.state["apprentices"]) == 0 else "You and your apprentice have taken every job you can manage today."
 		if int(Game.state["apprentices"]) == 0:
 			why += " An apprentice, from the workbench, lets you take two."
 		_closed(col, "That's today's work done", why + " New notices go up in the morning.", "End the day", func() -> void: Nav.go("day_end"), "sun")
@@ -43,7 +43,7 @@ func enter(_args: Dictionary) -> void:
 			Ui.label(col, "The board is bare. Come back tomorrow.", "LightLabel")
 		for job in board:
 			grid.add_child(_notice(job))
-		Guide.note("board", "These are today's notices: each is someone who wants a new floor, with what they wish for and about what they'll pay. Pick one and click See him or See her.", "right")
+		Guide.note("board", "These are today's notices. Each one shows a client's wishes for a new floor and about what the job pays. Pick one and click See him or See her.", "bottom_right")
 	var foot := Ui.hbox(col, 4)
 	foot.alignment = BoxContainer.ALIGNMENT_END
 	Ui.button(foot, "Notebook", _open_notebook, "book")

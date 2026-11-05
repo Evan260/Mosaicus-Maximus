@@ -4,6 +4,8 @@ extends Node
 ## Clicking any part of the plan picks it for colouring; a picked motif can be dragged, and resized by its corners.
 
 const PART_NAMES := ["Band", "Pattern", "Second colour", "Trim"]
+## How far the pointer moves, in interface pixels, before a press on the plan becomes a drag.
+const DRAG_START := 3.0
 
 var design: FloorDesign
 var job := {}
@@ -42,9 +44,16 @@ var _drag_offset := Vector2.INF
 ## The ground or border part under a press inside the picked motif's box: picked instead if the press doesn't drag.
 var _ground_on_release := ""
 var _moved := false
+var _press_tile := Vector2.ZERO
 var _anchor := Vector2.ZERO
 var _grow := Vector2.ONE
 var _counts := {}
+## Laying out a big floor to count its stone exactly takes seconds, so it is counted on a worker thread while an estimate shows.
+var _count_task := -1
+var _count_box := {}
+var _count_sig := ""
+var _exact := {}
+var _exact_sig := ""
 var _tex: ImageTexture
 var _chip_buttons := {}
 var _target_tex: ImageTexture
@@ -94,7 +103,7 @@ func enter(args: Dictionary) -> void:
 	if Dev.has("pick"):
 		_select(int(Dev.num("pick", 0)))
 	_refresh_chips()
-	if not free:
+	if not free and str(job.get("kind", "")) != "panel":
 		Guide.note("design", "This is the design table. Drag patterns and pictures from the book onto the floor plan, and click any part to give it a stone. The stars show how much the client will like it. Then buy the stone and press Start laying.", "top")
 
 
@@ -109,6 +118,8 @@ func _process(delta: float) -> void:
 		_cost_dirty = false
 		_cost_since = 0.0
 		_recost()
+	if _count_task >= 0 and WorkerThreadPool.is_task_completed(_count_task):
+		_collect_count()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -134,10 +145,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_DELETE, KEY_BACKSPACE:
 			_remove()
 		KEY_EQUAL, KEY_KP_ADD:
-			_remember()
 			_resize(1)
 		KEY_MINUS, KEY_KP_SUBTRACT:
-			_remember()
 			_resize(-1)
 		KEY_ESCAPE:
 			_select(-1)
@@ -472,6 +481,7 @@ func _recompose() -> void:
 	_plan.outline_width = maxf(1.0, roundf(px * 0.4))
 	_plan.set_image(_tex, Vector2(design.w, design.h))
 	_plan.selection = _rect_of(design.placements[selected]) if selected >= 0 else Rect2()
+	_plan.resizable = not _is_panel(selected)
 	_plan.chosen_part = _part_texture(_chosen_code())
 	_hover_code = -1
 	_plan.hover_part = null
@@ -480,8 +490,26 @@ func _recompose() -> void:
 	_place_toolbar()
 
 
-func _recost() -> void:
-	_counts = Composer.stone_counts(design)
+func _exit_tree() -> void:
+	if _count_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_count_task)
+		_count_task = -1
+
+
+## Counts the stone the design needs: the exact count when it is in, or when exact is asked for; otherwise an estimate.
+func _recost(exact := false) -> void:
+	var sig := JSON.stringify(design.to_dict())
+	if exact and sig != _exact_sig and _count_task >= 0 and _count_sig == sig:
+		_collect_count()
+	if sig == _exact_sig:
+		_counts = _exact
+	elif exact:
+		_counts = Composer.stone_counts(design)
+		_exact = _counts
+		_exact_sig = sig
+	else:
+		_counts = Composer.stone_estimate(design)
+		_count_later(sig)
 	var tiles := 0
 	for k in _counts:
 		tiles += int(_counts[k])
@@ -779,12 +807,15 @@ func _on_hover(tile: Vector2) -> void:
 
 ## What is under the pointer as [placement, part]: a motif within half a tile, one past the part map by its box, or the floor.
 func _pick_at(tile: Vector2) -> Array:
-	var part := _part_of(_code_at(tile))
+	var code := _code_at(tile)
+	var part := _part_of(code)
 	if int(part[0]) >= 0:
 		return part
-	var near := _motif_near(tile)
-	if not near.is_empty():
-		return near
+	# A covered point is a motif past the part map's limit, so only the boxes can say which.
+	if code != Composer.PART_COVERED:
+		var near := _motif_near(tile)
+		if not near.is_empty():
+			return near
 	for i in range(design.placements.size() - 1, Composer.MAX_PARTS - 1, -1):
 		if _rect_of(design.placements[i]).has_point(tile):
 			return [i, ""]
@@ -820,6 +851,7 @@ func _select(i: int) -> void:
 	selected = i if i < design.placements.size() else -1
 	role = ""
 	_plan.selection = _rect_of(design.placements[selected]) if selected >= 0 else Rect2()
+	_plan.resizable = not _is_panel(selected)
 	_plan.queue_redraw()
 	_refresh_chips()
 
@@ -830,6 +862,7 @@ func _on_press(tile: Vector2, button: int) -> void:
 	var hit := int(part[0])
 	_ground_on_release = ""
 	_moved = false
+	_press_tile = tile
 	if button == MOUSE_BUTTON_RIGHT:
 		if hit >= 0:
 			_select(hit)
@@ -858,12 +891,17 @@ func _on_press(tile: Vector2, button: int) -> void:
 func _on_drag(tile: Vector2) -> void:
 	if selected < 0 or _drag_offset == Vector2.INF:
 		return
+	if not _moved and (tile - _press_tile).length() * _plan.plan_rect().size.x / design.w < DRAG_START:
+		return
 	_moved = true
-	_commit_pending()
 	var p: Dictionary = design.placements[selected]
 	var c := (tile - _drag_offset).clamp(Vector2.ZERO, Vector2(design.w, design.h))
-	p["x"] = snappedf(c.x, 0.5)
-	p["y"] = snappedf(c.y, 0.5)
+	var to := Vector2(snappedf(c.x, 0.5), snappedf(c.y, 0.5))
+	if to == Vector2(float(p["x"]), float(p["y"])):
+		return
+	_commit_pending()
+	p["x"] = to.x
+	p["y"] = to.y
 	_dirty = true
 	_cost_dirty = true
 
@@ -881,9 +919,8 @@ func _on_handle(corner: int) -> void:
 
 
 func _on_handle_drag(tile: Vector2) -> void:
-	if selected < 0:
+	if selected < 0 or _is_panel(selected):
 		return
-	_commit_pending()
 	var p: Dictionary = design.placements[selected]
 	var m := Data.motif(p["motif"])
 	var shape := _rect_of(p).size
@@ -892,26 +929,29 @@ func _on_handle_drag(tile: Vector2) -> void:
 	var wide := maxf(d.x, d.y * aspect)
 	var longest := maxf(wide, wide / aspect)
 	longest = clampf(roundf(longest), float(m.get("min", 3)), minf(float(m.get("max", 60)), maxf(design.w, design.h)))
+	var was := Vector3(float(p["size"]), float(p["x"]), float(p["y"]))
 	p["size"] = longest
 	var t := _rect_of(p).size
 	var centre := _anchor + _grow * t * 0.5
 	p["x"] = snappedf(centre.x, 0.5)
 	p["y"] = snappedf(centre.y, 0.5)
+	if Vector3(float(p["size"]), float(p["x"]), float(p["y"])) == was:
+		return
+	_commit_pending()
 	_dirty = true
 	_cost_dirty = true
 
 
 func _on_wheel(steps: int, tile: Vector2) -> void:
-	var now := Time.get_ticks_msec() / 1000.0
-	if now - _last_wheel > 0.8:
-		_remember()
-	_last_wheel = now
 	if selected < 0:
 		var hit := int(_pick_at(tile)[0])
 		if hit < 0:
 			return
 		_select(hit)
-	_resize(steps)
+	var now := Time.get_ticks_msec() / 1000.0
+	# A quick run of wheel turns is undone as one step.
+	if _resize(steps, now - _last_wheel > 0.8):
+		_last_wheel = now
 
 
 func _on_drop(motif_id: String, tile: Vector2) -> void:
@@ -963,16 +1003,22 @@ func _add_motif(motif_id: String, at: Vector2) -> void:
 	_cost_dirty = true
 
 
-## Grows or shrinks the picked motif by about a tenth, one tile at a time when it is small.
-func _resize(steps: int) -> void:
+## Grows or shrinks the picked motif by about a tenth, one tile at a time when it is small; false if nothing changed.
+func _resize(steps: int, remember := true) -> bool:
 	if selected < 0 or _is_panel(selected):
-		return
+		return false
 	var p: Dictionary = design.placements[selected]
 	var m := Data.motif(p["motif"])
 	var size := float(p["size"])
-	p["size"] = clampf(size + steps * maxf(1.0, roundf(size * 0.1)), float(m.get("min", 3)), minf(float(m.get("max", 60)), maxf(design.w, design.h)))
+	var to := clampf(size + steps * maxf(1.0, roundf(size * 0.1)), float(m.get("min", 3)), minf(float(m.get("max", 60)), maxf(design.w, design.h)))
+	if to == size:
+		return false
+	if remember:
+		_remember()
+	p["size"] = to
 	_dirty = true
 	_cost_dirty = true
+	return true
 
 
 func _turn() -> void:
@@ -1078,6 +1124,28 @@ func _refresh_history() -> void:
 		_redo_button.disabled = _redo.is_empty()
 
 
+## Starts the exact count of the design as it stands, unless one is already under way; that one's end starts the next.
+func _count_later(sig: String) -> void:
+	if _count_task >= 0:
+		return
+	var snap := FloorDesign.from_dict(design.to_dict())
+	var box := {}
+	_count_box = box
+	_count_sig = sig
+	_count_task = WorkerThreadPool.add_task(func() -> void: box["counts"] = Composer.stone_counts(snap))
+
+
+func _collect_count() -> void:
+	WorkerThreadPool.wait_for_task_completion(_count_task)
+	_count_task = -1
+	_exact = _count_box.get("counts", {})
+	_exact_sig = _count_sig
+	if _exact_sig == JSON.stringify(design.to_dict()):
+		_recost()
+	else:
+		_cost_dirty = true
+
+
 ## The stone the design needs from stock: all of it, or once laying has begun, only what it needs beyond the stone taken.
 func _still_needed() -> Dictionary:
 	if not job.get("stone_paid", false):
@@ -1093,7 +1161,7 @@ func _still_needed() -> Dictionary:
 
 
 func _buy_stone() -> void:
-	_recost()
+	_recost(true)
 	if Game.buy_shortfall(_still_needed()):
 		Audio.ui("coins")
 		Saves.save()
@@ -1103,7 +1171,7 @@ func _buy_stone() -> void:
 
 
 func _start_laying() -> void:
-	_recost()
+	_recost(true)
 	if _start.disabled:
 		Audio.ui("nope")
 		return

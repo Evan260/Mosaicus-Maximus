@@ -8,6 +8,7 @@
 		"blue_glass": 18, "turquoise_glass": 20, "green_glass": 18, "gold": 45
 	},
 	"wage": 6,
+	"savings": {"cutting_bench": 0.1, "glass_furnace": 0.33},
 	"pricing": {"accept_at_budget": 0.9, "falloff": 2.4, "reputation_per_point": 0.003, "expectation": 0.25},
 	"payment": {"minimum_share": 0.55, "tip_above": 0.88, "tip": 0.15},
 	"reputation": {"base": 1, "per_score": 9, "per_100_tiles": 0.1, "unhappy_below": 0.45},
@@ -15,7 +16,7 @@
 	"rival": {"reputation_per_day": 0.6, "steals_after_refusals": 2},
 	"budget": {"per_tile": 0.038, "per_tile_per_chapter": 0.012, "named_scale_max": 1.8, "copy_scale": 1.3},
 	"contest": {"every": 7, "rival_base": 0.52, "rival_per_chapter": 0.07, "rival_cap": 0.86, "prize": 100, "prize_per_chapter": 50, "win_reputation": 8, "lose_reputation": 2},
-	"ship": {"chance": 0.3, "price_scale": 1.5},
+	"ship": {"chance": 0.3, "price_scale": 1.5, "bargain": 0.25},
 	"festival": {"every": 10, "on": 5, "pay_scale": 1.25, "prize": 60, "prize_per_chapter": 30, "reputation": 4, "stars": 4},
 	"dog": {"dig_chance": 0.2, "dig_gap": 4},
 	"panel": {"value": 30, "value_per_chapter": 20, "set_scale": 1.3},

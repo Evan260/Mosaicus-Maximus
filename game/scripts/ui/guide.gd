@@ -7,7 +7,10 @@ const WIDTH := 190.0
 
 var _corner := ""
 var _arrow: TextureRect
-var _target := Rect2()
+var _target_rect := Rect2()
+var _target_control: Control
+var _follows := false
+var _t := 0.0
 
 
 ## Whether the guide is still running: until the first floor is done and the day ended, unless it was skipped.
@@ -15,8 +18,9 @@ static func active() -> bool:
 	return not bool(Game.state.get("guide_off", false)) and (Game.state.get("floors", []) as Array).size() <= 1 and (str(Game.state.get("name", "")) != "" or Dev.has("guide"))
 
 
-## Shows a note once, at a corner of the screen, "top" or "right", with an arrow at the target (interface pixels) if given.
-static func note(id: String, text: String, corner: String, target := Rect2()) -> Guide:
+## Shows a note once, at a corner of the screen, "top" or "right", with an arrow at the target if given: a Control,
+## which the arrow follows wherever it moves, or a Rect2 in interface pixels.
+static func note(id: String, text: String, corner: String, target: Variant = null) -> Guide:
 	var seen: Array = Game.state.get("guide_seen", [])
 	if not active() or id in seen:
 		return null
@@ -29,9 +33,13 @@ static func note(id: String, text: String, corner: String, target := Rect2()) ->
 	return g
 
 
-func _build(text: String, corner: String, target: Rect2) -> void:
+func _build(text: String, corner: String, target: Variant) -> void:
 	_corner = corner
-	_target = target
+	_follows = target is Control
+	if _follows:
+		_target_control = target
+	elif target is Rect2:
+		_target_rect = target
 	var col := Ui.vbox(self, 4)
 	var head := Ui.hbox(col, 3)
 	Ui.icon(head, "laurel")
@@ -43,17 +51,14 @@ func _build(text: String, corner: String, target: Rect2) -> void:
 		queue_free())
 	skip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	Ui.button(row, "Got it", func() -> void: queue_free(), "tick", true)
-	if target.has_area():
+	if _follows or _target_rect.has_area():
 		_arrow = TextureRect.new()
 		_arrow.texture = UiTheme.icon("arrow_r")
 		_arrow.pivot_offset = Vector2(8, 8)
-		_arrow.rotation = PI * 0.5
 		_arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		Nav.ui.add_child(_arrow)
 		tree_exiting.connect(_arrow.queue_free)
-		var tw := _arrow.create_tween().set_loops()
-		tw.tween_property(_arrow, "position:y", -4.0, 0.4).as_relative().set_trans(Tween.TRANS_SINE)
-		tw.tween_property(_arrow, "position:y", 4.0, 0.4).as_relative().set_trans(Tween.TRANS_SINE)
+		_point()
 	Audio.ui("page_turn", -10.0)
 	Nav.resized.connect(_place)
 	_place.call_deferred()
@@ -69,8 +74,26 @@ func _place() -> void:
 	if _corner == "right":
 		y = floorf((s.y - size.y) * 0.5)
 	position = Vector2(x, y).floor()
+
+
+func _process(delta: float) -> void:
 	if _arrow:
-		# Something in the top bar is pointed at from below; anything lower down from just inside its top edge.
-		var up := _target.position.y < 40.0
-		_arrow.rotation = -PI * 0.5 if up else PI * 0.5
-		_arrow.position = Vector2(_target.get_center().x - 8.0, _target.end.y + 2.0 if up else _target.position.y + 6.0).floor()
+		_t += delta
+		_point()
+
+
+## Points the arrow at the target where it is now, bobbing up and down.
+func _point() -> void:
+	var target := _target_rect
+	if _follows:
+		if not is_instance_valid(_target_control) or not _target_control.is_visible_in_tree():
+			_arrow.visible = false
+			return
+		var to_ui := Nav.ui.get_global_transform_with_canvas().affine_inverse() * _target_control.get_global_transform_with_canvas()
+		target = to_ui * Rect2(Vector2.ZERO, _target_control.size)
+	_arrow.visible = true
+	# Something in the top bar is pointed at from below; anything lower down from just inside its top edge.
+	var up := target.position.y < 40.0
+	_arrow.rotation = -PI * 0.5 if up else PI * 0.5
+	var at := Vector2(target.get_center().x - 8.0, target.end.y + 2.0 if up else target.position.y + 6.0).floor()
+	_arrow.position = at + Vector2(0.0, 2.0 * cos(_t * PI / 0.4) - 2.0)

@@ -36,10 +36,13 @@ func _build(in_game: bool) -> void:
 			queue_free()
 			AchievementsPanel.open(get_parent()), "laurel")
 	Ui.button(col, "Done", func() -> void: queue_free(), "tick", true)
-	var place := func() -> void:
-		reset_size()
-		position = ((Nav.ui_size() - size) * 0.5).floor()
-	place.call_deferred()
+	Nav.resized.connect(_place)
+	_place.call_deferred()
+
+
+func _place() -> void:
+	reset_size()
+	position = ((Nav.ui_size() - size) * 0.5).floor()
 
 
 func _slider(parent: Node, label: String, value: float, apply: Callable) -> void:
