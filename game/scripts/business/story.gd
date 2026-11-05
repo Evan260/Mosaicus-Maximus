@@ -54,7 +54,8 @@ static func _dog_dig(state: Dictionary, rng: RandomNumberGenerator) -> void:
 		return
 	var dog := str((state.get("dog", {}) as Dictionary).get("name", "The dog"))
 	var job := JobFactory.restoration(state, rng, true)
-	job.merge({"id": "%d_dog" % day, "client_name": "Your neighbour", "dog": true,
+	var neighbour: Dictionary = Data.people.get("neighbour", {})
+	job.merge({"id": "%d_dog" % day, "client_name": "Your neighbour", "dog": true, "portrait": Data.face(neighbour), "woman": bool(neighbour.get("woman", true)),
 		"line": "%s dug a hole in the yard next door, and at the bottom of it is an old floor. Your neighbour would like it brought back." % dog,
 		"text": "%s found an old floor next door." % dog}, true)
 	state["board"].append(job)
@@ -107,7 +108,7 @@ static func finish_job(state: Dictionary, job: Dictionary, result: Dictionary) -
 	var stars := Looks.stars(score)
 	state["floors"].append({"client": job.get("client", ""), "client_name": job.get("client_name", ""), "room": job.get("room", ""),
 		"kind": job.get("kind", "commission"), "design": result.get("design", {}), "day": state["day"], "score": score, "paid": result.get("paid", 0),
-		"stars": stars, "tiles": int(result.get("tiles", 0)), "portrait": job.get("portrait", ""), "stones": result.get("stones", {})})
+		"stars": stars, "tiles": int(result.get("tiles", 0)), "portrait": job.get("portrait", ""), "woman": JobFactory.pronouns(job)["he"] == "she", "stones": result.get("stones", {})})
 	var stats: Dictionary = state.get("stats", {})
 	if stars >= 5:
 		stats["five_stars"] = int(stats.get("five_stars", 0)) + 1

@@ -71,7 +71,7 @@ Restorations grow in size and importance, ending with the grand floor buried ben
 - **Setting the price:** you name your price by sliding the coins, up to about one and a half times their budget. A higher price raises the client's expectations. Ask too much and the client names their own price instead, and the slider moves to it; ask too much a second time and they leave for your rival.
 - **The rival workshop** competes with you for the big jobs and poaches clients who leave unhappy.
 - **Word of mouth:** a great floor brings the client's friends and neighbours. Each client's requests follow a small story of their own, such as a feud, a wedding or a new fortune.
-- **Costs:** stone, apprentice wages and workshop upgrades.
+- **Costs:** stone, apprentice wages and workshop upgrades. A floor is laid only from stone in stock, bought in sacks of 100 at the stone merchant's shelves; the design table lists any stone a floor is short of and can buy just those sacks, and what is left over stays in stock.
 - **Apprentices** let you take a second job each day.
 - **The day passes** while you play, from morning to night, as in Farmus Maximus. The sky through the door and window turns from blue to gold to stars, the room's light follows it, and the lamps flicker and light the room after dark. A day ends when you choose to end it; the job board says so plainly once the day's jobs are done.
 

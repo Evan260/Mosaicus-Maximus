@@ -128,24 +128,52 @@ func add_stock(stone_id: String, tiles: int) -> void:
 
 
 ## Takes the stone a floor needs from stock, buying whatever is short at the merchant's price. False if it can't be paid.
+## Takes a floor's stone out of stock, only when every stone it needs is there.
 func take_stone(counts: Dictionary) -> bool:
-	var cost := shortfall_cost(counts)
-	if cost > coins():
+	if not short_of(counts).is_empty():
 		return false
-	if cost > 0:
-		spend(cost, "Stone for the floor")
 	for id in counts:
-		state["stock"][id] = maxi(0, stock(id) - int(counts[id]))
+		state["stock"][id] = stock(id) - int(counts[id])
 	changed.emit()
 	return true
 
 
-func shortfall_cost(counts: Dictionary) -> int:
-	var cost := 0.0
+## How many tiles of each stone a floor needs beyond what is in stock.
+func short_of(counts: Dictionary) -> Dictionary:
+	var short := {}
 	for id in counts:
-		var short := maxi(0, int(counts[id]) - stock(id))
-		cost += short * stone_price(id)
-	return int(ceil(cost))
+		var n := int(counts[id]) - stock(id)
+		if n > 0:
+			short[id] = n
+	return short
+
+
+## What a sack of a stone costs at the merchant's.
+func sack_price(id: String) -> int:
+	return int(ceil(stone_price(id) * Data.num("sack", 100)))
+
+
+## What the sacks cost that would cover everything a floor is short of.
+func shortfall_cost(counts: Dictionary) -> int:
+	var cost := 0
+	var short := short_of(counts)
+	for id in short:
+		cost += int(ceil(short[id] / Data.num("sack", 100))) * sack_price(id)
+	return cost
+
+
+## Buys the sacks a floor is short of, if the purse can pay for them all.
+func buy_shortfall(counts: Dictionary) -> bool:
+	var cost := shortfall_cost(counts)
+	if cost > coins():
+		return false
+	var short := short_of(counts)
+	if short.is_empty():
+		return true
+	spend(cost, "Stone from the merchant")
+	for id in short:
+		add_stock(id, int(ceil(short[id] / Data.num("sack", 100))) * int(Data.num("sack", 100)))
+	return true
 
 
 ## A stone's price per tile after the workshop's upgrades.

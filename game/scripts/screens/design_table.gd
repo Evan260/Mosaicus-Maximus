@@ -25,6 +25,7 @@ var _cost_panel: PanelContainer
 var _brief_box: VBoxContainer
 var _cost_label: Label
 var _warn_label: Label
+var _buy_button: Button
 var _start: Button
 var _bottom: PanelContainer
 var _toolbar: PanelContainer
@@ -38,6 +39,9 @@ var _cost_dirty := true
 var _since := 1.0
 var _cost_since := 1.0
 var _drag_offset := Vector2.INF
+## The ground or border part under a press inside the picked motif's box: picked instead if the press doesn't drag.
+var _ground_on_release := ""
+var _moved := false
 var _anchor := Vector2.ZERO
 var _grow := Vector2.ONE
 var _counts := {}
@@ -174,7 +178,12 @@ func _build() -> void:
 	_plan.dragged_to.connect(_on_drag)
 	_plan.released.connect(func() -> void:
 		_drag_offset = Vector2.INF
-		_pending = {})
+		_pending = {}
+		if _ground_on_release != "" and not _moved:
+			_select(-1)
+			role = _ground_on_release
+			_refresh_chips()
+		_ground_on_release = "")
 	_plan.wheeled.connect(_on_wheel)
 	_plan.dropped.connect(_on_drop)
 	_plan.hovered_at.connect(_on_hover)
@@ -229,6 +238,8 @@ func _build() -> void:
 	_redo_button = Ui.icon_button(history, "redo", "Redo (Ctrl+Y)", _redo_step)
 	_refresh_history()
 	_cost_label = Ui.label(cost_col, "", "", 116)
+	_buy_button = Ui.button(cost_col, "", _buy_stone, "sack")
+	_buy_button.visible = false
 	_warn_label = Ui.label(cost_col, "", "", 116)
 	_warn_label.add_theme_color_override("font_color", UiTheme.RED)
 	if free:
@@ -279,7 +290,7 @@ func _layout_ui() -> void:
 	var book_w := 134.0
 	var right_w := 124.0
 	var bottom_h := 72.0
-	var cost_h := 104.0
+	var cost_h := 116.0
 	Ui.put(_book, Vector2(5, 5), Vector2(book_w, s.y - cost_h - 14))
 	Ui.put(_cost_panel, Vector2(5, s.y - cost_h - 5), Vector2(book_w, cost_h))
 	Ui.put(_right, Vector2(s.x - right_w - 5, 5), Vector2(right_w, s.y - 10))
@@ -467,20 +478,31 @@ func _recost() -> void:
 		_warn_label.text = ""
 		_start.disabled = false
 		return
-	var buy := Game.shortfall_cost(_counts)
-	_cost_label.text = "Stone to buy: %d d\nIn your purse: %d d" % [buy, Game.coins()]
-	Ui.tip_on(_cost_label, "About %d tiles. Stone you already have in stock is used first." % tiles)
+	# A floor is laid only with stone in stock, bought from the merchant here or at the shelves.
+	var short := Game.short_of(_counts) if not job.get("stone_paid", false) else {}
+	var buy := Game.shortfall_cost(_counts) if not short.is_empty() else 0
+	if short.is_empty():
+		_cost_label.text = "All the stone is in stock.\nIn your purse: %d d" % Game.coins()
+	else:
+		var names := short.keys().map(func(id: String) -> String: return str(Stones.LIST[Stones.index(id)]["name"]).to_lower())
+		_cost_label.text = "Short of %s.\nIn your purse: %d d" % [names[0] if names.size() == 1 else "%d stones" % names.size(), Game.coins()]
+	Ui.tip_on(_cost_label, "About %d tiles, laid from your stock. " % tiles + ("Short of: " + ", ".join(short.keys().map(func(id: String) -> String: return "%d %s" % [short[id], str(Stones.LIST[Stones.index(id)]["name"]).to_lower()])) + "." if not short.is_empty() else ""))
+	_buy_button.visible = not short.is_empty()
+	_buy_button.text = "Buy it: %d d" % buy
+	_buy_button.disabled = buy > Game.coins()
+	Ui.tip_on(_buy_button, "Buys whole sacks of 100 of every stone you're short of. What's left over stays in stock.")
 	_warn_label.text = ""
-	_start.disabled = buy > Game.coins()
+	_start.disabled = not short.is_empty()
 	if str(job.get("kind", "")) == "panel" and design.placements.is_empty():
 		_start.disabled = true
 		_warn_label.text = "Put a picture on the panel first."
 		return
-	if _start.disabled:
+	if _start.disabled and buy <= Game.coins():
+		_warn_label.text = "Buy the stone first."
+	elif _start.disabled:
 		var swap := Pricing.cheaper_swap(_counts, _stones_allowed())
 		_warn_label.text = "Not enough denarii."
-		if not swap.is_empty():
-			_warn_label.text += " %s for %s saves %d d." % [Stones.LIST[Stones.index(swap["to"])]["name"], Stones.LIST[Stones.index(swap["from"])]["name"].to_lower(), swap["saving"]]
+		Ui.tip_on(_warn_label, "" if swap.is_empty() else "%s instead of %s would save %d d." % [Stones.LIST[Stones.index(swap["to"])]["name"], Stones.LIST[Stones.index(swap["from"])]["name"].to_lower(), swap["saving"]])
 
 
 ## The brief card: what the client asked for, what you know of their taste, and the stars the floor would earn now.
@@ -746,6 +768,15 @@ func _rect_of(p: Dictionary) -> Rect2:
 	return Rect2(Vector2(float(p["x"]), float(p["y"])) - t * 0.5, t)
 
 
+## The motif part within half a tile of a point, so a small motif is easy to click; empty if there is none.
+func _motif_near(tile: Vector2) -> Array:
+	for o in [Vector2(0.5, 0), Vector2(-0.5, 0), Vector2(0, 0.5), Vector2(0, -0.5)]:
+		var part := _part_of(_code_at(tile + o))
+		if int(part[0]) >= 0:
+			return part
+	return []
+
+
 func _hit(tile: Vector2) -> int:
 	for i in range(design.placements.size() - 1, -1, -1):
 		if _rect_of(design.placements[i]).has_point(tile):
@@ -764,9 +795,17 @@ func _select(i: int) -> void:
 ## A click picks the part under the pointer; inside the picked motif's box it stays picked, so it drags from any point.
 func _on_press(tile: Vector2, button: int) -> void:
 	var part := _part_of(_code_at(tile))
-	var hit := int(part[0]) if int(part[0]) >= 0 else _hit(tile)
-	if selected >= 0 and _rect_of(design.placements[selected]).has_point(tile) and int(part[0]) < 0:
+	if int(part[0]) < 0:
+		var near := _motif_near(tile)
+		if not near.is_empty():
+			part = near
+	var hit := int(part[0])
+	_ground_on_release = ""
+	_moved = false
+	# Inside the picked motif's box, a press can still drag it from anywhere; a plain click there picks the floor.
+	if selected >= 0 and _rect_of(design.placements[selected]).has_point(tile) and hit < 0:
 		hit = selected
+		_ground_on_release = str(part[1])
 	if button == MOUSE_BUTTON_RIGHT:
 		if hit >= 0:
 			_select(hit)
@@ -791,6 +830,7 @@ func _on_press(tile: Vector2, button: int) -> void:
 func _on_drag(tile: Vector2) -> void:
 	if selected < 0 or _drag_offset == Vector2.INF:
 		return
+	_moved = true
 	_commit_pending()
 	var p: Dictionary = design.placements[selected]
 	var c := (tile - _drag_offset).clamp(Vector2.ZERO, Vector2(design.w, design.h))
@@ -992,6 +1032,15 @@ func _refresh_history() -> void:
 	if _undo_button:
 		_undo_button.disabled = _undo.is_empty()
 		_redo_button.disabled = _redo.is_empty()
+
+
+func _buy_stone() -> void:
+	if Game.buy_shortfall(_counts):
+		Audio.ui("coins")
+		Saves.save()
+	else:
+		Audio.ui("nope")
+	_recost()
 
 
 func _start_laying() -> void:

@@ -37,6 +37,8 @@ func _ready() -> void:
 	if args.has("resize-at"):
 		get_tree().create_timer(float(args["resize-at"])).timeout.connect(func() -> void:
 			DisplayServer.window_set_size(DisplayServer.window_get_size() + Vector2i(96, 54)))
+	if args.has("icon"):
+		_make_icon.call_deferred(args["icon"])
 	if args.has("quit") and _shots.is_empty():
 		get_tree().create_timer(float(args.get("quit-at", "3.0"))).timeout.connect(get_tree().quit)
 
@@ -126,3 +128,37 @@ func _drag(from: Vector2, to: Vector2) -> void:
 		m.button_mask = MOUSE_BUTTON_MASK_LEFT
 		m.relative = (to - from) * k / 12.0
 		Input.parse_input_event(m)
+
+
+## The game's icon: a small mosaic laid by the floor's own renderer, saved as a square picture, and then the game quits.
+func _make_icon(path: String) -> void:
+	var d := FloorDesign.for_room("panel")
+	d.ground = get_arg("icon-ground", "white_marble")
+	d.set_border(get_arg("icon-border", "plain"))
+	d.border["stones"] = get_arg("icon-frame", "black_stone,black_stone,black_stone,black_stone").split(",")
+	var p := d.add(get_arg("icon-motif", "flower"), d.w * 0.5, d.h * 0.5, num("icon-size", 15.0))
+	var colours := get_arg("icon-stones", "red_marble,ochre_marble,black_stone,red_marble").split(",")
+	p["stones"] = {"1": colours[0], "2": colours[1], "3": colours[2], "4": colours[3]}
+	var layout := MosaicLayout.new()
+	layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6))
+	var vp := SubViewport.new()
+	vp.size = Vector2i(512, 512)
+	vp.transparent_bg = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(vp)
+	var floor_view := FloorView.new()
+	floor_view.walls_visible = false
+	vp.add_child(floor_view)
+	floor_view.setup(layout)
+	floor_view.chalk_visible = false
+	floor_view.show_finished()
+	var cam := Camera2D.new()
+	var world := Vector2(layout.w, layout.h) * FloorView.WORLD
+	cam.position = world * 0.5
+	cam.zoom = Vector2.ONE * 512.0 / world.x
+	vp.add_child(cam)
+	cam.make_current()
+	for i in 4:
+		await RenderingServer.frame_post_draw
+	vp.get_texture().get_image().save_png(path)
+	get_tree().quit()

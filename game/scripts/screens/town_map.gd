@@ -168,7 +168,10 @@ func _owner_line(f: Dictionary) -> String:
 	var portrait := str(f.get("portrait", ""))
 	if portrait == "":
 		portrait = str(Data.client(str(f.get("client", ""))).get("portrait", ""))
-	var who := "The owners" if portrait == "" else str(JobFactory.pronouns({"portrait": portrait})["he"]).capitalize()
+	var known := {"portrait": portrait}
+	if f.has("woman"):
+		known["woman"] = f["woman"]
+	var who := "The owners" if portrait == "" else str(JobFactory.pronouns(known)["he"]).capitalize()
 	var verb := "love" if portrait == "" else "loves"
 	if float(f.get("score", 0)) < 0.8:
 		verb = "like" if portrait == "" else "likes"

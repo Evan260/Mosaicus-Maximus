@@ -15,6 +15,8 @@ var upgrade_order: Array = []
 var names := {}
 var achievements: Array = []
 var festivals: Array = []
+## Everyone in town who isn't a regular client, each with a name, a face and, for the townsfolk, a trade.
+var people := {}
 
 
 func _ready() -> void:
@@ -40,6 +42,7 @@ func reload() -> void:
 	names = _read("names.json", {})
 	achievements = _read("achievements.json", [])
 	festivals = _read("festivals.json", [])
+	people = _read("people.json", {})
 
 
 ## A balance number by its dotted path, such as "pricing.falloff".
@@ -80,6 +83,14 @@ func motif_with_article(id: String) -> String:
 ## The rooms clients can ask for: every room but the bench's square for picture panels, and without walls when asked.
 func job_rooms(walls := true) -> Array:
 	return rooms.keys().filter(func(id: String) -> bool: return not bool(rooms[id].get("bench", false)) and (walls or not bool(rooms[id].get("wall", false))))
+
+
+## A person's portrait, or until it is painted, one of the old townsfolk faces of the same sex.
+func face(person: Dictionary) -> String:
+	var id := str(person.get("portrait", person.get("id", "")))
+	if ResourceLoader.exists("res://assets/art/portraits/%s.png" % id):
+		return id
+	return "towns_2" if bool(person.get("woman", false)) else "towns_1"
 
 
 func room(id: String) -> Dictionary:

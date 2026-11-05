@@ -301,7 +301,7 @@ func test_pacing_report() -> void:
 				if int(game.state["chapter"]) >= 4:
 					colour = "blue_glass"
 				counts[colour] = int(tiles * 0.15)
-				if not game.take_stone(counts):
+				if not game.buy_shortfall(counts) or not game.take_stone(counts):
 					continue
 			# A keen player's floors earn about four stars; a contest is won when that beats the rival's entry.
 			var score := 0.8
@@ -739,3 +739,41 @@ func test_prelaid_tiles_count_as_laid() -> void:
 	check(fv.laid == 4, "four tiles come laid")
 	check(fv.stone_unplaced(layout.stone[0]) == int(fv._stone_total[layout.stone[0]]) - [0, 1, 2, 3].filter(func(i: int) -> bool: return layout.stone[i] == layout.stone[0]).size(), "and the tray counts them as placed")
 	fv.free()
+
+
+func test_floors_are_laid_from_stock() -> void:
+	game.new_game("Stock")
+	game.state["stock"] = {"limestone": 50}
+	var counts := {"limestone": 120, "black_stone": 30}
+	check(not game.take_stone(counts), "a floor can't be started without its stone in stock")
+	check(int(game.state["stock"]["limestone"]) == 50, "and nothing is taken when it can't")
+	var coins := int(game.coins())
+	check(game.buy_shortfall(counts), "the stone it is short of can be bought in sacks")
+	check(game.stock("limestone") == 150 and game.stock("black_stone") == 100, "whole sacks of 100 (%d limestone, %d black)" % [game.stock("limestone"), game.stock("black_stone")])
+	check(int(game.coins()) == coins - game.sack_price("limestone") - game.sack_price("black_stone"), "paid at the merchant's price per sack")
+	check(game.take_stone(counts) and game.stock("limestone") == 30 and game.stock("black_stone") == 70, "then the floor takes its stone and the rest stays in stock")
+
+
+func test_everyone_has_their_own_face() -> void:
+	var ids := {}
+	var groups := ["townsfolk", "collectors", "finders"]
+	for g in groups:
+		for p in Data.people[g]:
+			var face := str(p.get("portrait", p["id"]))
+			check(not ids.has(face), "%s has a face of their own" % p["id"])
+			ids[face] = true
+			check(str(p.get("look", "")) != "", "%s is described for their portrait" % p["id"])
+	for p in Data.people["townsfolk"]:
+		check(str(p.get("trade", "")) != "", "%s has a trade" % p["name"])
+	game.new_game("Faces")
+	for day in range(1, 30):
+		game.state["day"] = day
+		Story.morning(game.state)
+		var seen := {}
+		for j in game.state["board"]:
+			if j["kind"] == "commission" and j["client"] == "":
+				var name := str(j["client_name"]).get_slice(",", 0)
+				check(not seen.has(name), "%s is on the board only once (day %d)" % [name, day])
+				seen[name] = true
+	check(JobFactory.pronouns({"portrait": "gaia"})["he"] == "she" and JobFactory.pronouns({"portrait": "lucius"})["he"] == "he", "he or she by each person's own face")
+	check(Data.face({"id": "nobody_yet", "woman": true}) == "towns_2", "someone not painted yet borrows a face of their sex")

@@ -28,6 +28,8 @@ dog. You've inherited your uncle's mosaic workshop in a Roman town.
 - Watch the stars on the design table: clients judge how the floor looks
   (symmetry, a centrepiece, how full it is, colours, a border) as well as
   their wishes. The hint under the stars says what to fix.
+- A floor needs its stone in stock. Buy sacks at the stone shelves, or
+  press "Buy it" on the design table to buy just what the floor is short of.
 - Lay the floor one stone at a time: pick a stone in the tray (or press 1
   to 9), and sweep the left mouse button over the places that glow. Then
   pick the sponge to grout and the cloth to polish.

@@ -1,0 +1,38 @@
+{
+	"townsfolk": [
+		{"id": "lucius", "name": "Lucius", "trade": "a potter", "woman": false, "look": "a stocky potter with a short black beard and clay on his hands, brown tunic"},
+		{"id": "titus", "name": "Titus", "trade": "a carpenter", "woman": false, "portrait": "towns_1", "look": "a townsman with short brown hair and a plain green tunic"},
+		{"id": "publius", "name": "Publius", "trade": "a cook", "woman": false, "look": "a round-cheeked cook with a bald head and a stained white apron"},
+		{"id": "sextus", "name": "Sextus", "trade": "a scribe", "woman": false, "portrait": "towns_3", "look": "a young scribe with curly hair holding a wax tablet"},
+		{"id": "decimus", "name": "Decimus", "trade": "a fuller", "woman": false, "look": "a lanky fuller with grey stubble and rolled-up sleeves, damp grey tunic"},
+		{"id": "servius", "name": "Servius", "trade": "a cobbler", "woman": false, "look": "an old cobbler with squinting eyes, bushy white eyebrows and a leather apron"},
+		{"id": "gnaeus", "name": "Gnaeus", "trade": "a shipwright", "woman": false, "look": "a broad-shouldered shipwright with a sunburnt face, red beard and a blue tunic"},
+		{"id": "appius", "name": "Appius", "trade": "a schoolmaster", "woman": false, "look": "a thin schoolmaster with a long grey beard and a stern frown, cream toga"},
+		{"id": "numerius", "name": "Numerius", "trade": "a lamp maker", "woman": false, "look": "a young lamp maker with soot on his cheek, wavy black hair and an orange tunic"},
+		{"id": "spurius", "name": "Spurius", "trade": "a wine seller", "woman": false, "look": "a jolly wine seller with a red nose, a wreath of vine leaves and a purple tunic"},
+		{"id": "gaia", "name": "Gaia", "trade": "a weaver", "woman": true, "look": "a young weaver with long black braids and a saffron dress, threads over her shoulder"},
+		{"id": "julia", "name": "Julia", "trade": "a dyer", "woman": true, "portrait": "towns_2", "look": "a townswoman with red hair tied back and a blue dress"},
+		{"id": "claudia", "name": "Claudia", "trade": "a perfumer", "woman": true, "look": "an elegant perfumer with piled-up auburn curls, gold earrings and a pink dress"},
+		{"id": "flavia", "name": "Flavia", "trade": "a goldsmith", "woman": true, "look": "a sharp-eyed goldsmith with short grey hair, a gold necklace and a dark green dress"},
+		{"id": "aurelia", "name": "Aurelia", "trade": "a barber", "woman": true, "look": "a cheerful barber with a brown bun held by a pin and a striped apron"},
+		{"id": "tullia", "name": "Tullia", "trade": "a fishmonger", "woman": true, "portrait": "towns_4", "look": "an old woman with a white headscarf and a basket"},
+		{"id": "fabia", "name": "Fabia", "trade": "a cook", "woman": true, "look": "a plump smiling cook with rosy cheeks, a red headscarf and flour on her arms"},
+		{"id": "junia", "name": "Junia", "trade": "a potter", "woman": true, "look": "a tall potter with freckles, sandy hair tied up in a cloth and a grey dress"},
+		{"id": "prisca", "name": "Prisca", "trade": "a weaver", "woman": true, "look": "an elderly weaver with silver hair, a kind wrinkled face and a violet shawl"},
+		{"id": "vibia", "name": "Vibia", "trade": "a fishmonger", "woman": true, "look": "a weathered fishmonger with tanned skin, dark curly hair and a sea-blue tunic"}
+	],
+	"collectors": [
+		{"id": "marcellus", "name": "Marcellus", "woman": false, "look": "a wealthy collector with neat silver hair, a trimmed beard and a white toga with a red border"},
+		{"id": "cassius", "name": "Cassius", "woman": false, "look": "a young rich collector with oiled black curls, a gold ring and a teal cloak"},
+		{"id": "octavia", "name": "Octavia", "woman": true, "look": "a refined lady collector with braided dark hair, pearl earrings and a lavender stola"},
+		{"id": "drusilla", "name": "Drusilla", "woman": true, "look": "an elderly lady collector with white hair under a fine veil and a jewelled brooch"}
+	],
+	"finders": [
+		{"id": "builder", "who": "Builders knocking down an old house", "woman": false, "look": "a dusty builder with a broad face, a short beard and a hammer over his shoulder"},
+		{"id": "householder", "who": "A householder digging a new cellar", "woman": true, "look": "a determined householder with her sleeves rolled up, brown hair in a scarf and a shovel"},
+		{"id": "workman", "who": "Workmen mending the street", "woman": false, "look": "a sturdy street workman with a straw hat, a sweaty brow and a grey tunic"},
+		{"id": "farmer", "who": "A farmer ploughing by the old road", "woman": false, "look": "a weathered old farmer with a white beard, a straw hat and a brown cloak"}
+	],
+	"neighbour": {"id": "neighbour", "name": "Your neighbour", "woman": true, "look": "a friendly middle-aged neighbour with greying curls, a warm smile and a mustard-yellow dress"},
+	"herald": {"id": "herald", "name": "The town herald", "woman": false, "look": "a loud town herald with a bushy black moustache, a scroll in his hand and a red cloak"}
+}

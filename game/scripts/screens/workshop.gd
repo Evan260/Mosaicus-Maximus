@@ -89,6 +89,10 @@ func enter(_args: Dictionary) -> void:
 		"upgrades":
 			Game.state["upgrades"] = ["big_brush"]
 			_open_upgrades()
+		"merchant":
+			Story.unlock(Game.state, 3)
+			Game.state["ship"] = {"day": Game.state["day"], "stone": "blue_glass", "port": "Alexandria"}
+			_open_merchant()
 		"bench":
 			Game.state["panels"] = [{"id": "p1", "motif": "dolphin", "stones": {}, "stars": 4, "size": 14}, {"id": "p2", "motif": "dove", "stones": {}, "stars": 5, "size": 12}]
 			_open_bench()
@@ -470,20 +474,25 @@ func _open_merchant() -> void:
 	_close_panel()
 	_panel = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_panel, 3)
-	Ui.label(col, "The stone merchant", "Heading")
-	Ui.label(col, "Stone comes in sacks of 100 tiles. What you run short of while laying is bought for you anyway.", "", 250)
+	var head := Ui.hbox(col, 4)
+	Ui.label(head, "The stone merchant", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	Ui.button(head, "Done", _close_panel, "tick")
+	Ui.label(col, "Stone comes in sacks of 100 tiles. A floor is laid only from stone in stock.", "MutedLabel")
+	# Two stones to a row, so every stone fits on the screen at once.
 	var grid := GridContainer.new()
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 6)
-	grid.add_theme_constant_override("v_separation", 2)
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 1)
 	col.add_child(grid)
 	for id in Game.state["unlocked_stones"]:
-		Ui.texture(grid, MotifIcons.swatch(id, 10))
-		Ui.label(grid, str(Stones.LIST[Stones.index(id)]["name"]))
-		var have := Ui.label(grid, "%d in stock" % Game.stock(id), "MutedLabel")
+		var cell := Ui.hbox(grid, 4)
+		Ui.texture(cell, MotifIcons.swatch(id, 10))
+		Ui.label(cell, str(Stones.LIST[Stones.index(id)]["name"])).custom_minimum_size.x = 74
+		var have := Ui.label(cell, "%d in stock" % Game.stock(id), "MutedLabel")
+		have.custom_minimum_size.x = 56
 		var sid: String = id
-		var price := int(ceil(Game.stone_price(sid) * Data.num("sack", 100)))
-		Ui.button(grid, "Buy 100: %d d" % price, func() -> void:
+		var price := Game.sack_price(sid)
+		Ui.button(cell, "Buy 100: %d d" % price, func() -> void:
 			if Game.spend(price, "Stone: " + str(Stones.LIST[Stones.index(sid)]["name"])):
 				Game.add_stock(sid, int(Data.num("sack", 100)))
 				Audio.ui("coins")
@@ -498,8 +507,7 @@ func _open_merchant() -> void:
 		var name := str(Stones.LIST[Stones.index(cargo)]["name"])
 		var text := Ui.vbox(row, 0)
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		Ui.label(text, "%s, off the ship from %s" % [name, Game.state["ship"].get("port", "abroad")])
-		Ui.label(text, "Today only. Buy a sack and it's yours to use from now on.", "MutedLabel", 170)
+		Ui.label(text, "%s, off the ship from %s. Today only: buy a sack and it's yours to use from now on." % [name, Game.state["ship"].get("port", "abroad")], "", 300)
 		var price := int(ceil(Data.stone_price(cargo) * Data.num("ship.price_scale", 1.5) * Data.num("sack", 100)))
 		Ui.button(row, "Buy 100: %d d" % price, func() -> void:
 			if Game.spend(price, "Stone off the ship: " + name):
@@ -511,7 +519,6 @@ func _open_merchant() -> void:
 				_open_merchant()
 			else:
 				Audio.ui("nope"), "sack", true)
-	Ui.button(col, "Done", _close_panel, "tick").size_flags_horizontal = Control.SIZE_SHRINK_END
 	_layout.call_deferred()
 
 

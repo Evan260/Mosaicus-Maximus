@@ -90,7 +90,7 @@ static func commission(state: Dictionary, rng: RandomNumberGenerator, used: Dict
 		var id: String = named[rng.randi() % named.size()]
 		used[id] = true
 		return _named(id, state, rng)
-	return _townsfolk(state, rng, small)
+	return _townsfolk(state, rng, small, used)
 
 
 static func _named(id: String, state: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
@@ -122,11 +122,12 @@ static func _named(id: String, state: Dictionary, rng: RandomNumberGenerator) ->
 		"greeting": c.get("greeting", ""), "text": "%s, %s, wants a new floor for the %s." % [c["name"], c.get("trade", ""), str(Data.room(room).get("name", room)).to_lower()]}
 
 
-static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: bool) -> Dictionary:
+static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: bool, used: Dictionary = {}) -> Dictionary:
 	var names: Dictionary = Data.names
-	var who := person(rng)
-	var first: String = who[0]
-	var trade: String = names["trade"][rng.randi() % names["trade"].size()]
+	var who := person(rng, used)
+	used[who["id"]] = true
+	var first: String = who["name"]
+	var trade: String = who["trade"]
 	var chapter := int(state["chapter"])
 	var rooms := Data.job_rooms().filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and r != "forum" and r != "temple")
 	if small:
@@ -168,7 +169,7 @@ static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: boo
 		var t: String = Looks.TASTES.keys()[rng.randi() % Looks.TASTES.size()]
 		taste = [t]
 		line += " %s also %s." % [first, Looks.TASTES[t]["text"]]
-	return {"kind": "commission", "client": "", "client_name": "%s, %s" % [first, trade], "trade": trade, "portrait": who[1],
+	return {"kind": "commission", "client": "", "client_name": "%s, %s" % [first, trade], "trade": trade, "portrait": Data.face(who), "woman": who["woman"],
 		"room": room, "brief": brief, "budget": budget, "arc_step": -1, "line": line, "greeting": "", "taste": taste, "taste_said": true,
 		"text": "%s, %s, %s" % [first, trade, want]}
 
@@ -180,12 +181,13 @@ static func copy(state: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 	var room: String = rooms[rng.randi() % rooms.size()]
 	var target := _only_unlocked(RandomDesign.make(room, chapter, rng), state)
 	var places := ["Alexandria", "the House of the Faun in Pompeii", "the old palace at Antioch", "a villa on Capri", "the baths at Ostia"]
-	var who := person(rng)
-	var first: String = who[0]
+	var collectors: Array = Data.people.get("collectors", [])
+	var who: Dictionary = collectors[rng.randi() % collectors.size()]
+	var first: String = who["name"]
 	var place: String = places[rng.randi() % places.size()]
 	var rate := Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter
 	var budget := int(_area(room) * rate * Data.num("budget.copy_scale", 1.3) * rng.randf_range(0.9, 1.1))
-	return {"kind": "copy", "client": "", "client_name": "%s, a collector" % first, "trade": "a collector", "portrait": who[1],
+	return {"kind": "copy", "client": "", "client_name": "%s, a collector" % first, "trade": "a collector", "portrait": Data.face(who), "woman": who["woman"],
 		"room": room, "brief": {}, "target": target.to_dict(), "budget": budget, "arc_step": -1, "taste": [], "greeting": "",
 		"line": "%s wants the famous floor from %s copied, stone for stone. Here is a painted sketch of it." % [first, place],
 		"text": "%s wants a famous floor copied." % first}
@@ -200,7 +202,7 @@ static func contest(state: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 	var room: String = rooms[rooms.size() - 1]
 	var rival := minf(Data.num("contest.rival_cap", 0.86), Data.num("contest.rival_base", 0.52) + Data.num("contest.rival_per_chapter", 0.07) * chapter + rng.randf_range(-0.04, 0.04))
 	var prize := int(Data.num("contest.prize", 100) + Data.num("contest.prize_per_chapter", 50) * chapter)
-	return {"kind": "contest", "client": "", "client_name": "The town's floor contest", "trade": "", "portrait": "towns_3",
+	return {"kind": "contest", "client": "", "client_name": "The town's floor contest", "trade": "", "portrait": Data.face(Data.people.get("herald", {})), "woman": false,
 		"room": room, "brief": {}, "budget": prize, "arc_step": -1, "taste": [], "rival": rival, "greeting": "",
 		"line": "The aediles are holding the floor contest again. The judges look at nothing but how a floor looks, and the rival workshop has entered. The winner takes %d d." % prize,
 		"text": "The floor contest: the finest new floor wins %d d." % prize}
@@ -243,10 +245,11 @@ static func restoration(state: Dictionary, rng: RandomNumberGenerator, small: bo
 	var age_tier := clampi(chapter + (1 if rng.randf() < 0.3 else 0), 1, 4)
 	var design := RandomDesign.make(room, age_tier, rng)
 	var found := _hide_a_pattern(design, state, rng)
-	var finders := ["Builders knocking down an old house", "A householder digging a new cellar", "Workmen mending the street", "A farmer ploughing by the old road"]
-	var who: String = finders[rng.randi() % finders.size()]
+	var finders: Array = Data.people.get("finders", [])
+	var finder: Dictionary = finders[rng.randi() % finders.size()]
+	var who: String = finder["who"]
 	var budget := int(_area(room) * (Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter) * 0.9 * rng.randf_range(0.9, 1.1))
-	return {"kind": "restoration", "client": "", "client_name": who, "trade": "", "portrait": "towns_%d" % (1 + rng.randi() % 4),
+	return {"kind": "restoration", "client": "", "client_name": who, "trade": "", "portrait": Data.face(finder), "woman": finder["woman"],
 		"room": room, "brief": {}, "budget": budget, "arc_step": -1, "design": design.to_dict(), "severity": rng.randf_range(0.18, 0.28 + 0.05 * chapter),
 		"line": "%s found an old floor under the dirt. Can you bring it back?" % who + (" Part of it looks like no pattern anyone in town has seen in years." if found != "" else ""),
 		"greeting": "", "discovery": found, "text": "%s found an old floor. Clean it and mend it." % who}
@@ -297,18 +300,32 @@ static func tag_open(tag: String, state: Dictionary) -> bool:
 	return false
 
 
-## "he", "him" and "his", or "she", "her" and "her", for the person a job's portrait shows.
+## "he", "him" and "his", or "she", "her" and "her", for the person a job shows: as the job says, or by their portrait.
 static func pronouns(job: Dictionary) -> Dictionary:
-	if str(job.get("portrait", "")) in WOMEN:
+	var woman := bool(job["woman"]) if job.has("woman") else is_woman(str(job.get("portrait", "")))
+	if woman:
 		return {"he": "she", "him": "her", "his": "her"}
 	return {"he": "he", "him": "him", "his": "his"}
 
 
-## A townsperson's first name and a portrait to match: the men are pictures 1 and 3, the women 2 and 4.
-static func person(rng: RandomNumberGenerator) -> Array:
-	var woman := rng.randf() < 0.5
-	var names: Array = Data.names["women" if woman else "men"]
-	return [names[rng.randi() % names.size()], "towns_%d" % ((2 if woman else 1) + 2 * (rng.randi() % 2))]
+## Whether a portrait shows a woman: a regular client's, or anyone in town's.
+static func is_woman(portrait: String) -> bool:
+	if portrait in WOMEN:
+		return true
+	for group in ["townsfolk", "collectors", "finders"]:
+		for p in Data.people.get(group, []):
+			if str(p.get("portrait", p["id"])) == portrait:
+				return bool(p["woman"])
+	return bool(Data.people.get("neighbour", {}).get("woman", false)) and portrait == "neighbour"
+
+
+## One of the townsfolk not already on today's board, each with their own name, trade and face.
+static func person(rng: RandomNumberGenerator, used: Dictionary = {}) -> Dictionary:
+	var everyone: Array = Data.people.get("townsfolk", [])
+	var free := everyone.filter(func(p: Dictionary) -> bool: return not used.has(p["id"]))
+	if free.is_empty():
+		free = everyone
+	return free[rng.randi() % free.size()]
 
 
 static func _area(room_id: String) -> float:
