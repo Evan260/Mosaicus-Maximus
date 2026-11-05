@@ -132,13 +132,17 @@ func _drag(from: Vector2, to: Vector2) -> void:
 
 ## The game's icon: a small mosaic laid by the floor's own renderer, saved as a square picture, and then the game quits.
 func _make_icon(path: String) -> void:
-	var d := FloorDesign.for_room("panel")
+	var d := FloorDesign.for_room(get_arg("icon-room", "panel"))
 	d.ground = get_arg("icon-ground", "white_marble")
 	d.set_border(get_arg("icon-border", "plain"))
 	d.border["stones"] = get_arg("icon-frame", "black_stone,black_stone,black_stone,black_stone").split(",")
 	var p := d.add(get_arg("icon-motif", "flower"), d.w * 0.5, d.h * 0.5, num("icon-size", 15.0))
-	var colours := get_arg("icon-stones", "red_marble,ochre_marble,black_stone,red_marble").split(",")
-	p["stones"] = {"1": colours[0], "2": colours[1], "3": colours[2], "4": colours[3]}
+	if get_arg("icon-stones") == "own" and has("icon-allowed"):
+		for k in p["stones"]:
+			p["stones"][k] = Stones.nearest(p["stones"][k], Array(get_arg("icon-allowed").split(",")))
+	elif get_arg("icon-stones") != "own":
+		var colours := get_arg("icon-stones", "red_marble,ochre_marble,black_stone,red_marble").split(",")
+		p["stones"] = {"1": colours[0], "2": colours[1], "3": colours[2], "4": colours[3]}
 	var layout := MosaicLayout.new()
 	layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6))
 	var vp := SubViewport.new()

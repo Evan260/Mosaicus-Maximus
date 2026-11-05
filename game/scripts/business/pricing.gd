@@ -39,28 +39,32 @@ static func stone_cost(counts: Dictionary) -> int:
 	return Game.shortfall_cost(counts)
 
 
-## The most expensive stone in a floor and the cheapest similar unlocked stone to use instead, with the money saved.
-## Empty when there is nothing cheaper to swap to.
+## A similar unlocked stone to use instead of the one whose sacks cost most, and what that saves; empty if nothing does.
 static func cheaper_swap(counts: Dictionary, unlocked: Array) -> Dictionary:
+	var sacks := Game.sacks_short(counts)
 	var worst := ""
-	var worst_cost := 0.0
-	for id in counts:
-		var c := float(counts[id]) * Data.stone_price(id)
+	var worst_cost := 0
+	for id in sacks:
+		var c := int(sacks[id]) * Game.sack_price(id)
 		if c > worst_cost:
 			worst = id
 			worst_cost = c
 	if worst == "":
 		return {}
-	var best := ""
+	var before := Game.shortfall_cost(counts)
+	var best := {}
 	var best_score := INF
 	for id in unlocked:
-		if id == worst or Data.stone_price(id) >= Data.stone_price(worst):
+		if id == worst:
 			continue
-		var s := Stones.difference(worst, id) * 3.0 + Data.stone_price(id) * 10.0
+		var swapped := counts.duplicate()
+		swapped.erase(worst)
+		swapped[id] = int(swapped.get(id, 0)) + int(counts[worst])
+		var saving := before - Game.shortfall_cost(swapped)
+		if saving <= 0:
+			continue
+		var s := Stones.difference(worst, id) * 3.0 - saving * 0.01
 		if s < best_score:
-			best = id
+			best = {"from": worst, "to": id, "saving": saving}
 			best_score = s
-	if best == "":
-		return {}
-	var saving := int(round(float(counts[worst]) * (Data.stone_price(worst) - Data.stone_price(best))))
-	return {"from": worst, "to": best, "saving": saving}
+	return best

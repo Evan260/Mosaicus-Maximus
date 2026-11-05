@@ -17,7 +17,13 @@ Turn your sound on.
 WHAT TO DO
 
 Start a new workshop on the title screen: give your name and choose your
-dog. You've inherited your uncle's mosaic workshop in a Roman town.
+dog. It is AD 72, and you've inherited your uncle's mosaic workshop in a
+harbour town on the Bay of Naples. Money is counted in denarii, the Roman
+silver coin.
+
+On your first day your uncle's notes appear on each screen, saying what to
+do there, with an arrow at what to click. They stop after your first floor,
+or press "Skip the guide" to turn them off.
 
 - Click the job board to see today's notices, then pick a client.
 - Agree a price with them by sliding the coins. Ask too much and they'll

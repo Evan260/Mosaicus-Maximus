@@ -74,6 +74,7 @@ func _show_menu() -> void:
 	title.add_theme_font_size_override("font_size", 16)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	Ui.label(col, "A town of floors, waiting to be laid", "MutedLabel").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	Ui.label(col, "The Bay of Naples, AD 72", "MutedLabel").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var info := Saves.slots()
 	for n in range(1, Saves.SLOTS + 1):
 		var s: Dictionary = info[n - 1]

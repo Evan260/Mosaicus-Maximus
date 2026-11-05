@@ -95,6 +95,10 @@ func enter(_args: Dictionary) -> void:
 			_open_merchant()
 		"bench":
 			Game.state["panels"] = [{"id": "p1", "motif": "dolphin", "stones": {}, "stars": 4, "size": 14}, {"id": "p2", "motif": "dove", "stones": {}, "stars": 5, "size": 12}]
+			if Dev.has("busy"):
+				var d := FloorDesign.for_room("panel")
+				d.add("dolphin", 10, 10, 14)["panel"] = "p1"
+				Game.state["active_job"] = {"kind": "panel", "room": "panel", "design": d.to_dict(), "stone_paid": true, "stone_taken": {"limestone": 300}}
 			_open_bench()
 		"chapters":
 			_panel = ChaptersPanel.open(_root)
@@ -336,7 +340,8 @@ func _chapter_text(short: bool) -> String:
 
 func _refresh() -> void:
 	var st := Game.state
-	_coins.text = "%d d" % int(st["coins"])
+	_coins.text = Ui.coins_text(int(st["coins"]))
+	Ui.tip_on(_coins, "Your purse. Money is counted in denarii, the Roman silver coin.")
 	var ch := Data.chapter(int(st["chapter"]))
 	var next := Data.chapter(int(st["chapter"]) + 1)
 	Ui.tip_on(_rep, "Chapter %d: %s. Reputation %d" % [int(st["chapter"]), ch.get("title", ""), int(st["reputation"])] + ("" if next.is_empty() else " of the %d that opens chapter %d" % [int(next["reputation"]), int(next["n"])]) + ". Click to see every chapter.")
@@ -420,7 +425,10 @@ func _queue_event(e: Dictionary) -> void:
 ## Shows the next letter waiting: a new chapter, or what a client said about their floor.
 func _show_next_event() -> void:
 	var pending: Array = Game.state.get("pending_events", [])
-	if pending.is_empty() or _popup:
+	if _popup:
+		return
+	if pending.is_empty():
+		_guide.call_deferred()
 		return
 	var e: Dictionary = pending.pop_front()
 	_popup = Ui.panel(_root, "PagePanel")
@@ -444,6 +452,23 @@ func _show_next_event() -> void:
 	ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	Audio.ui("page_turn", -6.0)
 	_layout.call_deferred()
+
+
+## The guide's note for the workshop: find a client, carry on with the job on the table, and after the first floor, end the day.
+func _guide() -> void:
+	var floors := (Game.state["floors"] as Array).size()
+	var busy := not (Game.state["active_job"] as Dictionary).is_empty()
+	if floors == 0 and not busy:
+		var board: TextureRect = _layers["board"]
+		Guide.note("workshop", "Welcome to your uncle's workshop. Money is counted in denarii, the Roman silver coin, and your purse is at the top left. First, find a client: click the job board on the wall by the door.",
+			"bottom_right", Rect2(_scene.position + board.position, board.texture.get_size()))
+	elif floors == 0:
+		var table: TextureRect = _layers["table"]
+		Guide.note("resume", "Your job is waiting on the design table at the front of the room. Click the table to carry on.",
+			"bottom_right", Rect2(_scene.position + table.position, table.texture.get_size()))
+	elif floors == 1 and not busy:
+		Guide.note("first_floor", "Well done: your first floor! You can take one job a day. When you have finished for the day, click End the day at the top. New notices go up every morning.",
+			"bottom_left", _end_day.get_global_rect())
 
 
 ## Beside a chapter's letter, what it adds to the workshop, and under it how far off the next one is.
@@ -477,7 +502,7 @@ func _open_merchant() -> void:
 	var head := Ui.hbox(col, 4)
 	Ui.label(head, "The stone merchant", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	Ui.button(head, "Done", _close_panel, "tick")
-	Ui.label(col, "Stone comes in sacks of 100 tiles. A floor is laid only from stone in stock.", "MutedLabel")
+	Ui.label(col, "Stone comes in sacks of 100 tiles; the prices are for a sack. A floor is laid only from stone in stock.", "MutedLabel")
 	# Two stones to a row, so every stone fits on the screen at once.
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -492,13 +517,12 @@ func _open_merchant() -> void:
 		have.custom_minimum_size.x = 56
 		var sid: String = id
 		var price := Game.sack_price(sid)
-		Ui.button(cell, "Buy 100: %d d" % price, func() -> void:
-			if Game.spend(price, "Stone: " + str(Stones.LIST[Stones.index(sid)]["name"])):
-				Game.add_stock(sid, int(Data.num("sack", 100)))
+		Ui.button(cell, Ui.coins_text(price), func() -> void:
+			if Game.buy_sack(sid):
 				Audio.ui("coins")
 				have.text = "%d in stock" % Game.stock(sid)
 			else:
-				Audio.ui("nope"))
+				Audio.ui("nope"), "sack")
 	var cargo := Story.ship_stone(Game.state)
 	if cargo != "" and not cargo in Game.state["unlocked_stones"]:
 		var ship := Ui.panel(col, "CardPanel")
@@ -509,7 +533,7 @@ func _open_merchant() -> void:
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		Ui.label(text, "%s, off the ship from %s. Today only: buy a sack and it's yours to use from now on." % [name, Game.state["ship"].get("port", "abroad")], "", 300)
 		var price := int(ceil(Data.stone_price(cargo) * Data.num("ship.price_scale", 1.5) * Data.num("sack", 100)))
-		Ui.button(row, "Buy 100: %d d" % price, func() -> void:
+		Ui.button(row, "Buy a sack: %s" % Ui.coins_text(price), func() -> void:
 			if Game.spend(price, "Stone off the ship: " + name):
 				Game.bump("ship_stones")
 				Game.state["unlocked_stones"].append(cargo)
@@ -531,7 +555,14 @@ func _open_bench() -> void:
 	Ui.label(head, "The workbench", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	Ui.button(head, "Done", _close_panel, "tick")
 	Ui.label(col, "Lay a small picture panel here, one a day. A collector will buy it, or you can set it into a client's floor, where it comes laid already and the client pays extra.", "MutedLabel", 270)
+	var busy: Dictionary = Game.state["active_job"]
+	if busy.get("kind", "") == "panel":
+		var row := Ui.hbox(col, 4)
+		Ui.label(row, "A panel is on the bench.").size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		Ui.button(row, "Give it up", _give_up_panel, "cross")
+		Ui.button(row, "Carry on", func() -> void: Nav.go("floor" if busy.get("stone_paid", false) else "design_table", {"job": busy}), "arrow_r", true)
 	var lay := Ui.button(col, "Lay a picture panel", _start_panel, "brush", true)
+	lay.visible = busy.get("kind", "") != "panel"
 	if not Story.can_make_panel(Game.state):
 		lay.disabled = true
 		Ui.tip_on(lay, "Finish the job on your table first." if not (Game.state["active_job"] as Dictionary).is_empty() else "One panel a day. The bench is free again tomorrow.")
@@ -551,7 +582,11 @@ func _open_bench() -> void:
 			name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			var value := Story.panel_value(Game.state, int(panel.get("stars", 0)))
 			var sold: Dictionary = panel
-			Ui.button(row, "Sell: %d d" % value, func() -> void: _sell_panel(sold, value), "coin")
+			var sell := Ui.button(row, "Sell: %s" % Ui.coins_text(value), func() -> void: _sell_panel(sold, value), "coin")
+			var set_in := (FloorDesign.from_dict(busy.get("design", {})).placements if busy.has("design") else []).any(func(p: Dictionary) -> bool: return str(p.get("panel", "")) == str(panel["id"]))
+			if set_in:
+				sell.disabled = true
+				Ui.tip_on(sell, "It's set into the floor on your table.")
 	Ui.button(col, "Improve the workshop", _open_upgrades, "hammer")
 	_layout.call_deferred()
 
@@ -561,6 +596,17 @@ func _start_panel() -> void:
 		"budget": 0, "arc_step": -1, "taste": [], "id": "panel_%d" % int(Game.state["day"])}
 	Game.state["active_job"] = job
 	Nav.go("design_table", {"job": job})
+
+
+## Throws away the panel being made, with the stone it took put back in stock.
+func _give_up_panel() -> void:
+	var busy: Dictionary = Game.state["active_job"]
+	for id in busy.get("stone_taken", {}):
+		Game.add_stock(id, int(busy["stone_taken"][id]))
+	Game.state["active_job"] = {}
+	Saves.save()
+	Audio.ui("rustle", -8.0)
+	_open_bench()
 
 
 func _sell_panel(panel: Dictionary, value: int) -> void:
@@ -601,7 +647,7 @@ func _open_upgrades() -> void:
 		Ui.label(text, str(u.get("text", "")), "MutedLabel", 172)
 		var uid: String = id
 		var cost := int(u.get("cost", 0))
-		var b := Ui.button(row, "Owned" if owned >= limit else "%d d" % cost, func() -> void: _buy(uid, cost))
+		var b := Ui.button(row, "Owned" if owned >= limit else Ui.coins_text(cost), func() -> void: _buy(uid, cost))
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.disabled = owned >= limit or cost > Game.coins()
 	_layout.call_deferred()

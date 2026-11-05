@@ -154,7 +154,7 @@ func _show_floor(f: Dictionary, title: String) -> void:
 	var px := clampi(int(220.0 / maxf(d.w, d.h * 1.5)), 2, 5)
 	var img := Composer.picture(d, px)
 	Ui.texture(col, ImageTexture.create_from_image(img))
-	Ui.label(col, "Paid %d d. %s" % [int(f.get("paid", 0)), _owner_line(f)], "MutedLabel")
+	Ui.label(col, "Paid %s. %s" % [Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)], "MutedLabel")
 	Ui.button(col, "Close", func() -> void:
 		_view.queue_free()
 		_view = null, "tick")
@@ -218,7 +218,7 @@ func _process(_delta: float) -> void:
 	var stars := Ui.hbox(col, 1)
 	for k in 5:
 		Ui.icon(stars, "star").modulate = Color(1, 1, 1, 1.0 if k < int(f.get("stars", Looks.stars(float(f.get("score", 0))))) else 0.2)
-	Ui.label(col, "Paid %d d. %s" % [int(f.get("paid", 0)), _owner_line(f)], "", 150)
+	Ui.label(col, "Paid %s. %s" % [Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)], "", 150)
 	Ui.button(col, "Back to the map", func() -> void:
 		_visit.queue_free()
 		_visit = null, "arrow_l", true)

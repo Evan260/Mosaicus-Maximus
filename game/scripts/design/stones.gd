@@ -37,6 +37,17 @@ static func lookup() -> Dictionary:
 	return by_colour
 
 
+## The stone among the allowed ones that looks most like this one, or the stone itself when it is allowed.
+static func nearest(id: String, allowed: Array) -> String:
+	if id in allowed or allowed.is_empty():
+		return id
+	var best: String = allowed[0]
+	for other in allowed:
+		if difference(id, other) < difference(id, best):
+			best = other
+	return best
+
+
 static func index(id: String) -> int:
 	if _by_id.is_empty():
 		for i in LIST.size():

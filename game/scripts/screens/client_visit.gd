@@ -61,13 +61,13 @@ func enter(args: Dictionary) -> void:
 		Ui.label(right, "They pay for likeness: the closer the copy, the more.", "MutedLabel", 290)
 	var budget := int(job.get("budget", 0))
 	if kind == "contest":
-		Ui.label(right, "The prize is %d d. You pay for your own stone." % budget, "", 290)
+		Ui.label(right, "The prize is %s. You pay for your own stone." % Ui.coins_text(budget), "", 290)
 		job["asked"] = 0
 		job["expected"] = 0.0
 		_shake = Ui.button(right, "Enter the contest", _take, "tick", true)
 		Ui.button(right, "Not this time", _decline, "cross")
 	elif restore:
-		Ui.label(right, "They pay %d d, and supply the stone for any repairs." % budget, "", 230)
+		Ui.label(right, "They pay %s, and supply the stone for any repairs." % Ui.coins_text(budget), "", 230)
 		job["asked"] = budget
 		job["expected"] = 0.5
 		_shake = Ui.button(right, "Take the job", _take, "tick", true)
@@ -100,6 +100,10 @@ func enter(args: Dictionary) -> void:
 	Nav.resized.connect(place)
 	place.call_deferred()
 	Audio.ui("rustle", -8.0)
+	if str(job.get("kind", "commission")) in ["commission", "copy"]:
+		Guide.note("visit", "The client says what they want. Slide the coins to set your price: the more you ask, the more they expect, and ask too much and they'll haggle. Then shake on it.", "top_left")
+	else:
+		Guide.note("visit", "Read what's wanted here, then take the job or turn it down.", "top_left")
 
 
 func _opening_line() -> String:
@@ -114,11 +118,11 @@ func _opening_line() -> String:
 func _update_price() -> void:
 	var asked := int(_price.value)
 	var budget := int(job.get("budget", 1))
-	_price_label.text = "%d d" % asked
+	_price_label.text = Ui.coins_text(asked)
 	var chance := _chance(asked)
 	var expected := Pricing.expectation(asked, budget)
 	if _offer > 0 and asked <= _offer:
-		_mood.text = "\"%d d. That's what I said.\"" % _offer
+		_mood.text = "\"%s. That's what I said.\"" % Ui.coins_text(_offer)
 	elif chance > 0.85:
 		_mood.text = "\"That seems fair.\""
 	elif chance > 0.55:
@@ -158,12 +162,12 @@ func _shake_on_it() -> void:
 	_patience -= 1
 	if _patience > 0:
 		_offer = maxi(budget, int(round(lerpf(budget, asked, 0.35))))
-		_speech.text = "\"%d d? No, no. I could go to %d d, and that's generous.\"" % [asked, _offer]
+		_speech.text = "\"%s? No, no. I could go to %s, and that's generous.\"" % [Ui.coins_text(asked), Ui.coins_text(_offer)]
 		_price.value = _offer
 		_update_price()
 		return
 	_done = true
-	_speech.text = "\"%d d? That's twice now. I'll try the workshop up on the hill.\"" % asked
+	_speech.text = "\"%s? That's twice now. I'll try the workshop up on the hill.\"" % Ui.coins_text(asked)
 	Story.refuse(Game.state, job)
 	Saves.save()
 	for c in _buttons.get_children():

@@ -21,7 +21,7 @@ static func morning(state: Dictionary) -> void:
 		var tag := festival_tag(state, f) if not f.is_empty() else ""
 		if tag != "":
 			state["pending_events"].append({"kind": "festival", "title": "The %s" % f["name"],
-				"text": "%s Floors that show %s pay more today, and the finest wins the festival prize of %d d." % [f["text"], Brief.TAG_WORDS.get(tag, tag), festival_prize(state)]})
+				"text": "%s Floors that show %s pay more today, and the finest wins the festival prize of %s." % [f["text"], Brief.TAG_WORDS.get(tag, tag), Ui.coins_text(festival_prize(state))]})
 		_ship(state, rng)
 		_dog_dig(state, rng)
 
@@ -134,7 +134,7 @@ static func finish_job(state: Dictionary, job: Dictionary, result: Dictionary) -
 			won.append(f["id"])
 		stats["festivals"] = won
 		events.append({"kind": "festival", "title": "The %s prize" % f["name"],
-			"text": "The judges of the %s walked the town all day, and they chose your floor. The prize of %d d is yours." % [f["name"], prize]})
+			"text": "The judges of the %s walked the town all day, and they chose your floor. The prize of %s is yours." % [f["name"], Ui.coins_text(prize)]})
 	var found: String = job.get("discovery", "")
 	if found != "" and not found in state["unlocked_motifs"]:
 		state["unlocked_motifs"].append(found)

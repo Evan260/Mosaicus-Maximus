@@ -153,11 +153,14 @@
 			"animals"
 		],
 		"stones": {
-			"1": "black_stone",
-			"2": "grey_stone"
+			"1": "grey_stone",
+			"2": "black_stone",
+			"3": "white_marble",
+			"4": "red_marble",
+			"5": "red_marble"
 		},
 		"cost": 1.3,
-		"aspect": 1.167,
+		"aspect": 1.432,
 		"min": 6,
 		"max": 70,
 		"outline": "black_stone"
@@ -175,7 +178,8 @@
 		"stones": {
 			"1": "grey_stone",
 			"2": "white_marble",
-			"3": "black_stone"
+			"3": "white_marble",
+			"4": "black_stone"
 		},
 		"cost": 1.3,
 		"aspect": 1.667,
@@ -196,7 +200,8 @@
 		],
 		"stones": {
 			"1": "grey_stone",
-			"2": "black_stone"
+			"2": "green_marble",
+			"3": "black_stone"
 		},
 		"cost": 1.3,
 		"aspect": 1.262,
@@ -366,10 +371,11 @@
 			"wine"
 		],
 		"stones": {
-			"1": "black_stone",
-			"2": "brown_stone",
-			"3": "grey_stone",
-			"4": "white_marble"
+			"1": "terracotta",
+			"2": "red_marble",
+			"3": "ochre_marble",
+			"4": "white_marble",
+			"5": "black_stone"
 		},
 		"cost": 1.3,
 		"aspect": 0.552,
@@ -484,11 +490,11 @@
 			"games"
 		],
 		"stones": {
-			"1": "black_stone",
+			"1": "brown_stone",
 			"2": "terracotta",
-			"3": "wine_marble",
-			"4": "brown_stone",
-			"5": "ochre_marble"
+			"3": "black_stone",
+			"4": "ochre_marble",
+			"5": "red_marble"
 		},
 		"cost": 1.3,
 		"aspect": 1.188,
@@ -623,11 +629,11 @@
 			"myth"
 		],
 		"stones": {
-			"1": "black_stone",
-			"2": "green_glass",
-			"3": "green_marble",
-			"4": "blue_glass",
-			"5": "terracotta"
+			"1": "green_glass",
+			"2": "turquoise_glass",
+			"3": "black_stone",
+			"4": "yellow_marble",
+			"5": "white_marble"
 		},
 		"cost": 1.3,
 		"aspect": 1.154,

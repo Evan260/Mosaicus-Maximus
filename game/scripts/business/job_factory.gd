@@ -2,7 +2,7 @@ class_name JobFactory
 ## The notices pinned to the job board each morning: commissions from named clients and townsfolk, and restorations.
 ## Every board has a few jobs the player can afford, however little money is left.
 
-# The portraits that show a woman: townswomen are always the second and fourth townsfolk portraits (see `person`).
+# The regular clients' portraits that show a woman, and the two old townsfolk faces of women; people.json has the rest.
 const WOMEN := ["cornelia", "livia", "valeria", "towns_2", "towns_4"]
 
 
@@ -17,7 +17,7 @@ static func board(state: Dictionary, rng: RandomNumberGenerator) -> Array:
 		if k > 0 and roll < digs:
 			job = restoration(state, rng)
 		elif k > 0 and int(state["day"]) >= 2 and roll < digs + Data.num("board.copy_chance", 0.15):
-			job = copy(state, rng)
+			job = copy(state, rng, used)
 		else:
 			job = commission(state, rng, used, false)
 		job["id"] = "%d_%d" % [int(state["day"]), k]
@@ -104,7 +104,7 @@ static func _named(id: String, state: Dictionary, rng: RandomNumberGenerator) ->
 	if bool(beat.get("restoration", false)):
 		var job := restoration(state, rng)
 		var d := RandomDesign.make(room, 4, rng)
-		job.merge({"client": id, "client_name": c["name"], "portrait": c.get("portrait", ""), "room": room, "design": d.to_dict(),
+		job.merge({"client": id, "client_name": c["name"], "portrait": c.get("portrait", ""), "woman": str(c.get("portrait", "")) in WOMEN, "room": room, "design": d.to_dict(),
 			"severity": 0.3, "budget": int(_area(room) * 0.14), "arc_step": step, "line": beat.get("line", ""), "greeting": c.get("greeting", ""),
 			"text": "%s needs the floor under the forum restored." % c["name"]}, true)
 		return job
@@ -175,14 +175,17 @@ static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: boo
 
 
 ## A collector wants a famous floor copied from a rubbing, in a room small enough to copy in one go.
-static func copy(state: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
+static func copy(state: Dictionary, rng: RandomNumberGenerator, used: Dictionary = {}) -> Dictionary:
 	var chapter := int(state["chapter"])
 	var rooms := Data.job_rooms(false).filter(func(r) -> bool: return int(Data.room(r).get("tier", 1)) <= chapter and _area(r) <= 2600.0)
 	var room: String = rooms[rng.randi() % rooms.size()]
 	var target := _only_unlocked(RandomDesign.make(room, chapter, rng), state)
 	var places := ["Alexandria", "the House of the Faun in Pompeii", "the old palace at Antioch", "a villa on Capri", "the baths at Ostia"]
-	var collectors: Array = Data.people.get("collectors", [])
+	var collectors: Array = (Data.people.get("collectors", []) as Array).filter(func(p: Dictionary) -> bool: return not used.has(p["id"]))
+	if collectors.is_empty():
+		collectors = Data.people.get("collectors", [{"id": "collector", "name": "A collector", "woman": false}])
 	var who: Dictionary = collectors[rng.randi() % collectors.size()]
+	used[who["id"]] = true
 	var first: String = who["name"]
 	var place: String = places[rng.randi() % places.size()]
 	var rate := Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter
@@ -204,8 +207,8 @@ static func contest(state: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 	var prize := int(Data.num("contest.prize", 100) + Data.num("contest.prize_per_chapter", 50) * chapter)
 	return {"kind": "contest", "client": "", "client_name": "The town's floor contest", "trade": "", "portrait": Data.face(Data.people.get("herald", {})), "woman": false,
 		"room": room, "brief": {}, "budget": prize, "arc_step": -1, "taste": [], "rival": rival, "greeting": "",
-		"line": "The aediles are holding the floor contest again. The judges look at nothing but how a floor looks, and the rival workshop has entered. The winner takes %d d." % prize,
-		"text": "The floor contest: the finest new floor wins %d d." % prize}
+		"line": "The aediles are holding the floor contest again. The judges look at nothing but how a floor looks, and the rival workshop has entered. The winner takes %s." % Ui.coins_text(prize),
+		"text": "The floor contest: the finest new floor wins %s." % Ui.coins_text(prize)}
 
 
 ## Swaps any stone or border the player can't use yet for the nearest one they can, so a copy can always be made.
@@ -246,6 +249,8 @@ static func restoration(state: Dictionary, rng: RandomNumberGenerator, small: bo
 	var design := RandomDesign.make(room, age_tier, rng)
 	var found := _hide_a_pattern(design, state, rng)
 	var finders: Array = Data.people.get("finders", [])
+	if finders.is_empty():
+		finders = [{"id": "finder", "who": "Workmen", "woman": false}]
 	var finder: Dictionary = finders[rng.randi() % finders.size()]
 	var who: String = finder["who"]
 	var budget := int(_area(room) * (Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter) * 0.9 * rng.randf_range(0.9, 1.1))

@@ -115,6 +115,10 @@ func _ready_floor() -> void:
 	_hud.visible = not Dev.has("no-hud")
 	_started_msec = Time.get_ticks_msec()
 	_time = 0.0
+	if job.get("kind", "") == "restoration":
+		Guide.note("dig", "This old floor is buried. Pick the trowel and scrape the dirt away, then fill each gap with a matching stone and press Done. Then grout and polish it.", "top_left")
+	else:
+		Guide.note("floor", "Now lay the floor, one stone at a time. Pick a stone in the tray below, then hold the left mouse button and sweep over the places that glow. Then wipe in the grout with the sponge and polish with the cloth.", "top_left")
 
 
 func _process(delta: float) -> void:

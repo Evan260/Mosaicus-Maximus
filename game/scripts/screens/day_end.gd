@@ -13,10 +13,10 @@ func enter(_args: Dictionary) -> void:
 	for line in [["Earned", t["earned"]], ["Spent", t["spent"]], ["Wages", t["wages"]]]:
 		var r := Ui.hbox(col, 4)
 		Ui.label(r, str(line[0]), "LightLabel").custom_minimum_size.x = 80
-		Ui.label(r, "%d d" % int(line[1]), "LightLabel")
+		Ui.label(r, Ui.coins_text(int(line[1])), "LightLabel")
 	var purse := Ui.hbox(col, 4)
 	Ui.icon(purse, "coin")
-	Ui.label(purse, "%d d in the purse" % int(t["coins"]), "LightLabel")
+	Ui.label(purse, "%s in the purse" % Ui.coins_text(int(t["coins"])), "LightLabel")
 	var rep := Ui.hbox(col, 4)
 	Ui.icon(rep, "laurel")
 	Ui.label(rep, "Reputation %d" % int(t["reputation"]), "LightLabel")

@@ -1,8 +1,8 @@
 """Makes the pattern book: every motif as a picture of numbered colour areas ("roles") the player can give stones to.
 
 Run: python tools/art/make_motifs.py
-Geometric motifs are drawn here. Figures come from PixelLab pictures in tools/art/motif_sources, reduced to a few flat
-colours. Writes game/assets/art/motifs/*.png and game/data/motifs.json.
+Geometric motifs and the guard dog are drawn here. Other figures come from PixelLab pictures in
+tools/art/motif_sources, reduced to a few flat colours. Writes game/assets/art/motifs/*.png and game/data/motifs.json.
 Role colours: 1 red, 2 green, 3 blue, 4 yellow, 5 magenta, 6 cyan; clear pixels lay no tile.
 """
 import json
@@ -53,8 +53,11 @@ FIGURES = [
     ("medusa", "Medusa", 4, ["myth", "luck"]),
     ("lobster", "Lobster", 4, ["sea", "feast"]),
 ]
-# Colours no stone matches closely, set by hand: grapes are purple, which the nearest stone turns grey.
-OVERRIDES = {"grapes": {1: "wine_marble", 2: "red_marble"}, "dog": {2: "grey_stone", 3: "white_marble"}}
+# Colours set by hand where the nearest stone gets them wrong: purple grapes, a bay horse, a clay amphora.
+OVERRIDES = {"grapes": {1: "wine_marble", 2: "red_marble"}, "dolphin": {2: "white_marble"},
+             "horse": {1: "brown_stone", 2: "terracotta", 5: "red_marble"}, "amphora": {1: "terracotta"}}
+# Pictures drawn so dark that they would merge with their black outline, so their light and shade are spread out first.
+DARK = {"amphora", "horse", "peacock"}
 STONES = {
     "limestone": ((224, 210, 180), 1), "black_stone": ((50, 46, 48), 1), "white_marble": ((240, 234, 222), 1),
     "grey_stone": ((140, 134, 126), 1), "terracotta": ((172, 88, 56), 2), "red_marble": ((152, 54, 48), 2),
@@ -175,7 +178,7 @@ def nearest_stone(rgb, tier):
     return best
 
 
-def figure_roles(src, tier):
+def figure_roles(src, tier, dark=False):
     """A PixelLab picture redrawn in real stones: each pixel takes the nearest stone the motif's chapter allows, and
     only the five commonest stones are kept. Its thin black outline is dropped; the game adds a tile-wide one."""
     im = Image.open(src).convert("RGBA")
@@ -184,10 +187,26 @@ def figure_roles(src, tier):
     smooth = np.array(Image.fromarray(arr[:, :, :3]).filter(ImageFilter.MedianFilter(3))).astype(np.float64)
     lum = arr[:, :, :3].astype(np.float64) @ np.array([0.3, 0.59, 0.11])
     outline = alpha & (lum < 42)
-    inside = alpha & ~outline
-    allowed = [s for s, (c, t) in STONES.items() if t <= tier and s != "limestone"]
+    # A first-chapter picture also takes the next chapter's stones, which the workshop swaps for its own when it is laid.
+    palette_tier = 2 if tier <= 1 else tier
+    allowed = [s for s, (c, t) in STONES.items() if t <= palette_tier and s != "limestone"]
     cols = np.array([STONES[s][0] for s in allowed], np.float64)
     weight = np.array([2.0, 4.0, 3.0])
+    if dark:
+        clear = ~alpha
+        rim = np.zeros_like(alpha)
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            rim |= np.roll(np.roll(clear, dy, axis=0), dx, axis=1)
+        outline = outline & rim
+        lum_in = lum[alpha & ~outline]
+        ordered = np.sort(lum_in)
+        rank = (np.searchsorted(ordered, lum, "left") + np.searchsorted(ordered, lum, "right")) * 0.5 / max(1, lum_in.size)
+        target = 45 + np.clip(rank, 0.0, 1.0) * 170
+        own = smooth @ np.array([0.3, 0.59, 0.11])
+        smooth = np.clip(smooth * (target / np.maximum(own, 1.0))[:, :, None], 0, 255)
+        # Pure black has no colour to brighten, so it is lifted to the same lightness in grey.
+        smooth = np.clip(smooth + (target - smooth @ np.array([0.3, 0.59, 0.11]))[:, :, None], 0, 255)
+    inside = alpha & ~outline
     d = (((smooth[:, :, None, :] - cols[None, None, :, :]) ** 2) * weight).sum(-1)
     nearest = np.argmin(d, axis=2)
     counts = sorted(((int(np.sum(inside & (nearest == k))), k) for k in range(len(allowed))), reverse=True)
@@ -225,6 +244,62 @@ def figure_roles(src, tier):
     ys, xs = np.nonzero(roles)
     roles = roles[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
     return roles, stones
+
+
+def draw_dog():
+    """A Molossian guard dog in profile, drawn in shapes broad enough for whole tiles: a grey coat, the far legs in black
+    so all four legs show, a red collar, and an open red mouth with white teeth. In black and white the reds turn black."""
+    from PIL import ImageDraw
+    w, h = 120, 84
+    layers = []
+
+    def shape(role, draw):
+        layer = Image.new("L", (w * 4, h * 4), 0)
+        draw(ImageDraw.Draw(layer), lambda pts: [(x * 4, y * 4) for x, y in pts])
+        layers.append((role, np.array(layer.resize((w, h), Image.BOX)) > 127))
+
+    def poly(role, pts):
+        shape(role, lambda d, sc: d.polygon(sc(pts), fill=255))
+
+    def oval(role, cx, cy, rx, ry):
+        shape(role, lambda d, sc: d.ellipse(sc([(cx - rx, cy - ry), (cx + rx, cy + ry)]), fill=255))
+
+    def band(role, a, b, width):
+        shape(role, lambda d, sc: d.line(sc([a, b]), fill=255, width=int(width * 4)))
+
+    # Shapes are painted back to front, so the far legs go first and the body covers their tops.
+    poly(2, [(63, 40), (75, 42), (77, 72), (82, 80), (69, 81), (66, 72)])
+    poly(2, [(36, 40), (49, 42), (46, 57), (40, 65), (42, 76), (47, 81), (34, 81), (32, 64), (36, 54)])
+    shape(1, lambda d, sc: d.line(sc([(20, 30), (11, 25), (6, 15), (8, 6)]), fill=255, width=7 * 4, joint="curve"))
+    oval(1, 8, 6, 3.5, 3.5)
+    oval(1, 50, 33, 28, 11)
+    oval(1, 76, 35, 12, 12)
+    oval(1, 27, 34, 12, 11)
+    poly(1, [(72, 38), (86, 38), (94, 71), (103, 80), (89, 81), (84, 73)])
+    poly(1, [(16, 32), (37, 37), (34, 53), (26, 63), (27, 75), (33, 81), (18, 81), (17, 62), (13, 48)])
+    poly(1, [(64, 28), (78, 8), (94, 10), (90, 34), (76, 42)])
+    oval(1, 91, 14, 12, 11)
+    poly(1, [(92, 5), (113, 6), (119, 12), (100, 18)])
+    poly(1, [(92, 20), (112, 27), (110, 33), (92, 30)])
+    poly(1, [(80, 8), (85, 0), (93, 5)])
+    poly(3, [(99, 17), (119, 11), (111, 28), (93, 21)])
+    poly(5, [(101, 19), (116, 14), (109, 25), (96, 22)])
+    oval(2, 92, 10, 2.2, 2.2)
+    band(4, (72, 20), (88, 33), 6)
+    poly(3, [(88, 77), (102, 77), (103, 81), (88, 81)])
+    poly(3, [(18, 77), (32, 77), (33, 81), (18, 81)])
+
+    roles = np.zeros((h, w), np.uint8)
+    for role, mask in layers:
+        roles[mask] = role
+    roles = majority(roles, roles > 0)
+    ys, xs = np.nonzero(roles)
+    roles = roles[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    return roles, ["grey_stone", "black_stone", "white_marble", "red_marble", "red_marble"]
+
+
+# Pictures drawn here rather than taken from a PixelLab picture.
+DRAWN = {"dog": draw_dog}
 
 
 def majority(roles, fill):
@@ -302,7 +377,7 @@ def main():
         if not src.exists():
             print("missing source", src)
             continue
-        roles, stones = figure_roles(src, tier)
+        roles, stones = DRAWN[mid]() if mid in DRAWN else figure_roles(src, tier, mid in DARK)
         for role, stone in OVERRIDES.get(mid, {}).items():
             if role <= len(stones):
                 stones[role - 1] = stone

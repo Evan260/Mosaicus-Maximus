@@ -6,13 +6,15 @@ There are no timers and no failure.
 
 ## The setting
 
-You inherit a dusty workshop from your uncle, a once-famous mosaic maker, in a small town on the coast of Roman Italy. The town is growing, and everyone wants a fashionable floor. Beneath the older houses lie forgotten floors from the town's past, waiting to be uncovered. As your reputation grows, grander clients and grander ruins come your way.
+You inherit a dusty workshop from your uncle, a once-famous mosaic maker, in a small harbour town on the Bay of Naples in AD 72, while the emperor Vespasian builds his great amphitheatre in Rome. The town is growing, and everyone wants a fashionable floor. Beneath the older houses lie forgotten floors from the town's past, waiting to be uncovered. As your reputation grows, grander clients and grander ruins come your way.
 
 ## A day in the workshop
 
 Each day you take one job, or two once you have apprentices. New notices go up on the job board every morning.
 
 **New floors**
+
+On the first day, your uncle's notes guide you through the first job: a short note on each screen the first time it opens, saying what to do there, with a bouncing arrow at what to click. They end after the first floor and the first End the day, and "Skip the guide" turns them off.
 
 1. **A client visits** with a brief and an offer: the room, a theme, colours they love or hate, and what they'll pay. Requests come from real Roman fashions, such as a nervous homeowner who wants a guard dog and "Cave Canem" by the door, a bathhouse that wants an octopus, or a rich host who wants the floor to look like scraps from a feast were dropped on it.
 2. **Compose the design** at the design table, using motifs from the pattern book.

@@ -74,6 +74,11 @@ func enter(args: Dictionary) -> void:
 		design = FloorDesign.for_room(job.get("room", Dev.get_arg("room", "study")))
 	if Dev.has("sample") and design.placements.is_empty():
 		design = Samples.make(Dev.get_arg("sample"))
+	if not free:
+		var kept := (Game.state.get("panels", []) as Array).map(func(p: Dictionary) -> String: return str(p["id"]))
+		for p in design.placements:
+			if str(p.get("panel", "")) != "" and not p["panel"] in kept:
+				p.erase("panel")
 	if Dev.has("tab"):
 		tab = Dev.get_arg("tab")
 		if Dev.has("panels"):
@@ -84,9 +89,13 @@ func enter(args: Dictionary) -> void:
 	_fill_book()
 	if Dev.has("panels"):
 		_add_panel(Game.state["panels"][0])
+	if Dev.has("add"):
+		_add_motif(Dev.get_arg("add"), Vector2(design.w, design.h) * 0.5)
 	if Dev.has("pick"):
 		_select(int(Dev.num("pick", 0)))
 	_refresh_chips()
+	if not free:
+		Guide.note("design", "This is the design table. Drag patterns and pictures from the book onto the floor plan, and click any part to give it a stone. The stars show how much the client will like it. Then buy the stone and press Start laying.", "top")
 
 
 func _process(delta: float) -> void:
@@ -180,8 +189,9 @@ func _build() -> void:
 		_drag_offset = Vector2.INF
 		_pending = {}
 		if _ground_on_release != "" and not _moved:
-			_select(-1)
+			selected = -1
 			role = _ground_on_release
+			_plan.selection = Rect2()
 			_refresh_chips()
 		_ground_on_release = "")
 	_plan.wheeled.connect(_on_wheel)
@@ -210,7 +220,7 @@ func _build() -> void:
 	for id in _stones_allowed():
 		var b := Button.new()
 		b.icon = MotifIcons.swatch(id, 10)
-		Ui.tip_on(b, "%s, %d d per 100 tiles" % [Stones.LIST[Stones.index(id)]["name"], int(Data.value("stone_price." + id, 0))])
+		Ui.tip_on(b, "%s, %s for a sack of 100 tiles" % [Stones.LIST[Stones.index(id)]["name"], Ui.coins_text(Game.sack_price(id))])
 		b.custom_minimum_size = Vector2(15, 15)
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.add_theme_stylebox_override("normal", UiTheme.panel("slot", 3, 1))
@@ -349,7 +359,7 @@ func _fill_book() -> void:
 			continue
 		var slot := Button.new()
 		slot.custom_minimum_size = Vector2(28, 28)
-		slot.icon = MotifIcons.motif(id, 22)
+		slot.icon = MotifIcons.motif(id, 22, _stones_for(id))
 		slot.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		slot.expand_icon = false
 		slot.add_theme_stylebox_override("normal", UiTheme.panel("slot", 3, 2))
@@ -436,6 +446,8 @@ func _add_border_slot(id: String, name: String) -> void:
 		Audio.ui("click")
 		_remember()
 		design.set_border(id)
+		if not free:
+			design.border["stones"] = (design.border.get("stones", []) as Array).map(func(s: String) -> String: return Stones.nearest(s, _stones_allowed()))
 		_dirty = true
 		_cost_dirty = true
 		_fill_book()
@@ -479,16 +491,19 @@ func _recost() -> void:
 		_start.disabled = false
 		return
 	# A floor is laid only with stone in stock, bought from the merchant here or at the shelves.
-	var short := Game.short_of(_counts) if not job.get("stone_paid", false) else {}
-	var buy := Game.shortfall_cost(_counts) if not short.is_empty() else 0
+	var need := _still_needed()
+	var short := Game.short_of(need)
+	var buy := Game.shortfall_cost(need) if not short.is_empty() else 0
+	Ui.tip_on(_warn_label, "")
 	if short.is_empty():
-		_cost_label.text = "All the stone is in stock.\nIn your purse: %d d" % Game.coins()
+		_cost_label.text = "All the stone is in stock.\nYou have %s." % Ui.coins_text(Game.coins())
 	else:
 		var names := short.keys().map(func(id: String) -> String: return str(Stones.LIST[Stones.index(id)]["name"]).to_lower())
-		_cost_label.text = "Short of %s.\nIn your purse: %d d" % [names[0] if names.size() == 1 else "%d stones" % names.size(), Game.coins()]
+		_cost_label.text = "Short of %s.\nYou have %s." % [names[0] if names.size() == 1 else "%d stones" % names.size(), Ui.coins_text(Game.coins())]
 	Ui.tip_on(_cost_label, "About %d tiles, laid from your stock. " % tiles + ("Short of: " + ", ".join(short.keys().map(func(id: String) -> String: return "%d %s" % [short[id], str(Stones.LIST[Stones.index(id)]["name"]).to_lower()])) + "." if not short.is_empty() else ""))
-	_buy_button.visible = not short.is_empty()
-	_buy_button.text = "Buy it: %d d" % buy
+	var unsold := Game.not_sold(need)
+	_buy_button.visible = not short.is_empty() and unsold.is_empty()
+	_buy_button.text = "Buy it: %s" % Ui.coins_text(buy)
 	_buy_button.disabled = buy > Game.coins()
 	Ui.tip_on(_buy_button, "Buys whole sacks of 100 of every stone you're short of. What's left over stays in stock.")
 	_warn_label.text = ""
@@ -497,12 +512,14 @@ func _recost() -> void:
 		_start.disabled = true
 		_warn_label.text = "Put a picture on the panel first."
 		return
-	if _start.disabled and buy <= Game.coins():
+	if not unsold.is_empty():
+		_warn_label.text = "%s isn't sold here yet." % Stones.LIST[Stones.index(unsold[0])]["name"]
+	elif _start.disabled and buy <= Game.coins():
 		_warn_label.text = "Buy the stone first."
 	elif _start.disabled:
 		var swap := Pricing.cheaper_swap(_counts, _stones_allowed())
 		_warn_label.text = "Not enough denarii."
-		Ui.tip_on(_warn_label, "" if swap.is_empty() else "%s instead of %s would save %d d." % [Stones.LIST[Stones.index(swap["to"])]["name"], Stones.LIST[Stones.index(swap["from"])]["name"].to_lower(), swap["saving"]])
+		Ui.tip_on(_warn_label, "" if swap.is_empty() else "%s instead of %s would save %s." % [Stones.LIST[Stones.index(swap["to"])]["name"], Stones.LIST[Stones.index(swap["from"])]["name"].to_lower(), Ui.coins_text(int(swap["saving"]))])
 
 
 ## The brief card: what the client asked for, what you know of their taste, and the stars the floor would earn now.
@@ -756,7 +773,22 @@ func _show_hover(code: int) -> void:
 
 
 func _on_hover(tile: Vector2) -> void:
-	_show_hover(_code_at(tile))
+	var pick := _pick_at(tile)
+	_show_hover(_code_for(int(pick[0]), str(pick[1])) if int(pick[0]) != -2 else -1)
+
+
+## What is under the pointer as [placement, part]: a motif within half a tile, one past the part map by its box, or the floor.
+func _pick_at(tile: Vector2) -> Array:
+	var part := _part_of(_code_at(tile))
+	if int(part[0]) >= 0:
+		return part
+	var near := _motif_near(tile)
+	if not near.is_empty():
+		return near
+	for i in range(design.placements.size() - 1, Composer.MAX_PARTS - 1, -1):
+		if _rect_of(design.placements[i]).has_point(tile):
+			return [i, ""]
+	return part
 
 
 
@@ -794,18 +826,10 @@ func _select(i: int) -> void:
 
 ## A click picks the part under the pointer; inside the picked motif's box it stays picked, so it drags from any point.
 func _on_press(tile: Vector2, button: int) -> void:
-	var part := _part_of(_code_at(tile))
-	if int(part[0]) < 0:
-		var near := _motif_near(tile)
-		if not near.is_empty():
-			part = near
+	var part := _pick_at(tile)
 	var hit := int(part[0])
 	_ground_on_release = ""
 	_moved = false
-	# Inside the picked motif's box, a press can still drag it from anywhere; a plain click there picks the floor.
-	if selected >= 0 and _rect_of(design.placements[selected]).has_point(tile) and hit < 0:
-		hit = selected
-		_ground_on_release = str(part[1])
 	if button == MOUSE_BUTTON_RIGHT:
 		if hit >= 0:
 			_select(hit)
@@ -813,6 +837,10 @@ func _on_press(tile: Vector2, button: int) -> void:
 		return
 	if button != MOUSE_BUTTON_LEFT:
 		return
+	# Inside the picked motif's box, a press can still drag it from anywhere; a plain click there picks the floor.
+	if selected >= 0 and _rect_of(design.placements[selected]).has_point(tile) and hit < 0:
+		hit = selected
+		_ground_on_release = str(part[1])
 	if hit != selected:
 		_select(hit)
 	if hit >= 0:
@@ -842,6 +870,7 @@ func _on_drag(tile: Vector2) -> void:
 
 ## Grabbing a corner pins the opposite one, so the motif grows and shrinks from there, keeping its shape.
 func _on_handle(corner: int) -> void:
+	_ground_on_release = ""
 	if selected < 0 or _is_panel(selected):
 		return
 	var r := _rect_of(design.placements[selected])
@@ -878,7 +907,7 @@ func _on_wheel(steps: int, tile: Vector2) -> void:
 		_remember()
 	_last_wheel = now
 	if selected < 0:
-		var hit := _hit(tile)
+		var hit := int(_pick_at(tile)[0])
 		if hit < 0:
 			return
 		_select(hit)
@@ -892,7 +921,9 @@ func _on_drop(motif_id: String, tile: Vector2) -> void:
 ## The size in tiles a motif takes when it is first put on this floor.
 func _starting_size(motif_id: String) -> float:
 	var m := Data.motif(motif_id)
-	return roundf(clampf(minf(design.w, design.h) * 0.34, float(m.get("min", 3)), minf(float(m.get("max", 60)), minf(design.w, design.h) * 0.95)))
+	# A picture needs a score of tiles across before its face and legs show, so it starts as the centrepiece.
+	var share := 0.6 if m.get("kind", "") == "picture" else 0.34
+	return roundf(clampf(minf(design.w, design.h) * share, float(m.get("min", 3)), minf(float(m.get("max", 60)), minf(design.w, design.h) * 0.95)))
 
 
 ## The motif as it will look once dropped, centred on the pointer, sized in interface pixels as the interface scales it.
@@ -908,11 +939,24 @@ func _drag_preview(motif_id: String) -> Control:
 	return holder
 
 
+## A motif's own stones, each swapped for the nearest one the workshop has, as it will be laid; all of them in free design.
+func _stones_for(motif_id: String) -> Dictionary:
+	var stones := (Data.motif(motif_id).get("stones", {}) as Dictionary).duplicate()
+	if not free:
+		for k in stones:
+			stones[k] = Stones.nearest(stones[k], _stones_allowed())
+	return stones
+
+
 func _add_motif(motif_id: String, at: Vector2) -> void:
 	_remember()
 	var m := Data.motif(motif_id)
 	var p := design.add(motif_id, snappedf(at.x, 0.5), snappedf(at.y, 0.5), _starting_size(motif_id))
 	p["fine"] = m.get("kind", "") == "picture" and (free or int(Game.state["chapter"]) >= 3)
+	p["stones"] = _stones_for(motif_id)
+	if not free:
+		if str(p.get("outline", "")) != "":
+			p["outline"] = Stones.nearest(p["outline"], _stones_allowed())
 	Audio.ui("tab", -8.0)
 	_select(design.placements.size() - 1)
 	_dirty = true
@@ -1034,8 +1078,23 @@ func _refresh_history() -> void:
 		_redo_button.disabled = _redo.is_empty()
 
 
+## The stone the design needs from stock: all of it, or once laying has begun, only what it needs beyond the stone taken.
+func _still_needed() -> Dictionary:
+	if not job.get("stone_paid", false):
+		return _counts
+	if not job.has("stone_taken"):
+		job["stone_taken"] = _counts.duplicate()
+	var need := {}
+	for id in _counts:
+		var extra := int(_counts[id]) - int(job["stone_taken"].get(id, 0))
+		if extra > 0:
+			need[id] = extra
+	return need
+
+
 func _buy_stone() -> void:
-	if Game.buy_shortfall(_counts):
+	_recost()
+	if Game.buy_shortfall(_still_needed()):
 		Audio.ui("coins")
 		Saves.save()
 	else:
@@ -1049,9 +1108,15 @@ func _start_laying() -> void:
 		Audio.ui("nope")
 		return
 	if not free:
-		if not job.get("stone_paid", false) and not Game.take_stone(_counts):
+		if not Game.take_stone(_still_needed()):
 			Audio.ui("nope")
 			return
+		# Stone taken out of the design since laying began goes back into stock.
+		for id in job.get("stone_taken", {}):
+			var spare := int(job["stone_taken"][id]) - int(_counts.get(id, 0))
+			if spare > 0:
+				Game.add_stock(id, spare)
+		job["stone_taken"] = _counts.duplicate()
 		job["stone_paid"] = true
 		job["design"] = design.to_dict()
 		Game.state["active_job"] = job

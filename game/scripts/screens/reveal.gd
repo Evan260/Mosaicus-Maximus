@@ -158,15 +158,15 @@ func _build_card() -> void:
 		Ui.texture(r, MotifIcons.motif(found, 16))
 		Ui.label(r, "New in your pattern book: %s" % Data.motif_with_article(found), "", _wrap - 50)
 	if kind == "panel":
-		Ui.label(col, "Your picture panel is ready. A collector would pay about %d d for it at the workbench, or you can set it into a client's floor from the Pictures page of the pattern book." % Story.panel_value(Game.state, int(_verdict["stars"])), "", _wrap)
+		Ui.label(col, "Your picture panel is ready. A collector would pay about %s for it at the workbench, or you can set it into a client's floor from the Pictures page of the pattern book." % Ui.coins_text(Story.panel_value(Game.state, int(_verdict["stars"]))), "", _wrap)
 	if _panel_bonus > 0:
 		var r := Ui.hbox(col, 3)
 		Ui.icon(r, "star")
-		Ui.label(r, "Your picture panel: +%d d" % _panel_bonus, "", _wrap - 20)
+		Ui.label(r, "Your picture panel: +%s" % Ui.coins_text(_panel_bonus), "", _wrap - 20)
 	if not free:
 		var pay := Ui.hbox(col, 4)
 		Ui.icon(pay, "coin")
-		Ui.label(pay, ("Prize %d d" % _paid if _won else "No prize") if kind == "contest" else "Paid %d d" % _paid)
+		Ui.label(pay, ("Prize %s" % Ui.coins_text(_paid) if _won else "No prize") if kind == "contest" else "Paid %s" % Ui.coins_text(_paid))
 		Ui.icon(pay, "laurel")
 		Ui.label(pay, ("+%d reputation" % _rep) if _rep >= 0 else "%d reputation" % _rep)
 		var ahead := Story.next_chapter_line(Game.state, _rep, true)
@@ -182,6 +182,8 @@ func _build_card() -> void:
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_card.modulate.a = 0.0
 	_card.create_tween().tween_property(_card, "modulate:a", 1.0, 0.5).set_delay(1.4)
+	if not free:
+		Guide.note("reveal", "The client pays you, and your reputation grows. Enough reputation opens the next chapter, with new stone and patterns.", "top_right" if _room else "top_left")
 	var place := func() -> void:
 		var s := Nav.ui_size()
 		_card.reset_size()

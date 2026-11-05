@@ -776,4 +776,26 @@ func test_everyone_has_their_own_face() -> void:
 				check(not seen.has(name), "%s is on the board only once (day %d)" % [name, day])
 				seen[name] = true
 	check(JobFactory.pronouns({"portrait": "gaia"})["he"] == "she" and JobFactory.pronouns({"portrait": "lucius"})["he"] == "he", "he or she by each person's own face")
-	check(Data.face({"id": "nobody_yet", "woman": true}) == "towns_2", "someone not painted yet borrows a face of their sex")
+	check(Data.face({"id": "nobody_yet", "woman": true}) in ["towns_2", "towns_4"], "someone not painted yet borrows a face of their sex")
+
+
+func test_audit_fixes() -> void:
+	game.new_game("Audit")
+	Story.unlock(game.state, 4)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	var job := JobFactory._named("quintus", game.state, rng)
+	game.state["clients"]["quintus"] = {"step": 1}
+	job = JobFactory._named("quintus", game.state, rng)
+	check(JobFactory.pronouns(job)["he"] == "he", "Quintus is always he, whoever else found his floor")
+	var used := {}
+	var a := JobFactory.copy(game.state, rng, used)
+	var b := JobFactory.copy(game.state, rng, used)
+	check(a["client_name"] != b["client_name"], "two copies on one board come from two collectors")
+	game.new_game("Locked")
+	check(not game.buy_shortfall({"blue_glass": 50}), "stone the merchant doesn't sell yet can't be bought")
+	check(game.not_sold({"blue_glass": 50}) == ["blue_glass"], "and it is named as not sold")
+	check(Stones.nearest("blue_glass", game.state["unlocked_stones"]) in game.state["unlocked_stones"], "a locked stone is swapped for one the workshop has")
+	game.state["coins"] = 1000
+	var swap := Pricing.cheaper_swap({"white_marble": 500}, ["limestone", "white_marble", "black_stone", "grey_stone"])
+	check(swap.is_empty() or int(swap["saving"]) == Game.shortfall_cost({"white_marble": 500}) - Game.shortfall_cost({str(swap["to"]): 500}), "the swap hint counts what the sacks really cost (%s)" % [swap])

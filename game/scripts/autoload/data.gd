@@ -85,12 +85,15 @@ func job_rooms(walls := true) -> Array:
 	return rooms.keys().filter(func(id: String) -> bool: return not bool(rooms[id].get("bench", false)) and (walls or not bool(rooms[id].get("wall", false))))
 
 
-## A person's portrait, or until it is painted, one of the old townsfolk faces of the same sex.
+## A person's portrait, or until it is painted, one of the two old townsfolk faces of the same sex.
 func face(person: Dictionary) -> String:
 	var id := str(person.get("portrait", person.get("id", "")))
 	if ResourceLoader.exists("res://assets/art/portraits/%s.png" % id):
 		return id
-	return "towns_2" if bool(person.get("woman", false)) else "towns_1"
+	var second := absi(hash(id)) % 2 == 1
+	if bool(person.get("woman", false)):
+		return "towns_4" if second else "towns_2"
+	return "towns_3" if second else "towns_1"
 
 
 func room(id: String) -> Dictionary:

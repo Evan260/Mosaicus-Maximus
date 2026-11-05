@@ -127,7 +127,6 @@ func add_stock(stone_id: String, tiles: int) -> void:
 	changed.emit()
 
 
-## Takes the stone a floor needs from stock, buying whatever is short at the merchant's price. False if it can't be paid.
 ## Takes a floor's stone out of stock, only when every stone it needs is there.
 func take_stone(counts: Dictionary) -> bool:
 	if not short_of(counts).is_empty():
@@ -153,26 +152,48 @@ func sack_price(id: String) -> int:
 	return int(ceil(stone_price(id) * Data.num("sack", 100)))
 
 
+## How many sacks of each stone would cover what a floor is short of.
+func sacks_short(counts: Dictionary) -> Dictionary:
+	var sacks := {}
+	var short := short_of(counts)
+	for id in short:
+		sacks[id] = int(ceil(short[id] / Data.num("sack", 100)))
+	return sacks
+
+
 ## What the sacks cost that would cover everything a floor is short of.
 func shortfall_cost(counts: Dictionary) -> int:
 	var cost := 0
-	var short := short_of(counts)
-	for id in short:
-		cost += int(ceil(short[id] / Data.num("sack", 100))) * sack_price(id)
+	var sacks := sacks_short(counts)
+	for id in sacks:
+		cost += int(sacks[id]) * sack_price(id)
 	return cost
 
 
-## Buys the sacks a floor is short of, if the purse can pay for them all.
+## The stones a floor needs that the merchant doesn't sell yet.
+func not_sold(counts: Dictionary) -> Array:
+	return short_of(counts).keys().filter(func(id: String) -> bool: return not has_stone(id))
+
+
+## Buys the sacks a floor is short of, if the merchant sells them all and the purse can pay for them.
 func buy_shortfall(counts: Dictionary) -> bool:
 	var cost := shortfall_cost(counts)
-	if cost > coins():
+	if cost > coins() or not not_sold(counts).is_empty():
 		return false
-	var short := short_of(counts)
-	if short.is_empty():
+	var sacks := sacks_short(counts)
+	if sacks.is_empty():
 		return true
 	spend(cost, "Stone from the merchant")
-	for id in short:
-		add_stock(id, int(ceil(short[id] / Data.num("sack", 100))) * int(Data.num("sack", 100)))
+	for id in sacks:
+		add_stock(id, int(sacks[id]) * int(Data.num("sack", 100)))
+	return true
+
+
+## Buys one sack of a stone at the merchant's, if the purse can pay.
+func buy_sack(id: String) -> bool:
+	if not spend(sack_price(id), "Stone: " + str(Stones.LIST[Stones.index(id)]["name"])):
+		return false
+	add_stock(id, int(Data.num("sack", 100)))
 	return true
 
 

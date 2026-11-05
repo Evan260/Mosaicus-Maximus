@@ -88,8 +88,9 @@ static func texture(parent: Node, tex: Texture2D) -> TextureRect:
 	return t
 
 
+## An amount of money in words, in the Roman silver coin: one denarius, two denarii.
 static func coins_text(n: int) -> String:
-	return "%d d" % n
+	return "%d denarius" % n if n == 1 else "%d denarii" % n
 
 
 ## Places a control at a position in interface pixels, sized to its contents unless a size is given.
