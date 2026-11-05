@@ -1,6 +1,6 @@
 extends Node
-## The reveal: the finished floor in its room, with light running across the new stone.
-## The client says what they think, pays, and the workshop's story moves on.
+## The reveal: the finished floor in the client's room, with light running across the new stone.
+## The client comes in on the left to say what they think and pay, and the workshop's story moves on.
 
 const JobBoard := preload("res://scripts/screens/job_board.gd")
 
@@ -10,7 +10,6 @@ var result := {}
 var _floor: FloorView
 var _cam: Camera2D
 var _card: PanelContainer
-var _note: Label
 var _keep: Button
 var _task := -1
 var _layout: MosaicLayout
@@ -23,6 +22,8 @@ var _first_taste := false
 var _order := PackedInt32Array()
 ## The stones the player mended gaps with, by tile, so a restored floor is shown as they left it.
 var _stones := {}
+var _room: RoomView
+var _wrap := 190.0
 
 
 func enter(args: Dictionary) -> void:
@@ -32,6 +33,8 @@ func enter(args: Dictionary) -> void:
 		design = FloorDesign.from_dict(job["design"])
 	if design == null and Dev.has("kind"):
 		design = Samples.make(Dev.get_arg("sample", "villa"))
+		if Dev.has("room"):
+			design = Samples.moved(design, Dev.get_arg("room"))
 		job = Dev.test_job(Dev.get_arg("kind"))
 	if design == null:
 		design = Samples.make(Dev.get_arg("sample", "sea"))
@@ -66,6 +69,9 @@ func _process(_delta: float) -> void:
 
 
 func _setup() -> void:
+	if RoomView.has_room(design.room):
+		_setup_room()
+		return
 	_floor = FloorView.new()
 	Nav.world.add_child(_floor)
 	_floor.setup(_layout)
@@ -83,6 +89,25 @@ func _setup() -> void:
 	_cam.zoom = Vector2.ONE * fit * 1.5
 	_cam.position = size * 0.5 + Vector2(vp.x * 0.21 / fit, 0)
 	_cam.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(_cam, "zoom", _cam.zoom / 1.5, 2.2)
+	_build_card()
+	Audio.glissando()
+
+
+## The floor in the client's painted room, set right of centre so the client's card has the left side.
+func _setup_room() -> void:
+	_room = RoomView.new()
+	Nav.ui.add_child(_room)
+	_room.setup(design.room, _layout, _stones)
+	_floor = _room.floor_view
+	_floor.shine(0.9, 1.8)
+	_room.modulate.a = 0.0
+	_room.create_tween().tween_property(_room, "modulate:a", 1.0, 0.6)
+	var place := func() -> void:
+		var s := Nav.ui_size()
+		_room.position = Vector2(minf((s.x - _room.size.x) * 0.5 + 24.0, s.x - _room.size.x + 24.0), (s.y - _room.size.y) * 0.5).floor()
+	Nav.resized.connect(place)
+	place.call()
+	_wrap = 156.0
 	_build_card()
 	Audio.glissando()
 
@@ -108,44 +133,54 @@ func _build_card() -> void:
 	else:
 		Ui.label(col, "Your floor", "Heading")
 		_star_row(col, int(_verdict["stars"]))
-	Ui.label(col, _reaction(), "", 190)
+	Ui.label(col, _reaction(), "", _wrap)
 	if kind == "contest":
-		Ui.label(col, "Your floor: %d stars. The rival's: %d stars." % [int(_verdict["stars"]), Looks.stars(float(job.get("rival", 0.6)))], "MutedLabel", 190)
+		Ui.label(col, "Your floor: %d stars. The rival's: %d stars." % [int(_verdict["stars"]), Looks.stars(float(job.get("rival", 0.6)))], "MutedLabel", _wrap)
 	elif kind == "copy":
 		Ui.label(col, "Likeness: %d%%" % int(round(float(_verdict.get("likeness", 0.0)) * 100.0)), "MutedLabel")
 	for w in _verdict.get("wishes", []):
 		var r := Ui.hbox(col, 2)
 		Ui.icon(r, "tick" if w["met"] else "cross")
-		Ui.label(r, w["text"], "", 170)
+		Ui.label(r, w["text"], "", _wrap - 20)
 	if _first_taste:
 		var r := Ui.hbox(col, 2)
 		Ui.icon(r, "book")
-		Ui.label(r, "Noted: %s." % " and ".join((Data.client(job["client"])["taste"] as Array).map(func(t: String) -> String: return Looks.TASTES[t]["text"])), "MutedLabel", 170)
+		Ui.label(r, "Noted: %s." % " and ".join((Data.client(job["client"])["taste"] as Array).map(func(t: String) -> String: return Looks.TASTES[t]["text"])), "MutedLabel", _wrap - 20)
 	var found := str(job.get("discovery", ""))
 	if found != "" and not found in Game.state["unlocked_motifs"]:
 		var r := Ui.hbox(col, 3)
 		Ui.texture(r, MotifIcons.motif(found, 16))
-		Ui.label(r, "New in your pattern book: the %s" % str(Data.motif(found).get("name", found)).to_lower(), "", 140)
+		Ui.label(r, "New in your pattern book: %s" % Data.motif_with_article(found), "", _wrap - 50)
 	if not free:
 		var pay := Ui.hbox(col, 4)
 		Ui.icon(pay, "coin")
 		Ui.label(pay, ("Prize %d d" % _paid if _won else "No prize") if kind == "contest" else "Paid %d d" % _paid)
 		Ui.icon(pay, "laurel")
 		Ui.label(pay, ("+%d reputation" % _rep) if _rep >= 0 else "%d reputation" % _rep)
+		var ahead := Story.next_chapter_line(Game.state, _rep, true)
+		if ahead != "":
+			Ui.label(col, ahead, "MutedLabel")
 		if _paid > 0:
 			_coin_shower()
-	_keep = Ui.button(col, "Keep in my library", _keep_it, "book")
+	# Beside a room the card is narrower, so its two buttons share a row.
+	var buttons: BoxContainer = Ui.hbox(col, 3) if _room else col
+	_keep = Ui.button(buttons, "Keep" if _room else "Keep in my library", _keep_it, "book")
 	Ui.tip_on(_keep, "Keeps a picture of this floor, and the way you laid it, in your library")
-	Ui.button(col, "Back to the workshop" if not free else "Back", _finish, "arrow_r", true)
-	_note = Ui.label(col, "", "MutedLabel", 190)
+	var back := Ui.button(buttons, "Back to the workshop" if not free else "Back", _finish, "arrow_r", true)
+	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_card.modulate.a = 0.0
 	_card.create_tween().tween_property(_card, "modulate:a", 1.0, 0.5).set_delay(1.4)
 	var place := func() -> void:
 		var s := Nav.ui_size()
 		_card.reset_size()
-		_card.position = Vector2(s.x - _card.size.x - 6, floorf((s.y - _card.size.y) * 0.5))
+		_card.position = Vector2(6.0 if _room else s.x - _card.size.x - 6, floorf((s.y - _card.size.y) * 0.5))
 	Nav.resized.connect(place)
 	place.call_deferred()
+	if _room:
+		(func() -> void:
+			var shown := _card.position.x
+			_card.position.x = -_card.size.x
+			_card.create_tween().tween_property(_card, "position:x", shown, 0.6).set_delay(1.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)).call_deferred()
 
 
 func _star_row(parent: Node, n: int) -> void:
@@ -215,7 +250,7 @@ func _coin_shower() -> void:
 
 func _keep_it() -> void:
 	_keep.disabled = true
-	_keep.text = "Keeping it..."
+	_keep.text = "Keeping..." if _room else "Keeping it..."
 	var picture: Image = await Library.photograph(_layout, self, _stones)
 	var info := {"room": design.room, "tiles": _layout.tile_count(), "stars": int(_verdict["stars"])}
 	if not job.get("free", false):
@@ -224,7 +259,7 @@ func _keep_it() -> void:
 		info["day"] = int(Game.state.get("day", 0))
 	info["stones"] = _stones
 	Library.add(design, _order, picture, info)
-	_keep.text = "Kept in your library"
+	_keep.text = "Kept" if _room else "Kept in your library"
 	_keep.icon = UiTheme.icon("tick")
 	Audio.ui("page_turn", -8.0)
 
@@ -236,7 +271,8 @@ func _finish() -> void:
 		return
 	if _paid > 0:
 		Game.earn(_paid, "Floor for " + str(job.get("client_name", "")))
-	var events := Story.finish_job(Game.state, job, {"score": _score, "paid": _paid, "reputation": _rep, "design": design.to_dict(), "tiles": _layout.tile_count()})
+	var events := Story.finish_job(Game.state, job, {"score": _score, "paid": _paid, "reputation": _rep, "design": design.to_dict(), "tiles": _layout.tile_count(),
+		"won": _won, "likeness": float(_verdict.get("likeness", 0.0))})
 	for e in events:
 		Game.state["pending_events"].append(e)
 	Saves.save()

@@ -101,7 +101,8 @@
 		"aspect": 1.0,
 		"min": 3,
 		"max": 60,
-		"outline": ""
+		"outline": "",
+		"lower": "Solomon's knot"
 	},
 	{
 		"id": "roundel",
@@ -220,7 +221,9 @@
 		"aspect": 1.933,
 		"min": 14,
 		"max": 58,
-		"outline": ""
+		"outline": "",
+		"lower": "CAVE CANEM",
+		"a": "the words CAVE CANEM"
 	},
 	{
 		"id": "flower",
@@ -349,7 +352,8 @@
 		"aspect": 1.094,
 		"min": 6,
 		"max": 70,
-		"outline": "black_stone"
+		"outline": "black_stone",
+		"a": "loaves"
 	},
 	{
 		"id": "amphora",
@@ -537,7 +541,8 @@
 		"aspect": 0.959,
 		"min": 6,
 		"max": 70,
-		"outline": "black_stone"
+		"outline": "black_stone",
+		"a": "grapes"
 	},
 	{
 		"id": "lyre",
@@ -651,7 +656,9 @@
 		"aspect": 0.983,
 		"min": 6,
 		"max": 70,
-		"outline": "black_stone"
+		"outline": "black_stone",
+		"lower": "Medusa",
+		"a": "Medusa's head"
 	},
 	{
 		"id": "lobster",

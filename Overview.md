@@ -61,12 +61,16 @@ Restorations grow in size and importance, ending with the grand floor buried ben
 
 ## Materials and techniques
 
-Progress follows the real history of Roman mosaics, from simple to spectacular:
+Progress follows the real history of Roman mosaics, from simple to spectacular, in four chapters:
 
 1. **Black and white:** limestone and black stone in geometric patterns, like the floors of ordinary Roman homes.
 2. **Coloured stone:** marbles in reds, greens and ochres, and terracotta, for borders, waves and simple figures.
 3. **Picture panels:** tiny tiles for detailed pictures, such as portraits, animals and myths, set into the centre of a floor.
 4. **Glass and gold:** coloured glass and gold-leaf tiles for walls, fountains and the town's new temple.
+
+Every finished floor earns reputation, and better floors earn more; enough reputation opens the next chapter. The chapters are never hidden. The top bar's Chapter button shows the chapter you're in and your reputation against the next one, and opens a list of every chapter with what each brings: its stone, patterns, borders, rooms, clients and upgrades. Each new chapter opens with a letter listing what it adds, and the reveal and the end of the day say how much reputation the next chapter still needs.
+
+**Achievements** (Steam achievements too, when the game runs through Steam) mark finished floors, five-star floors, chapters, digs, contest wins, near-perfect copies, each client's story, money earned, a floor of ten thousand tiles, stone off a ship, petting the dog and the library. A card with a laurel slides in when one is earned, and the settings list them all.
 
 The pattern book fills with real Roman designs as you unlock them, such as the key pattern, braided borders, rosettes, dolphins, birds and Medusa's head.
 
@@ -90,8 +94,7 @@ This is the moment the whole game is built around, so every tile has to feel goo
 
 - **Each stone has its own voice:** marble clicks hard, limestone gives a softer tock, terracotta a dull clay knock, glass a bright clink, and gold a tiny bell-like ping. Each has many recorded variations with slight changes in pitch, so no two landings sound the same.
 - **No noise:** fast sweeps sound like rain on stone, not a racket. Overlapping clicks are thinned out and the volume is kept even.
-- **Finishing a motif** plays a soft harp chord.
-- **Finishing the floor** plays a harp glissando, and the client gasps.
+- **No harp while you work:** laying, grouting and polishing make only the sounds of stone, sponge and cloth. The harp sweep is kept for the reveal.
 - **Everything else:** grout squelches, sponges squish, polish squeaks, chisels tap, plaster crumbles, water splashes, and coins pour into your purse.
 
 ## What it looks like
@@ -106,13 +109,13 @@ The palette comes from real Roman stone: cream limestone, black, terracotta red,
 
 There are eight screens. The workshop is the hub, and every other screen opens from it.
 
-1. **The workshop (side view).** You see a single room straight on, like a stage, painted as one picture so every piece shares the window's light. On the left is the open street door to the town. The job board hangs on the wall beside it, and a rack of scrolls by the window holds your library. Shelves of stone sacks stand against the back wall, the workbench sits under the window with its tools on pegs above it, and the design table stands at the front of the room. Your dog sleeps in its basket and gets up, wagging, when you pet it. You choose the dog when you start, from the same breeds and coats as Farmus Maximus, and can change it in the settings. Hovering a piece lights it with a thin gold outline; clicking it opens its screen. Upgrades add pieces to the room, such as potted plants, wine jars and lamps. A slim bar along the top shows your coins, reputation as a laurel wreath, and the day.
+1. **The workshop (side view).** You see a single room straight on, like a stage, painted as one picture so every piece shares the window's light. On the left is the open street door to the town. The job board hangs on the wall beside it, and a rack of scrolls by the window holds your library. Shelves of stone sacks stand against the back wall, the workbench sits under the window with its tools on pegs above it, and the design table stands at the front of the room. Your dog sleeps in its basket and gets up, wagging, when you pet it. You choose the dog when you start, from the same breeds and coats as Farmus Maximus, and can change it in the settings. Hovering a piece lights it with a thin gold outline; clicking it opens its screen. Upgrades add pieces to the room, such as potted plants, wine jars and lamps. A slim bar along the top shows your coins, the chapter with your reputation, and the day.
 2. **The job board.** A wooden board fills the screen, pinned with wax-tablet notices. Each notice shows the client's portrait, the room, a size marker, the pay and the reputation it's worth. Restoration notices carry a rough charcoal rubbing of the little that shows through the dirt. Picking a notice brings the client in. A notebook on the board keeps what you know about each named client.
 3. **The client visit.** The client stands at your counter in the workshop, with a large pixel portrait and a speech bubble. Their wishes collect into a brief card: the theme, the colours they want and don't want, and the budget. You set your price by sliding a stack of coins across the counter, and their face reacts as you push. Then you shake on it or turn them away.
 4. **The design table (top-down).** You look straight down at the desk. On the left is the pattern book, open, with tabbed pages for borders, patterns, pictures and letters. On the right is the room's floor plan on a wax tablet, in the room's real shape with its doorways. You drag motifs from the book onto the plan and resize them by dragging their corners, down to a few tiles across. To recolour, you click any part of a motif on the plan, or its part in the row under the plan, and that part glows; then you pick a stone. Turning, mirroring, pairing and removing sit on a small bar that floats above the chosen motif. The brief card is pinned in the corner, and each wish gets a tick as you meet it. Undo and redo take back any change. Under the brief card are the stars the floor will earn, a bar for each of the five things clients look at, and a hint about the weakest one; for a copy it shows the sketch and the likeness instead. The total stone cost adds up underneath.
 5. **The floor (top-down, at the client's house).** You look down at the room's bare mortar bed, with your design sketched on it in faint red chalk, as Roman craftsmen did. The room's walls frame the edges, and the client's family sometimes peeks in at the door. Along the bottom is a tray with what the job in hand needs: your stones, with how many of each are left to lay, or the trowel, the chisel, the sponge and the cloth. Nothing in it is picked until you pick it.
 6. **The dig (top-down).** This is the same view for restorations, but the floor is buried. The tools are the trowel for soil, the chisel for plaster, the brush for dust and the sponge for washing, and then the same repair tools as a new floor. A meter shows how much of the floor is uncovered.
-7. **The reveal.** The camera pulls back over the finished floor in its walls, and a band of light runs across the new stone. There is no furniture or people on it: at a true size they would hide most of the floor. The client's stars and reaction appear beside it, coins pour into your purse, and the brief card shows what you met. A restoration also shows the pattern it added to your book, and a contest shows the judges' verdict against the rival. One button keeps the floor in your library.
+7. **The reveal.** The finished floor is shown in the client's own room: a painted cutaway seen from above the front, like a dollhouse, with the room's walls and furniture (a desk and scroll cupboard in a study, couches in a dining room, an altar in the temple) and your floor laid in it, while a band of light runs across the new stone. There are no people in the room. The client comes in on the left with their stars and what they think, coins pour into your purse, and the brief card shows what you met. A restoration also shows the pattern it added to your book, and a contest shows the judges' verdict against the rival. One button keeps the floor in your library.
 8. **The town map.** This is a painted pixel-art map of the town from above, reached through the street door. It shows the harbour, the forum, the baths and the villas on the hill. Every house with one of your floors is marked, and clicking it shows that room with its owners going about their day. The rival workshop and active digs are marked too. New districts open as your reputation grows.
 
 **The library** opens from the scroll rack in the workshop and from the title screen. It is a shelf of every floor you kept, from any workshop and from free design. Choosing one shows it large, and you can watch it being laid again, tile by tile in the order you laid it, with its sounds. A button copies the picture and a time-lapse GIF to a folder in your Pictures, for sharing.
@@ -126,7 +129,7 @@ The stone merchant and workshop upgrades are panels that open over the workshop 
 
 ## Music
 
-The music is calm harp, which softens briefly under big moments so the tile melodies and chords stand out.
+The music is calm harp, which softens briefly under big moments.
 
 ## Platform and controls
 

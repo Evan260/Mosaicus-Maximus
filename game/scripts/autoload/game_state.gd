@@ -41,6 +41,8 @@ func defaults() -> Dictionary:
 		"seed": randi(),
 		"story_seen": [],
 		"pending_events": [],
+		"achievements": [],
+		"stats": {"earned": 0, "five_stars": 0, "restorations": 0, "contests_won": 0, "perfect_copies": 0, "biggest": 0, "ship_stones": 0, "pets": 0},
 		"ledger": [],
 		"played_seconds": 0.0,
 	}
@@ -94,8 +96,16 @@ func coins() -> int:
 
 func earn(amount: int, what: String) -> void:
 	state["coins"] = coins() + amount
+	bump("earned", amount)
 	_log(what, amount)
 	changed.emit()
+
+
+## Adds to one of the running counts in the save.
+func bump(stat: String, by: int = 1) -> void:
+	if not state.has("stats"):
+		state["stats"] = defaults()["stats"]
+	state["stats"][stat] = int(state["stats"].get(stat, 0)) + by
 
 
 func spend(amount: int, what: String) -> bool:

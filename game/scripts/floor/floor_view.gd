@@ -21,6 +21,7 @@ const WALL := 6.0  # wall thickness in tiles
 const STATE_DIV := 2  # grout and polish are tracked at half the design's resolution, which the eye can't tell apart
 ## How much of the floor each wipe must cover before the last specks fill themselves in: grout, polish, dirt.
 const FINISH_AT := [0.97, 0.97, 0.9]
+const RING_GAPS_BELOW := 13  # the last few empty gaps get a gold ring, since one bare tile is easy to miss
 
 var layout: MosaicLayout
 var now := 0.0
@@ -43,6 +44,7 @@ var _active_mm: MultiMesh
 var _active_next := 0
 var _materials: Array[ShaderMaterial] = []
 var _chalk: Sprite2D
+var _rings: Node2D
 var _guide: ShaderMaterial
 var _chalk_img: Image
 var _chalk_fresh: Image
@@ -60,6 +62,8 @@ var _covered := [0, 0, 0]
 var missing := {}
 var repaired := {}
 var repair_stone := -1
+## Off when the floor is drawn into a painted room, which has walls of its own.
+var walls_visible := true
 var _finish_mats: Array[ShaderMaterial] = []
 ## Every tile in the order it was laid, for the time-lapse.
 var order := PackedInt32Array()
@@ -99,9 +103,10 @@ func setup(l: MosaicLayout) -> void:
 		_active_mm.set_instance_transform_2d(j, Transform2D())
 		_active_mm.set_instance_custom_data(j, Color(UNSET, 0.0, -100.0, 0.0))
 	_reset_patches()
-	var walls := Node2D.new()
-	walls.draw.connect(_draw_walls.bind(walls))
-	add_child(walls)
+	if walls_visible:
+		var walls := Node2D.new()
+		walls.draw.connect(_draw_walls.bind(walls))
+		add_child(walls)
 
 
 func size_world() -> Vector2:
@@ -220,6 +225,9 @@ func setup_restoration(holes: PackedInt32Array) -> void:
 	add_child(dirt)
 	move_child(dirt, get_child_count() - 2)
 	_finish_mats.append(mat)
+	_rings = Node2D.new()
+	_rings.draw.connect(_draw_rings)
+	add_child(_rings)
 	phase_changed.emit(phase)
 
 
@@ -244,13 +252,11 @@ func repair(from: Vector2, to: Vector2, radius: float) -> int:
 		return 0
 	var count := 0
 	for p in _stroke_points(from, to, radius):
-		var i := _nearest(p, radius / WORLD, func(t: int) -> bool: return missing.has(t) and not repaired.has(t))
-		if i < 0:
-			continue
-		repaired[i] = repair_stone
-		_packed[i] = repair_stone * 1000 + fmod(_packed[i], 1000.0)
-		_schedule(i, now + _rng.randf() * 0.02)
-		count += 1
+		for i in _under(p, radius, func(t: int) -> bool: return missing.has(t) and not repaired.has(t)):
+			repaired[i] = repair_stone
+			_packed[i] = repair_stone * 1000 + fmod(_packed[i], 1000.0)
+			_schedule(i, now + _rng.randf() * 0.02)
+			count += 1
 	return count
 
 
@@ -260,16 +266,22 @@ func lift(from: Vector2, to: Vector2, radius: float) -> int:
 		return 0
 	var count := 0
 	for p in _stroke_points(from, to, radius):
-		var i := _nearest(p, radius / WORLD, func(t: int) -> bool: return repaired.has(t) and now >= _start[t] + DROP)
-		if i < 0:
-			continue
-		repaired.erase(i)
-		_stone_laid[layout.stone[i]] = int(_stone_laid.get(layout.stone[i], 0)) - 1
-		laid -= 1
-		_start[i] = UNSET
-		_landed_mm.set_instance_custom_data(i, Color(UNSET, _packed[i], -100.0, layout.angle[i]))
-		count += 1
+		for i in _under(p, radius, func(t: int) -> bool: return repaired.has(t) and now >= _start[t] + DROP):
+			repaired.erase(i)
+			_stone_laid[layout.stone[i]] = int(_stone_laid.get(layout.stone[i], 0)) - 1
+			laid -= 1
+			_start[i] = UNSET
+			_landed_mm.set_instance_custom_data(i, Color(UNSET, _packed[i], -100.0, layout.angle[i]))
+			count += 1
 	return count
+
+
+## The tiles a mending brush reaches at one point: only the nearest while it is one tile wide, so a click never sets two.
+func _under(p: Vector2, radius: float, wanted: Callable) -> Array:
+	if radius <= tile_world():
+		var i := _nearest(p, radius / WORLD, wanted)
+		return [] if i < 0 else [i]
+	return Array(layout.tiles_near(p, radius / WORLD)).filter(wanted)
 
 
 ## Fills every gap with the stone it had, for recordings made without a hand on the mouse.
@@ -278,6 +290,20 @@ func mend_all() -> void:
 		if not repaired.has(i):
 			repaired[i] = layout.stone[i]
 			_schedule(i, now + _rng.randf() * 0.5)
+
+
+## How many gaps of an old floor are still without a stone.
+func gaps_left() -> int:
+	return missing.size() - repaired.size()
+
+
+func _draw_rings() -> void:
+	if phase != Phase.REPAIR or gaps_left() >= RING_GAPS_BELOW:
+		return
+	var glow := Color(1.0, 0.84, 0.36, 0.55 + 0.35 * sin(now * 4.0))
+	for i in missing:
+		if not repaired.has(i):
+			_rings.draw_arc(layout.pos[i] * WORLD, layout.size[i] * WORLD * 2.2, 0.0, TAU, 24, glow, maxf(3.0, tile_world() * 0.3))
 
 
 ## Whether every gap has a stone in it, so the mending can be called done.
@@ -375,6 +401,8 @@ func _process(delta: float) -> void:
 		m.set_shader_parameter("now", now)
 	for m in _finish_mats:
 		m.set_shader_parameter("now", now)
+	if _rings and phase == Phase.REPAIR:
+		_rings.queue_redraw()
 	if _state_dirty:
 		_state_dirty = false
 		_state_img.set_data(_state_w(), _state_h(), false, Image.FORMAT_RGB8, _state)
@@ -695,7 +723,11 @@ func _draw_walls(c: Node2D) -> void:
 	var door_x := (fw - door) * 0.5
 	c.draw_rect(Rect2(-t, fh, door_x + t, t), plaster)
 	c.draw_rect(Rect2(door_x + door, fh, fw - door_x - door + t, t), plaster)
-	c.draw_rect(Rect2(door_x, fh, door, t * 0.5), Color8(118, 106, 96))
+	# The doorway: a marble threshold the wall's full depth, a groove where the door closes, and a post each side.
+	c.draw_rect(Rect2(door_x, fh, door, t), Color8(198, 190, 176))
+	c.draw_rect(Rect2(door_x, fh + t * 0.42, door, t * 0.12), Color8(150, 142, 130))
+	c.draw_rect(Rect2(door_x - t * 0.3, fh, t * 0.3, t), face)
+	c.draw_rect(Rect2(door_x + door, fh, t * 0.3, t), face)
 	c.draw_rect(Rect2(-t, -t, fw + 2 * t, 6), Color8(228, 214, 190))
 	var lip := 10.0
 	c.draw_rect(Rect2(0, -lip, fw, lip), face)

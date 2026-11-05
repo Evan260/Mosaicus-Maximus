@@ -2,6 +2,9 @@ class_name JobFactory
 ## The notices pinned to the job board each morning: commissions from named clients and townsfolk, and restorations.
 ## Every board has a few jobs the player can afford, however little money is left.
 
+# The portraits that show a woman: townswomen are always the second and fourth townsfolk portraits (see `person`).
+const WOMEN := ["cornelia", "livia", "valeria", "towns_2", "towns_4"]
+
 
 static func board(state: Dictionary, rng: RandomNumberGenerator) -> Array:
 	var count := int(Data.num("board.jobs", 4)) + (1 if "courtyard" in state["upgrades"] else 0)
@@ -274,6 +277,13 @@ static func tag_open(tag: String, state: Dictionary) -> bool:
 
 
 ## A townsperson's first name and a portrait to match: the men are pictures 1 and 3, the women 2 and 4.
+## "he", "him" and "his", or "she", "her" and "her", for the person a job's portrait shows.
+static func pronouns(job: Dictionary) -> Dictionary:
+	if str(job.get("portrait", "")) in WOMEN:
+		return {"he": "she", "him": "her", "his": "her"}
+	return {"he": "he", "him": "him", "his": "his"}
+
+
 static func person(rng: RandomNumberGenerator) -> Array:
 	var woman := rng.randf() < 0.5
 	var names: Array = Data.names["women" if woman else "men"]

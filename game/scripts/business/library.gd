@@ -31,6 +31,14 @@ static func add(design: FloorDesign, order: PackedInt32Array, picture: Image, in
 	return id
 
 
+## How many floors are kept, without reading them.
+static func count() -> int:
+	var d := DirAccess.open(dir)
+	if d == null:
+		return 0
+	return Array(d.get_files()).filter(func(f: String) -> bool: return f.ends_with(".json")).size()
+
+
 ## Every kept floor, newest first.
 static func entries() -> Array:
 	var out := []

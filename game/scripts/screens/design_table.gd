@@ -226,6 +226,10 @@ func _build() -> void:
 	_warn_label.add_theme_color_override("font_color", UiTheme.RED)
 	if free:
 		var rooms := OptionButton.new()
+		rooms.fit_to_longest_item = false
+		rooms.clip_text = true
+		rooms.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		Ui.tip_on(rooms, "The room to design a floor for")
 		var ids := Data.rooms.keys()
 		for i in ids.size():
 			var r := Data.room(ids[i])
@@ -370,6 +374,11 @@ func _add_border_slot(id: String, name: String) -> void:
 		_dirty = true
 		_cost_dirty = true
 		_fill_book()
+		_select(-1)
+		for k in _chip_buttons:
+			if str(k).begins_with("border"):
+				role = k
+				break
 		_refresh_chips())
 	_book_grid.add_child(b)
 

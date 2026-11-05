@@ -45,12 +45,12 @@ func enter(args: Dictionary) -> void:
 	if kind == "commission":
 		var wishes := Brief.score(job.get("brief", {}), FloorDesign.new())["wishes"] as Array
 		if not wishes.is_empty():
-			Ui.label(right, "What they want", "Heading")
+			Ui.label(right, "What %s wants" % JobFactory.pronouns(job)["he"], "Heading")
 			for w in wishes:
 				Ui.tip_on(Ui.label(right, "• " + str(w["text"]), "", 290), Brief.help(w, Game.state["unlocked_motifs"]))
 		var known := Story.known_taste(Game.state, job)
 		if not known.is_empty() and not bool(job.get("taste_said", false)):
-			Ui.label(right, "From your notebook: they " + " and ".join(known.map(func(t: String) -> String: return Looks.TASTES[t]["text"])) + ".", "MutedLabel", 290)
+			Ui.label(right, "From your notebook: %s " % JobFactory.pronouns(job)["he"] + " and ".join(known.map(func(t: String) -> String: return Looks.TASTES[t]["text"])) + ".", "MutedLabel", 290)
 	elif kind == "copy":
 		var sketch := TextureRect.new()
 		sketch.texture = ImageTexture.create_from_image(Composer.compose(FloorDesign.from_dict(job["target"]), 3))
@@ -127,12 +127,13 @@ func _update_price() -> void:
 		_mood.text = "\"That's a lot of money for a floor.\""
 	else:
 		_mood.text = "\"You must be joking.\""
+	var p := JobFactory.pronouns(job)
 	if expected > 0.75:
-		_expect.text = "At this price they'll expect nearly every wish met."
+		_expect.text = "At this price %s'll expect nearly every wish met." % p["he"]
 	elif expected > 0.55:
-		_expect.text = "At this price they'll expect most of their wishes."
+		_expect.text = "At this price %s'll expect most of %s wishes." % [p["he"], p["his"]]
 	else:
-		_expect.text = "At this price they'll be happy with a fair attempt."
+		_expect.text = "At this price %s'll be happy with a fair attempt." % p["he"]
 
 
 func _chance(asked: int) -> float:

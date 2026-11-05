@@ -32,6 +32,10 @@ PIECES = [
     ("lamps", "up_lamps", ["lamp_a", "lamp_b"]),
 ]
 THRESHOLD = 26
+# The lamps' flames in room pixels (half the FLAMES in workshop.gd), and how far their glow reaches. The hanging lamp is
+# all glow below its chain, so unlit only the chain is left.
+FLAMES = [(54, 63, "stand"), (162, 28, "hanging")]
+FLAME_REACH = 8
 # The painting came back with blank edges, filled from their neighbours (the floor carried down at the bottom).
 FLOOR_END = 132
 EDGE = 2
@@ -55,6 +59,20 @@ SHAPES = {
     "table": [("rect", 62, 100, 134, 127), ("rect", 62, 127, 70, 132), ("rect", 118, 127, 134, 132)],
     "bed": [("ellipse", 140, 109, 186, 131)],
 }
+
+
+def flames_mask(painted, empty):
+    """What shows only while the lamps are lit: each flame and the glow painted round it on the wall."""
+    ys, xs = np.mgrid[0:empty.shape[0], 0:empty.shape[1]]
+    bright = painted.astype(np.int16).sum(axis=2)
+    lit = np.zeros(empty.shape[:2], bool)
+    for fx, fy, kind in FLAMES:
+        near = (xs - fx) ** 2 + (ys - fy) ** 2 <= FLAME_REACH ** 2
+        if kind == "stand":
+            lit |= near & (bright > 470) & (bright - empty.astype(np.int16).sum(axis=2) > 30)
+        else:
+            lit |= near & (ys >= fy - 2)
+    return lit
 
 
 def load(name):
@@ -149,6 +167,14 @@ def main():
         rgba = np.zeros((y1 - y0, x1 - x0, 4), np.uint8)
         rgba[..., :3] = painted[y0:y1, x0:x1]
         rgba[..., 3] = keep[y0:y1, x0:x1] * 255
+        if name == "lamps":
+            # The flames and their glow go in a layer of their own, so the game shows them only while the lamps are
+            # lit; unlit, the bare wall shows round each lamp.
+            lit = flames_mask(painted, empty) & keep
+            flame = rgba.copy()
+            flame[..., 3] = lit[y0:y1, x0:x1] * 255
+            save_padded(flame, x1 - x0, y1 - y0, OUT / "lamps_flame.png")
+            rgba[..., 3] = (keep & ~lit)[y0:y1, x0:x1] * 255
         save_padded(rgba, x1 - x0, y1 - y0, OUT / f"{name}.png")
         if shape is not None:
             outline = np.zeros((y1 - y0, x1 - x0, 4), np.uint8)
@@ -158,11 +184,30 @@ def main():
         debug[keep] = painted[keep]
         print(f"{name}: {keep.sum()} pixels at {layers[name]}")
     (OUT / "layers.json").write_text(json.dumps(layers, indent=1))
+    basket_front()
     if "--outlines" in sys.argv:
         show_outlines(sys.argv[sys.argv.index("--outlines") + 1])
     if "--debug" in sys.argv:
         Image.fromarray(debug.astype(np.uint8)).resize((empty.shape[1] * 6, empty.shape[0] * 6), Image.NEAREST).save(sys.argv[sys.argv.index("--debug") + 1])
 
+
+
+def basket_front():
+    """The basket's woven front wall, everything below the blanket, drawn over the dog so it lies inside the basket."""
+    bed = np.asarray(Image.open(OUT / "bed.png").convert("RGBA")).copy()
+    rgb = bed[..., :3].astype(np.int16)
+    # The blanket's reds have hardly any green; the wicker's reddish browns all have more.
+    blanket = (rgb[..., 1] < 60) & (rgb[..., 0] - rgb[..., 1] > 70) & (bed[..., 3] > 0)
+    rows = np.nonzero(blanket.any(axis=1))[0]
+    middle = int(rows.mean())
+    ys = np.arange(bed.shape[0])[:, None]
+    lowest = np.where(blanket.any(axis=0), bed.shape[0] - 1 - np.argmax(blanket[::-1], axis=0), middle)
+    # Smoothed across neighbouring columns, so a stray red stitch low in the wicker leaves no gap in the wall.
+    padded = np.pad(lowest, 4, mode="edge")
+    lowest = np.array([int(np.median(padded[x:x + 9])) for x in range(lowest.size)])
+    front = ys > lowest[None, :]
+    bed[..., 3] = np.where(front, bed[..., 3], 0)
+    Image.fromarray(bed, "RGBA").save(OUT / "bed_front.png")
 
 
 def save_padded(rgba, w, h, path):

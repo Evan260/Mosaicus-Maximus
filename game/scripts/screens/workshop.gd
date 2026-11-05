@@ -18,7 +18,7 @@ const PIECES := [
 ]
 const UPGRADE_PIECES := ["plants", "amphorae", "lamps"]
 const DOOR := Rect2(4, 30, 88, 196)
-const BASKET := Vector2(326, 234)
+const BASKET := Vector2(326, 239)
 ## Where the lamps' flames are, and how far their light reaches into the room, once lamps are bought.
 const FLAMES := [[Vector2(108, 126), 175.0], [Vector2(324, 56), 145.0]]
 
@@ -26,7 +26,7 @@ var _root: Control
 var _scene: Control
 var _bar: PanelContainer
 var _coins: Label
-var _rep: Label
+var _rep: Button
 var _day: Label
 var _jobs: Label
 var _tip: PanelContainer
@@ -39,6 +39,8 @@ var _sky: SkyView
 var _room_mat: ShaderMaterial
 var _sunlit: Array[ShaderMaterial] = []
 var _glows: Array = []
+## The lamps' flames and the glow painted round them, shown only while the lamps are lit.
+var _flames: TextureRect
 var _end_day: Button
 var _t := 0.0
 
@@ -84,6 +86,21 @@ func enter(_args: Dictionary) -> void:
 			SettingsPanel.open(_root, true)
 		"dog":
 			DogPanel.open(_root)
+		"upgrades":
+			Game.state["upgrades"] = ["big_brush"]
+			_open_upgrades()
+		"chapters":
+			_panel = ChaptersPanel.open(_root)
+		"achievements":
+			AchievementsPanel.open(_root)
+		"letter":
+			Story.unlock(Game.state, 2)
+			Game.state["reputation"] = 40
+			_queue_event({"kind": "chapter", "n": 2, "title": Data.chapter(2)["title"], "text": Data.chapter(2)["text"]})
+			_show_next_event()
+		"award":
+			Game.state["name"] = "Dev"
+			Game.state["floors"].append({"score": 0.9})
 
 
 func _layout() -> void:
@@ -94,12 +111,7 @@ func _layout() -> void:
 	for g in _glows:
 		g.get_parent().position = _scene.position
 	_bar.position = Vector2(4, 3)
-	_jobs.visible = true
-	_bar.size = Vector2(s.x - 8, 0)
-	# The job count is the first thing to go when big numbers would push the bar past the edge.
-	if _bar.get_combined_minimum_size().x > s.x - 8:
-		_jobs.visible = false
-		_bar.size = Vector2(s.x - 8, 0)
+	_fit_bar()
 	if _popup:
 		_popup.reset_size()
 		_popup.position = ((s - _popup.size) * 0.5).floor()
@@ -133,12 +145,25 @@ func _room() -> void:
 		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_scene.add_child(t)
 		_layers[id] = t
+		if id == "lamps":
+			_flames = TextureRect.new()
+			_flames.texture = load(ART + "lamps_flame.png")
+			_flames.position = t.position
+			_flames.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_scene.add_child(_flames)
 		if piece[1] != "":
 			spots.append([t, piece[1], piece[2], id])
 	_dog = DogView.make(Game.state.get("dog", {}), 2)
 	_scene.add_child(_dog)
 	_dog.play("sleep")
 	_dog.position = (BASKET - _dog.sleeping_centre()).floor()
+	# The basket's front wall goes over the dog, so it lies inside the basket rather than on its rim.
+	var basket_front := TextureRect.new()
+	basket_front.texture = load(ART + "bed_front.png")
+	basket_front.position = (_layers["bed"] as TextureRect).position
+	basket_front.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scene.add_child(basket_front)
+	_layers["bed_front"] = basket_front
 	_dog.stood_up.connect(_hearts)
 	var door := Hotspot.make(DOOR, "To the town")
 	door.clicked.connect(func() -> void: _use("town"))
@@ -157,7 +182,9 @@ func _room() -> void:
 	var pet := Hotspot.make(Rect2(bed.position + Vector2(0, -40), bed.texture.get_size() + Vector2(0, 40)), "Pet " + _dog_name())
 	pet.light(bed, _shape("bed"), false)
 	pet.light(_dog, null, false)
+	pet.light(_layers["bed_front"], null, false)
 	_follow_sun(bed)
+	_follow_sun(_layers["bed_front"])
 	_follow_sun(_dog)
 	pet.clicked.connect(func() -> void:
 		_tip.visible = false
@@ -179,10 +206,13 @@ func _process(delta: float) -> void:
 	_sky.hour = hour
 	_t += delta
 	var lamps := []
-	if "lamps" in Game.state["upgrades"]:
+	var lit := Daylight.lamps_lit(hour)
+	if "lamps" in Game.state["upgrades"] and lit > 0.0:
 		var flicker := 0.92 + 0.05 * sin(_t * 9.0) + 0.03 * sin(_t * 23.0) + randf() * 0.02
 		for f in FLAMES:
-			lamps.append(Vector4(f[0].x, f[0].y, f[1], (0.08 + 0.95 * night) * flicker))
+			lamps.append(Vector4(f[0].x, f[0].y, f[1], (0.08 + 0.95 * night) * flicker * lit))
+	if _flames:
+		_flames.modulate.a = lit
 	var ambient := Daylight.light(hour)
 	for m in _sunlit:
 		m.set_shader_parameter("night", night)
@@ -192,8 +222,12 @@ func _process(delta: float) -> void:
 			m.set_shader_parameter("lamps", PackedVector4Array(lamps))
 	for g in _glows:
 		g.night = night
+		g.lit = lit
 	var part := Daylight.part_of_day(hour)
-	_day.text = "Day %d, %s" % [int(Game.state["day"]), part]
+	var day := "Day %d, %s" % [int(Game.state["day"]), part]
+	if _day.text != day:
+		_day.text = day
+		_fit_bar()
 	_end_day.theme_type_variation = "MainButton" if part in ["evening", "night"] else ""
 
 
@@ -259,8 +293,9 @@ func _build_bar() -> void:
 	var row := Ui.hbox(_bar, 4)
 	Ui.icon(row, "coin")
 	_coins = Ui.label(row, "", "LightLabel")
-	Ui.icon(row, "laurel")
-	_rep = Ui.label(row, "", "LightLabel")
+	_rep = Ui.button(row, "", func() -> void:
+		_close_panel()
+		_panel = ChaptersPanel.open(_root), "laurel")
 	Ui.icon(row, "sun")
 	_day = Ui.label(row, "", "LightLabel")
 	var spacer := Control.new()
@@ -272,15 +307,33 @@ func _build_bar() -> void:
 	Ui.icon_button(row, "house", "Save and go back to the title", _save_and_quit)
 
 
+## When big numbers would push the top bar past the edge, the job count goes first, then the chapter button shortens.
+func _fit_bar() -> void:
+	var room := Nav.ui_size().x - 8
+	_jobs.visible = true
+	_rep.text = _chapter_text(false)
+	if _bar.get_combined_minimum_size().x > room:
+		_jobs.visible = false
+	if _bar.get_combined_minimum_size().x > room:
+		_rep.text = _chapter_text(true)
+	_bar.size = Vector2(room, 0)
+
+
+func _chapter_text(short: bool) -> String:
+	var st := Game.state
+	var next := Data.chapter(int(st["chapter"]) + 1)
+	return ("Ch %d  %d" if short else "Chapter %d  %d") % [int(st["chapter"]), int(st["reputation"])] + ("" if next.is_empty() else "/%d" % int(next["reputation"]))
+
+
 func _refresh() -> void:
 	var st := Game.state
 	_coins.text = "%d d" % int(st["coins"])
 	var ch := Data.chapter(int(st["chapter"]))
 	var next := Data.chapter(int(st["chapter"]) + 1)
-	_rep.text = "%d" % int(st["reputation"]) + ("" if next.is_empty() else "/%d" % int(next["reputation"]))
-	Ui.tip_on(_rep, "Chapter %d: %s" % [int(st["chapter"]), ch.get("title", "")] + ("" if next.is_empty() else ". The next chapter opens at %d reputation." % int(next["reputation"])))
+	Ui.tip_on(_rep, "Chapter %d: %s. Reputation %d" % [int(st["chapter"]), ch.get("title", ""), int(st["reputation"])] + ("" if next.is_empty() else " of the %d that opens chapter %d" % [int(next["reputation"]), int(next["n"])]) + ". Click to see every chapter.")
 	var left := Story.jobs_left(st)
 	_jobs.text = "%d job%s left" % [left, "" if left == 1 else "s"]
+	_fit_bar()
 
 
 func _open_table() -> void:
@@ -307,6 +360,7 @@ func _open_table() -> void:
 
 
 func _pet() -> void:
+	Game.bump("pets")
 	if _dog.is_up():
 		_hearts()
 	else:
@@ -357,7 +411,9 @@ func _show_next_event() -> void:
 		return
 	var e: Dictionary = pending.pop_front()
 	_popup = Ui.panel(_root, "PagePanel")
-	var col := Ui.vbox(_popup, 5)
+	var sides := Ui.hbox(_popup, 10)
+	var col := Ui.vbox(sides, 5)
+	var news: bool = e.get("kind", "") == "chapter" and int(e.get("n", 1)) > 1
 	if e.get("kind", "") == "chapter":
 		Ui.label(col, "Chapter %d" % int(e.get("n", 1)), "MutedLabel").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		var t := Ui.label(col, str(e.get("title", "")), "Heading")
@@ -365,7 +421,9 @@ func _show_next_event() -> void:
 		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	else:
 		Ui.label(col, str(e.get("title", Data.client(e.get("client", "")).get("name", "News"))), "Heading")
-	Ui.label(col, str(e.get("text", "")), "", 240)
+	Ui.label(col, str(e.get("text", "")), "", 200 if news else 240)
+	if e.get("kind", "") == "chapter":
+		_chapter_news(sides, col, int(e.get("n", 1)))
 	var ok := Ui.button(col, "Carry on", func() -> void:
 		_popup.queue_free()
 		_popup = null
@@ -373,6 +431,24 @@ func _show_next_event() -> void:
 	ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	Audio.ui("page_turn", -6.0)
 	_layout.call_deferred()
+
+
+## Beside a chapter's letter, what it adds to the workshop, and under it how far off the next one is.
+func _chapter_news(sides: HBoxContainer, col: VBoxContainer, n: int) -> void:
+	if n > 1:
+		var list := Ui.vbox(sides, 2)
+		Ui.label(list, "New in the workshop:", "Heading")
+		for line in Story.chapter_unlocks(n):
+			var r := Ui.hbox(list, 3)
+			Ui.icon(r, "tick_small").size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			Ui.label(r, line, "", 220)
+	var next := Story.next_chapter_line(Game.state)
+	if n == 1:
+		next = "Finish floors to earn reputation, and better floors earn more. " + next + "."
+	elif next != "":
+		next += "."
+	if next != "":
+		Ui.label(col, next + " The Chapter button at the top shows what each chapter brings.", "MutedLabel", 200 if n > 1 else 240)
 
 
 func _close_panel() -> void:
@@ -418,6 +494,7 @@ func _open_merchant() -> void:
 		var price := int(ceil(Data.stone_price(cargo) * Data.num("ship.price_scale", 1.5) * Data.num("sack", 100)))
 		Ui.button(row, "Buy 100: %d d" % price, func() -> void:
 			if Game.spend(price, "Stone off the ship: " + name):
+				Game.bump("ship_stones")
 				Game.state["unlocked_stones"].append(cargo)
 				Game.add_stock(cargo, int(Data.num("sack", 100)))
 				Audio.ui("coins")
@@ -433,7 +510,15 @@ func _open_upgrades() -> void:
 	_close_panel()
 	_panel = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_panel, 3)
-	Ui.label(col, "Improve the workshop", "Heading")
+	var head := Ui.hbox(col, 4)
+	Ui.label(head, "Improve the workshop", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	Ui.button(head, "Done", _close_panel, "tick")
+	# Two to a row, so every upgrade fits on the screen at once.
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 3)
+	col.add_child(grid)
 	for id in Data.upgrade_order:
 		var u: Dictionary = Data.upgrades[id]
 		if int(u.get("chapter", 1)) > int(Game.state["chapter"]):
@@ -442,16 +527,17 @@ func _open_upgrades() -> void:
 		var limit := int(u.get("repeat", 1))
 		if id == "apprentice":
 			owned = int(Game.state["apprentices"])
-		var row := Ui.hbox(col, 4)
+		var card := Ui.panel(grid, "CardPanel")
+		var row := Ui.hbox(card, 4)
 		var text := Ui.vbox(row, 0)
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		Ui.label(text, str(u["name"]) + ("  (%d of %d)" % [owned, limit] if limit > 1 else ""))
-		Ui.label(text, str(u.get("text", "")), "MutedLabel", 200)
+		Ui.label(text, str(u["name"]) + ("  (%d of %d)" % [owned, limit] if limit > 1 else ""), "", 172)
+		Ui.label(text, str(u.get("text", "")), "MutedLabel", 172)
 		var uid: String = id
 		var cost := int(u.get("cost", 0))
 		var b := Ui.button(row, "Owned" if owned >= limit else "%d d" % cost, func() -> void: _buy(uid, cost))
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.disabled = owned >= limit or cost > Game.coins()
-	Ui.button(col, "Done", _close_panel, "tick").size_flags_horizontal = Control.SIZE_SHRINK_END
 	_layout.call_deferred()
 
 

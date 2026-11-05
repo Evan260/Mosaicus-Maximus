@@ -15,8 +15,15 @@ uniform float night = 0.0;
 uniform vec2 sun_origin = vec2(0.0);
 uniform vec2 sun_span = vec2(1.0);
 
+// The tint alone, taken before the picture's own colour is mixed into COLOR.
+varying vec4 modulate;
+
+void vertex() {
+	modulate = COLOR;
+}
+
 void fragment() {
-	vec4 tint = COLOR;
+	vec4 tint = modulate;
 	vec2 room_uv = sun_origin + UV * sun_span;
 	vec4 map = texture(sun, room_uv);
 	tint.rgb *= (1.0 - map.r * night * 0.4) * workshop_light(room_uv, map.g);

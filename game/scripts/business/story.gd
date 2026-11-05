@@ -58,8 +58,21 @@ static func finish_job(state: Dictionary, job: Dictionary, result: Dictionary) -
 	var events := []
 	var score := float(result.get("score", 0.0))
 	state["reputation"] = int(state["reputation"]) + int(result.get("reputation", 0))
+	var stars := Looks.stars(score)
 	state["floors"].append({"client": job.get("client", ""), "client_name": job.get("client_name", ""), "room": job.get("room", ""),
-		"kind": job.get("kind", "commission"), "design": result.get("design", {}), "day": state["day"], "score": score, "paid": result.get("paid", 0)})
+		"kind": job.get("kind", "commission"), "design": result.get("design", {}), "day": state["day"], "score": score, "paid": result.get("paid", 0),
+		"stars": stars, "tiles": int(result.get("tiles", 0))})
+	var stats: Dictionary = state.get("stats", {})
+	if stars >= 5:
+		stats["five_stars"] = int(stats.get("five_stars", 0)) + 1
+	if job.get("kind", "") == "restoration":
+		stats["restorations"] = int(stats.get("restorations", 0)) + 1
+	if bool(result.get("won", false)):
+		stats["contests_won"] = int(stats.get("contests_won", 0)) + 1
+	if float(result.get("likeness", 0.0)) >= 0.95:
+		stats["perfect_copies"] = int(stats.get("perfect_copies", 0)) + 1
+	stats["biggest"] = maxi(int(stats.get("biggest", 0)), int(result.get("tiles", 0)))
+	state["stats"] = stats
 	var found: String = job.get("discovery", "")
 	if found != "" and not found in state["unlocked_motifs"]:
 		state["unlocked_motifs"].append(found)
@@ -93,6 +106,52 @@ static func check_chapters(state: Dictionary) -> Array:
 			unlock(state, n)
 			events.append({"kind": "chapter", "n": n, "title": ch["title"], "text": ch["text"]})
 	return events
+
+
+## What opening chapter n adds to the workshop, one line for each kind of thing.
+static func chapter_unlocks(n: int) -> Array:
+	var lines := []
+	var stones := Stones.LIST.filter(func(s: Dictionary) -> bool: return int(s["tier"]) == n).map(func(s: Dictionary) -> String: return str(s["name"]).to_lower())
+	if not stones.is_empty():
+		lines.append("Stone: " + _list(stones))
+	var motifs := Data.motif_order.filter(func(id: String) -> bool: return int(Data.motif(id).get("tier", 1)) == n)
+	if not motifs.is_empty():
+		lines.append("Patterns: " + _list(motifs.map(func(id: String) -> String: return Data.motif_name(id))))
+	var borders := Data.border_order.filter(func(id: String) -> bool: return int(Data.borders[id].get("tier", 1)) == n)
+	if not borders.is_empty():
+		lines.append("Borders: " + _list(borders.map(func(id: String) -> String: return str(Data.borders[id].get("name", id)).to_lower())))
+	if n == 3:
+		lines.append("Small tiles, half the size, for faces and fine detail")
+	var rooms := Data.rooms.keys().filter(func(id: String) -> bool: return int(Data.room(id).get("tier", 1)) == n)
+	if not rooms.is_empty():
+		lines.append("Rooms: " + _list(rooms.map(func(id: String) -> String: return str(Data.room(id).get("name", id)).to_lower())))
+	var clients := Data.client_order.filter(func(id: String) -> bool: return int(Data.client(id).get("chapter", 1)) == n)
+	if not clients.is_empty():
+		lines.append("Clients: " + _list(clients.map(func(id: String) -> String: return str(Data.client(id)["name"]))))
+	var upgrades := Data.upgrade_order.filter(func(id: String) -> bool: return int(Data.upgrades[id].get("chapter", 1)) == n)
+	if not upgrades.is_empty() and n > 1:
+		lines.append("To buy: " + _list(upgrades.map(func(id: String) -> String: return str(Data.upgrades[id]["name"]).to_lower())))
+	return lines
+
+
+## How far off the next chapter is, counting `extra` reputation not yet added to the save. Empty after the last chapter.
+static func next_chapter_line(state: Dictionary, extra: int = 0, brief: bool = false) -> String:
+	var next := Data.chapter(int(state["chapter"]) + 1)
+	if next.is_empty():
+		return ""
+	var n := int(next["n"])
+	var short := int(next["reputation"]) - int(state["reputation"]) - extra
+	if short <= 0:
+		return "Enough for chapter %d!" % n if brief else "Enough reputation for chapter %d: %s!" % [n, next["title"]]
+	return "%d more reputation for chapter %d" % [short, n] if brief else "%d more reputation opens chapter %d: %s" % [short, n, next["title"]]
+
+
+static func _list(names: Array, most: int = 5) -> String:
+	if names.size() > most:
+		return ", ".join(names.slice(0, most - 1)) + " and %d more" % (names.size() - most + 1)
+	if names.size() == 1:
+		return str(names[0])
+	return ", ".join(names.slice(0, names.size() - 1)) + " and " + str(names[-1])
 
 
 ## Opens a chapter: its stones, motifs and borders join the workshop, each only once.

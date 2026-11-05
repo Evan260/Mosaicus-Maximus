@@ -24,7 +24,7 @@ static func score(brief: Dictionary, design: FloorDesign, shown: Array = []) -> 
 	for t in brief.get("tags", []):
 		wishes.append({"text": "Shows " + TAG_WORDS.get(t, t), "met": tags.has(t), "kind": "tag", "value": t})
 	for m in brief.get("must", []):
-		wishes.append({"text": "Has a " + str(Data.motif(m).get("name", m)).to_lower(), "met": motifs.has(m), "kind": "must", "value": m})
+		wishes.append({"text": "Has " + Data.motif_with_article(m), "met": motifs.has(m), "kind": "must", "value": m})
 	for s in brief.get("want_stones", []):
 		wishes.append({"text": "Uses " + str(Stones.LIST[Stones.index(s)]["name"]).to_lower(), "met": s in stones, "kind": "want", "value": s})
 	for s in brief.get("ban_stones", []):

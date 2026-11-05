@@ -9,9 +9,15 @@ uniform float night = 0.0;
 uniform vec2 sun_origin = vec2(0.0);
 uniform vec2 sun_span = vec2(1.0);
 
+varying vec4 modulate;
+
+void vertex() {
+	modulate = COLOR;
+}
+
 void fragment() {
 	vec2 room_uv = sun_origin + UV * sun_span;
-	vec4 c = texture(TEXTURE, UV) * COLOR;
+	vec4 c = texture(TEXTURE, UV) * modulate;
 	vec4 map = texture(sun, room_uv);
 	c.rgb *= (1.0 - map.r * night * 0.4) * workshop_light(room_uv, map.g);
 	COLOR = c;

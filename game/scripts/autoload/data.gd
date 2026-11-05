@@ -13,6 +13,7 @@ var chapters: Array = []
 var upgrades := {}
 var upgrade_order: Array = []
 var names := {}
+var achievements: Array = []
 
 
 func _ready() -> void:
@@ -36,6 +37,7 @@ func reload() -> void:
 	upgrades = u[0]
 	upgrade_order = u[1]
 	names = _read("names.json", {})
+	achievements = _read("achievements.json", [])
 
 
 ## A balance number by its dotted path, such as "pricing.falloff".
@@ -56,6 +58,21 @@ func value(path: String, fallback = null):
 
 func motif(id: String) -> Dictionary:
 	return motifs.get(id, {})
+
+
+## A motif's name inside a sentence: lower case, unless it keeps its capitals, like Medusa.
+func motif_name(id: String) -> String:
+	var m := motif(id)
+	return str(m.get("lower", str(m.get("name", id)).to_lower()))
+
+
+## A motif's name with "a" or "an" in front, or as it is said when it takes neither, like "loaves".
+func motif_with_article(id: String) -> String:
+	var m := motif(id)
+	if m.has("a"):
+		return str(m["a"])
+	var name := motif_name(id)
+	return ("an " if name.left(1) in ["a", "e", "i", "o", "u"] else "a ") + name
 
 
 func room(id: String) -> Dictionary:

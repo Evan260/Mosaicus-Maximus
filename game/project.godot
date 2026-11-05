@@ -20,6 +20,7 @@ Game="*res://scripts/autoload/game_state.gd"
 Saves="*res://scripts/autoload/saves.gd"
 Nav="*res://scripts/autoload/nav.gd"
 Tips="*res://scripts/autoload/tips.gd"
+Awards="*res://scripts/autoload/awards.gd"
 Pad="*res://scripts/autoload/pad.gd"
 
 [display]

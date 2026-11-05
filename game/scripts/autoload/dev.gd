@@ -96,6 +96,8 @@ func test_job(kind: String) -> Dictionary:
 			return JobFactory.contest(Game.state, rng)
 		"restoration":
 			return JobFactory.restoration(Game.state, rng)
+		"free":
+			return {"free": true}
 	var job := JobFactory.commission(Game.state, rng, {}, false)
 	job["asked"] = job["budget"]
 	job["expected"] = 0.5

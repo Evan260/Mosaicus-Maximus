@@ -47,6 +47,11 @@ static func night(hour: float) -> float:
 	return clampf((1.0 - light(hour).g) / (1.0 - 0.37), 0.0, 1.0)
 
 
+## How lit the lamps are, from 0 to 1: out in daylight, since oil cost money, and lit as the light fades.
+static func lamps_lit(hour: float) -> float:
+	return clampf(night(hour) * 3.0, 0.0, 1.0)
+
+
 static func part_of_day(hour: float) -> String:
 	if hour < 11.0:
 		return "morning"

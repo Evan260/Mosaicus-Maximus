@@ -20,6 +20,9 @@ func enter(_args: Dictionary) -> void:
 	var rep := Ui.hbox(col, 4)
 	Ui.icon(rep, "laurel")
 	Ui.label(rep, "Reputation %d" % int(t["reputation"]), "LightLabel")
+	var ahead := Story.next_chapter_line(Game.state)
+	if ahead != "":
+		Ui.label(col, ahead, "LightLabel", 240)
 	if str(t.get("gossip", "")) != "":
 		Ui.label(col, "In the tavern tonight:", "LightHeading")
 		Ui.label(col, str(t["gossip"]), "LightLabel", 240)

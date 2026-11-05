@@ -3,6 +3,8 @@ extends TextureRect
 ## A lit lamp's warm light, added over the room: it flickers a little, breathes in size, and is strongest at night.
 
 var night := 0.0
+## How lit the lamp is, from 0 when it is out by day to 1.
+var lit := 1.0
 var power := 1.0
 var _t := 0.0
 
@@ -38,5 +40,5 @@ static func make(centre: Vector2, radius: float, strength: float = 1.0) -> LampG
 func _process(delta: float) -> void:
 	_t += delta
 	var flicker := 0.86 + 0.09 * sin(_t * 9.0) + 0.05 * sin(_t * 23.0) + randf() * 0.03
-	modulate.a = clampf((0.12 + 0.88 * night) * flicker * power, 0.0, 1.0)
+	modulate.a = clampf((0.12 + 0.88 * night) * flicker * power * lit, 0.0, 1.0)
 	scale = Vector2.ONE * (0.97 + 0.03 * sin(_t * 5.3))

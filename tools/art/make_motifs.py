@@ -283,6 +283,10 @@ def letters():
     return np.kron(roles, np.ones((4, 4), np.uint8))
 
 
+# How a motif is named inside a sentence, where lower case or "a" in front would read wrongly.
+SAID = {"knot": {"lower": "Solomon's knot"}, "cave_canem": {"lower": "CAVE CANEM", "a": "the words CAVE CANEM"}, "loaves": {"a": "loaves"}, "grapes": {"a": "grapes"}, "medusa": {"lower": "Medusa", "a": "Medusa's head"}}
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     motifs = []
@@ -315,6 +319,8 @@ def main():
                    "min": w // 8, "max": w // 4 * 2, "outline": ""})
     order = {m["id"]: i for i, m in enumerate(motifs)}
     motifs.sort(key=lambda m: (m["tier"], order[m["id"]]))
+    for m in motifs:
+        m.update(SAID.get(m["id"], {}))
     DATA.write_text(json.dumps(motifs, indent="\t"))
     sheet = Image.new("RGBA", (8 * 70, ((len(motifs) + 7) // 8) * 70), (236, 224, 198, 255))
     for i, m in enumerate(motifs):

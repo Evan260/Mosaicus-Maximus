@@ -541,3 +541,116 @@ func test_mending_sets_one_tile_and_lifts_it() -> void:
 	check(fv.lift(at, at, 0.6 * fv.tile_world()) == 1 and not fv.repaired.has(200), "the chisel lifts it out again")
 	check(not fv.repairs_done(), "the mending isn't done while a gap is empty")
 	fv.free()
+
+
+func test_achievements_are_earned_once() -> void:
+	Library.dir = "user://test_library/"
+	var keys := ["floors", "stat", "chapter", "all_patterns", "stories", "story", "tastes", "library"]
+	var ids := {}
+	for a in Achievements.all():
+		check(not ids.has(a["id"]) and str(a["name"]) != "" and str(a["text"]) != "", "achievement %s has a unique id, a name and a line" % a["id"])
+		ids[a["id"]] = true
+		check(keys.filter(func(k: String) -> bool: return a.has(k)).size() == 1, "achievement %s has one condition" % a["id"])
+	game.new_game("Laurels")
+	check(Achievements.check(game.state).is_empty(), "a new workshop has earned nothing")
+	var job := {"kind": "commission", "client": "", "id": "a1"}
+	Story.finish_job(game.state, job, {"score": 0.95, "paid": 80, "reputation": 40, "tiles": 900})
+	var fresh := Achievements.check(game.state).map(func(a: Dictionary) -> String: return a["id"])
+	check("first_floor" in fresh and "five_stars" in fresh, "the first floor, at five stars, earns both (%s)" % [fresh])
+	check("chapter_2" in fresh, "reaching chapter 2 is an achievement")
+	check(Achievements.check(game.state).is_empty(), "nothing is earned twice")
+	game.earn(1000, "test")
+	check(Achievements.check(game.state).map(func(a: Dictionary) -> String: return a["id"]) == ["earn_1000"], "earning 1,000 denarii in all counts the floor's pay too")
+	for i in 25:
+		game.bump("pets")
+	check(Achievements.check(game.state).map(func(a: Dictionary) -> String: return a["id"]) == ["good_dog"], "25 pets for the dog")
+
+
+func test_chapters_say_what_they_bring() -> void:
+	game.new_game("Chapters")
+	check(Story.next_chapter_line(game.state) == "35 more reputation opens chapter 2: Colour comes to town", "a new workshop knows how far chapter 2 is (%s)" % Story.next_chapter_line(game.state))
+	check(Story.next_chapter_line(game.state, 40).begins_with("Enough reputation for chapter 2"), "the reveal can count the floor's reputation before it is saved")
+	var text := ""
+	for n in range(2, Data.chapters.size() + 1):
+		var lines := Story.chapter_unlocks(n)
+		check(not lines.is_empty(), "chapter %d brings something" % n)
+		text += "\n".join(lines) + "\n"
+	for s in Stones.LIST.filter(func(s: Dictionary) -> bool: return int(s["tier"]) > 1):
+		check(str(s["name"]).to_lower() in text, "%s is named in the chapter it comes with" % s["name"])
+	check(Story.chapter_unlocks(2)[0] == "Stone: terracotta, red marble, ochre marble, green marble and brown stone", "stone is listed by name (%s)" % Story.chapter_unlocks(2)[0])
+	Story.unlock(game.state, Data.chapters.size())
+	check(Story.next_chapter_line(game.state) == "", "nothing is ahead after the last chapter")
+	game.new_game("Chapters")
+	check(Story.next_chapter_line(game.state, 8, true) == "27 more reputation for chapter 2", "the reveal's line is short enough for one line")
+
+
+func test_motif_names_read_well() -> void:
+	check(Data.motif_with_article("loaves") == "loaves", "loaves take no article")
+	check(Data.motif_with_article("amphora") == "an amphora", "a vowel takes an")
+	check(Data.motif_with_article("dolphin") == "a dolphin", "the rest take a")
+	check(Data.motif_name("knot") == "Solomon's knot" and Data.motif_name("medusa") == "Medusa", "names keep their capitals")
+	var b := Brief.score({"must": ["loaves"]}, FloorDesign.for_room("vestibule"))
+	check(b["wishes"][0]["text"] == "Has loaves", "the wish reads %s" % b["wishes"][0]["text"])
+
+
+func test_floor_maps_into_a_room() -> void:
+	var corners := [Vector2(44, 0), Vector2(144, 0), Vector2(166, 58), Vector2(22, 58)]
+	var rows := Perspective.to_floor(corners)
+	var want := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
+	for k in 4:
+		check(Perspective.apply(rows, corners[k]).distance_to(want[k]) < 0.001, "corner %d of the room is corner %d of the floor" % [k, k])
+	var mid := Perspective.apply(rows, Vector2(94, 29))
+	check(mid.y > 0.5, "halfway down the picture is past the floor's middle, since the back is drawn smaller (%.2f)" % mid.y)
+	check(RoomView.has_room("study"), "the study has a painting")
+
+
+func test_gaps_are_counted_down() -> void:
+	var d := FloorDesign.for_room("vestibule")
+	var layout := MosaicLayout.new()
+	layout.build(Composer.compose(d, 6), 6)
+	var fv := FloorView.new()
+	add_child(fv)
+	fv.setup(layout)
+	fv.setup_restoration(PackedInt32Array([10, 11, 200]))
+	fv._finish_channel(2)
+	check(fv.gaps_left() == 3, "three gaps to fill")
+	fv.repair_stone = 0
+	var at := layout.pos[200] * FloorView.WORLD
+	fv.repair(at, at, 0.6 * fv.tile_world())
+	check(fv.gaps_left() == 2, "a set tile counts one gap off (%d left)" % fv.gaps_left())
+	fv.free()
+
+
+func test_mending_brush_can_be_widened() -> void:
+	var d := FloorDesign.for_room("vestibule")
+	var layout := MosaicLayout.new()
+	layout.build(Composer.compose(d, 6), 6)
+	var fv := FloorView.new()
+	add_child(fv)
+	fv.setup(layout)
+	var near := layout.tiles_near(layout.pos[200], 2.0 * layout.px)
+	fv.setup_restoration(near)
+	fv._finish_channel(2)
+	fv.repair_stone = 3
+	var at := layout.pos[200] * FloorView.WORLD
+	var set := fv.repair(at, at, 2.6 * fv.tile_world())
+	check(near.size() > 1 and set == near.size(), "a wide mending brush fills every gap under it (%d of %d)" % [set, near.size()])
+	fv.now += 1.0
+	check(fv.lift(at, at, 2.6 * fv.tile_world()) == near.size(), "and a wide chisel lifts them all out again")
+	var screen: Node = load("res://scripts/floor/floor_screen.gd").new()
+	screen.floor_view = fv
+	var one: float = screen.brush_radius()
+	screen.grow_brush(2.0)
+	check(screen.brush_radius() > one * 2.0, "the bigger brush button widens the mending brush")
+	check(screen.brush_tiles == 4.0, "while the laying brush keeps its own size")
+	screen.grow_brush(-5.0)
+	check(is_equal_approx(screen.brush_radius(), one), "and the smaller one brings it back to a single gap")
+	screen.free()
+	fv.free()
+
+
+func test_lamps_are_out_by_day() -> void:
+	check(Daylight.lamps_lit(12.0) == 0.0 and Daylight.lamps_lit(9.0) == 0.0, "no lamps burn in daylight")
+	check(Daylight.lamps_lit(22.0) == 1.0, "they burn fully at night")
+	var dusk := Daylight.lamps_lit(17.5)
+	check(dusk > 0.0 and dusk < 1.0, "they are being lit at dusk (%.2f)" % dusk)

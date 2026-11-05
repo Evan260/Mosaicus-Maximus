@@ -13,6 +13,7 @@ var _tray_panel: PanelContainer
 var _tools: VBoxContainer
 var _buttons := {}
 var _done: Button
+var _find: Button
 var _hint: Label
 var _last_hint := ""
 var _last_title := ""
@@ -50,8 +51,8 @@ func setup(s: Node) -> void:
 	_tools = VBoxContainer.new()
 	_tools.add_theme_constant_override("separation", 3)
 	add_child(_tools)
-	_tools.add_child(_icon_button("plus", "Bigger brush ( ] )", func() -> void: screen.set_brush(screen.brush_tiles + 1.0)))
-	_tools.add_child(_icon_button("minus", "Smaller brush ( [ )", func() -> void: screen.set_brush(screen.brush_tiles - 1.0)))
+	_tools.add_child(_icon_button("plus", "Bigger brush ( ] )", func() -> void: screen.grow_brush(1.0)))
+	_tools.add_child(_icon_button("minus", "Smaller brush ( [ )", func() -> void: screen.grow_brush(-1.0)))
 	_tools.add_child(_icon_button("eye", "Show or hide the chalk sketch (C)", func() -> void: screen.floor_view.chalk_visible = not screen.floor_view.chalk_visible))
 	_hint = Label.new()
 	_hint.theme_type_variation = "LightLabel"
@@ -77,13 +78,16 @@ func _process(_delta: float) -> void:
 			_title.text = "Clear away the dirt"
 			_hint.text = "Pick the trowel from the tray below." if tool == "" else "Scrape the dirt away to find the old floor underneath."
 		FloorView.Phase.REPAIR:
-			_title.text = "Fill the gaps"
+			var left := fv.gaps_left()
+			_title.text = "Fill the gaps" if left == 0 else "Fill the gaps: %d left" % left
 			if fv.repairs_done():
 				_hint.text = "Every gap is filled. Check your stones, then press Done."
 			elif tool == "lift":
 				_hint.text = "Click a tile you set to lift it out again."
 			elif fv.repair_stone < 0:
 				_hint.text = "Pick the stone that matches a gap, or the chisel to lift a tile out."
+			elif left < FloorView.RING_GAPS_BELOW:
+				_hint.text = "The last gaps are ringed in gold. Click one to set a tile."
 			else:
 				_hint.text = "Click a gap to set one tile. The wheel zooms in for the details."
 		FloorView.Phase.GROUT:
@@ -105,6 +109,10 @@ func _process(_delta: float) -> void:
 	_tray_panel.visible = fv.phase != FloorView.Phase.DONE
 	if _done:
 		_done.disabled = not fv.repairs_done()
+	if _find and _find.visible != (fv.gaps_left() > 0):
+		_find.visible = fv.gaps_left() > 0
+		_tray_panel.size = Vector2.ZERO
+		_place.call_deferred()
 	for key in _buttons:
 		var b: Button = _buttons[key]
 		if key is int:
@@ -127,6 +135,7 @@ func _build_tray() -> void:
 		c.queue_free()
 	_buttons.clear()
 	_done = null
+	_find = null
 	var fv: FloorView = screen.floor_view
 	match fv.phase:
 		FloorView.Phase.LAY:
@@ -147,6 +156,12 @@ func _build_tray() -> void:
 				var st := Stones.index(id)
 				_buttons[st] = _tray_button(MotifIcons.swatch(id, 12), Stones.LIST[st]["name"], func() -> void: screen.select_repair_stone(st))
 			_buttons["lift"] = _tray_button(UiTheme.icon("chisel"), "Chisel: lift out a tile you set", func() -> void: screen.select_tool("lift"))
+			# These have no count beside them, so the picture sits in the middle of its square.
+			for key in _buttons:
+				_buttons[key].icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_find = Ui.button(_side, "Find a gap", screen.find_gap, "eye")
+			Ui.tip_on(_find, "Shows you a gap that still needs a stone")
+			_find.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			_done = Ui.button(_side, "Done", func() -> void: screen.floor_view.finish_repairs(), "tick", true)
 			_done.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		FloorView.Phase.GROUT:

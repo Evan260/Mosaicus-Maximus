@@ -105,7 +105,7 @@ func _notice(job: Dictionary) -> Control:
 	var pay := Ui.hbox(col, 2)
 	Ui.icon(pay, "coin")
 	Ui.label(pay, ("Prize %d d" if kind == "contest" else "About %d d") % int(job.get("budget", 0)))
-	Ui.button(col, "See them", func() -> void: Nav.go("client_visit", {"job": job}), "", true)
+	Ui.button(col, "See " + JobFactory.pronouns(job)["him"], func() -> void: Nav.go("client_visit", {"job": job}), "", true)
 	return card
 
 

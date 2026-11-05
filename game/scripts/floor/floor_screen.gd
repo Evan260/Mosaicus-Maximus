@@ -11,6 +11,8 @@ var floor_view: FloorView
 var cam: Camera2D
 var cursor: Node2D
 var brush_tiles := 4.0
+## How far past its one gap the mending brush reaches, kept apart from the laying brush so mending starts precise.
+var mend_tiles := 0.0
 ## The stone the brush lays, from the tray.
 var stone := -1
 ## The tool picked from the tray for digging, mending, grouting or polishing: trowel, stone, lift, sponge or cloth.
@@ -66,8 +68,6 @@ func _ready_floor() -> void:
 	Nav.world.add_child(floor_view)
 	floor_view.setup(layout)
 	floor_view.tiles_landed.connect(Audio.on_landed)
-	floor_view.patch_finished.connect(func(_s: int) -> void: Audio.chord())
-	floor_view.floor_finished.connect(func() -> void: Audio.chord())
 	floor_view.phase_changed.connect(_on_phase)
 	if job.get("kind", "") == "restoration" or Dev.has("restore"):
 		var rng := RandomNumberGenerator.new()
@@ -75,6 +75,10 @@ func _ready_floor() -> void:
 		floor_view.setup_restoration(Damage.holes(layout, rng, float(job.get("severity", Dev.num("restore", 0.25)))))
 		if Dev.has("dig-done"):
 			floor_view._finish_channel(2)
+		if Dev.has("gaps-left"):
+			for i in floor_view.missing.keys().slice(int(Dev.num("gaps-left", 5))):
+				floor_view.repaired[i] = floor_view.layout.stone[i]
+				floor_view._schedule(i, floor_view.now)
 	cursor = Node2D.new()
 	cursor.draw.connect(_draw_cursor)
 	Nav.world.add_child(cursor)
@@ -147,9 +151,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_C:
 				floor_view.chalk_visible = not floor_view.chalk_visible
 			KEY_BRACKETLEFT:
-				set_brush(brush_tiles - 1.0)
+				grow_brush(-1.0)
 			KEY_BRACKETRIGHT:
-				set_brush(brush_tiles + 1.0)
+				grow_brush(1.0)
 			KEY_TAB:
 				select_stone(next_stone(stone))
 			_:
@@ -215,14 +219,18 @@ func next_stone(after: int) -> int:
 	return -1
 
 
-func set_brush(tiles: float) -> void:
-	brush_tiles = clampf(tiles, 1.5, 10.0)
+## Widens or narrows the brush of the phase the floor is in.
+func grow_brush(step: float) -> void:
+	if floor_view.phase == FloorView.Phase.REPAIR:
+		mend_tiles = clampf(mend_tiles + step, 0.0, 6.0)
+	else:
+		brush_tiles = clampf(brush_tiles + step, 1.5, 10.0)
 
 
-## The brush's reach: one tile when mending, so each gap can be set just right; wider for wiping.
+## The brush's reach: one tile when mending until it is widened, so each gap can be set just right; wider for wiping.
 func brush_radius() -> float:
 	if floor_view.phase == FloorView.Phase.REPAIR:
-		return 0.6 * floor_view.tile_world()
+		return (0.6 + mend_tiles) * floor_view.tile_world()
 	var wide := 1.0 if floor_view.phase == FloorView.Phase.LAY else 2.0
 	return brush_tiles * wide * floor_view.tile_world()
 
@@ -264,6 +272,21 @@ func _zoom_at(screen: Vector2, factor: float) -> void:
 	cam.position = before - (screen - get_viewport().get_visible_rect().size * 0.5) / cam.zoom
 
 
+var _gap_turn := -1
+
+
+## Moves the view to the next gap still without a stone, close enough to see which stone it wants.
+func find_gap() -> void:
+	var left := floor_view.missing.keys().filter(func(i: int) -> bool: return not floor_view.repaired.has(i))
+	if left.is_empty():
+		return
+	_gap_turn = (_gap_turn + 1) % left.size()
+	var zoom := clampf(maxf(cam.zoom.x, _fit_zoom() * 2.5), ZOOM_MIN, ZOOM_MAX)
+	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(cam, "position", floor_view.layout.pos[left[_gap_turn]] * FloorView.WORLD, 0.5)
+	tw.parallel().tween_property(cam, "zoom", Vector2.ONE * zoom, 0.5)
+
+
 func _fit_zoom() -> float:
 	var wall := FloorView.WALL * floor_view.tile_world()
 	var area := floor_view.size_world() + Vector2.ONE * wall * 1.4
@@ -282,7 +305,6 @@ func _on_phase(phase: int) -> void:
 		floor_view.guide(-1)
 	if phase != FloorView.Phase.DONE:
 		return
-	Audio.glissando()
 	if Dev.has("zoom"):
 		return
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

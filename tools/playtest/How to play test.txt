@@ -33,10 +33,15 @@ dog. You've inherited your uncle's mosaic workshop in a Roman town.
   pick the sponge to grout and the cloth to polish.
 - See it finished, get paid, and keep the ones you like in your library
   (the scroll rack in the workshop). Then end the day.
+- Every floor earns reputation. Enough of it opens the next chapter, with
+  new stone, patterns and clients. Click the Chapter button at the top to
+  see every chapter and what it brings.
+- Achievements pop up as you earn them. The settings (the gear) list them.
 
 Some jobs are old floors found under the town: clear the dirt with the
 trowel, fill the gaps one tile at a time with matching stone (the chisel
-lifts a wrong one), press Done, then grout and polish. Each one teaches you a new
+lifts a wrong one; "Find a gap" shows you any you missed), press Done,
+then grout and polish. Each one teaches you a new
 pattern. Collectors ask for copies of famous floors, and every seventh day
 there's a contest against the rival workshop.
 

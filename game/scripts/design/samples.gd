@@ -2,6 +2,21 @@ class_name Samples
 ## Finished designs used behind the title screen and for checking the composer by eye.
 
 
+## The same design in another room, stretched to fit it, for seeing how a room looks with a full floor in it.
+static func moved(d: FloorDesign, room: String) -> FloorDesign:
+	var out := FloorDesign.for_room(room)
+	out.ground = d.ground
+	out.border = d.border.duplicate(true)
+	var k := Vector2(float(out.w) / d.w, float(out.h) / d.h)
+	for p in d.placements:
+		var q: Dictionary = p.duplicate(true)
+		q["x"] = float(p["x"]) * k.x
+		q["y"] = float(p["y"]) * k.y
+		q["size"] = float(p["size"]) * minf(k.x, k.y)
+		out.placements.append(q)
+	return out
+
+
 static func make(sample: String) -> FloorDesign:
 	match sample:
 		"sea":
