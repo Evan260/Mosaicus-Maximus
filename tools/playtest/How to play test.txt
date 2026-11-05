@@ -1,4 +1,4 @@
-ROMAN MOSAIC WORKSHOP - PLAY TEST
+MOSAICUS MAXIMUS - PLAY TEST
 
 Thanks for trying this! The game is early, so expect rough edges.
 
@@ -6,7 +6,7 @@ Thanks for trying this! The game is early, so expect rough edges.
 STARTING IT
 
 1. Put this folder anywhere, for example on your Desktop.
-2. Double-click "Roman Mosaic Workshop.exe".
+2. Double-click "Mosaicus Maximus.exe".
 3. Windows may show a blue box saying "Windows protected your PC". That is
    because the game is new and not yet signed. Click "More info", then
    "Run anyway".
@@ -76,6 +76,6 @@ WHAT TO TELL ME
 
 YOUR SAVES
 
-Saved in %APPDATA%\Godot\app_userdata\Roman Mosaic Workshop\
+Saved in %APPDATA%\Godot\app_userdata\Mosaicus Maximus\
 Floors you keep are in the game's library. Its "Copy to Pictures" button
-puts a picture and a time-lapse in Pictures\Roman Mosaic Workshop.
+puts a picture and a time-lapse in Pictures\Mosaicus Maximus.

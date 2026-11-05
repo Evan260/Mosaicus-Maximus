@@ -4,7 +4,7 @@ config_version=5
 
 [application]
 
-config/name="Roman Mosaic Workshop"
+config/name="Mosaicus Maximus"
 config/description="A cozy Roman mosaic workshop."
 config/version="0.1.0"
 run/main_scene="res://scenes/main.tscn"

@@ -1,4 +1,4 @@
-# Roman Mosaic Workshop: Steam Setup
+# Mosaicus Maximus: Steam Setup
 
 What has to happen on Steam's side before launch. The game already does its part: it records achievements in the save, and sends them to Steam whenever Steam is present.
 
@@ -54,11 +54,11 @@ Use Auto-Cloud; the game needs no code for it. Each workshop slot is saved as `w
 
 | Platform | Root | Subdirectory | Pattern |
 |---|---|---|---|
-| Windows | `WinAppDataRoaming` | `Godot/app_userdata/Roman Mosaic Workshop` | `workshop_*.json` |
-| Windows | `WinAppDataRoaming` | `Godot/app_userdata/Roman Mosaic Workshop` | `workshop_*.json.bak` |
-| macOS | `MacAppSupport` | `Godot/app_userdata/Roman Mosaic Workshop` | `workshop_*.json` |
-| macOS | `MacAppSupport` | `Godot/app_userdata/Roman Mosaic Workshop` | `workshop_*.json.bak` |
-| Linux | `LinuxXdgDataHome` | `godot/app_userdata/Roman Mosaic Workshop` | `workshop_*.json` |
-| Linux | `LinuxXdgDataHome` | `godot/app_userdata/Roman Mosaic Workshop` | `workshop_*.json.bak` |
+| Windows | `WinAppDataRoaming` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json` |
+| Windows | `WinAppDataRoaming` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak` |
+| macOS | `MacAppSupport` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json` |
+| macOS | `MacAppSupport` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak` |
+| Linux | `LinuxXdgDataHome` | `godot/app_userdata/Mosaicus Maximus` | `workshop_*.json` |
+| Linux | `LinuxXdgDataHome` | `godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak` |
 
 The library of kept floors (`library/`) and `settings.cfg` stay on each computer. If the save files are ever renamed, these patterns must change with them in `game/scripts/autoload/saves.gd`, or cloud saves quietly stop syncing.

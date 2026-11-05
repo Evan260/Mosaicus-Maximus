@@ -77,7 +77,7 @@ func enter(args: Dictionary) -> void:
 	_buttons = Ui.hbox(vcol, 3)
 	_watch = Ui.button(_buttons, "Watch it being laid", _watch_it, "play", true)
 	_copy = Ui.button(_buttons, "Copy to Pictures", _copy_it, "eye")
-	Ui.tip_on(_copy, "Saves the picture and a time-lapse to a Roman Mosaic Workshop folder in your Pictures, for sharing")
+	Ui.tip_on(_copy, "Saves the picture and a time-lapse to a Mosaicus Maximus folder in your Pictures, for sharing")
 	_remove = Ui.button(_buttons, "", _remove_it, "trash")
 	Ui.tip_on(_remove, "Take it out of the library (click twice)")
 	_note = Ui.label(vcol, "", "LightLabel")
@@ -180,7 +180,7 @@ func _process(_delta: float) -> void:
 		WorkerThreadPool.wait_for_task_completion(_gif_task)
 		_gif_task = -1
 		var ok := Library.export_picture(_chosen) and Library.export_gif(_chosen, _gif)
-		_note.text = "Copied to Pictures, in a Roman Mosaic Workshop folder." if ok else "That couldn't be copied."
+		_note.text = "Copied to Pictures, in a Mosaicus Maximus folder." if ok else "That couldn't be copied."
 		_copy.disabled = false
 		Audio.ui("page_turn", -8.0)
 

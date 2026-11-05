@@ -14,6 +14,7 @@ var _before := DisplayServer.WINDOW_MODE_WINDOWED
 
 
 func _ready() -> void:
+	_bring_old_saves()
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
 		master = cfg.get_value("sound", "master", master)
@@ -24,6 +25,27 @@ func _ready() -> void:
 		hints = cfg.get_value("play", "hints", hints)
 	apply.call_deferred()
 	_restore_window.call_deferred()
+
+
+## The first time the game starts under this name, copies the saves, settings and kept floors from its old folder.
+func _bring_old_saves() -> void:
+	var here := OS.get_user_data_dir()
+	var old := here.get_base_dir().path_join("Roman Mosaic Workshop")
+	if old == here or not DirAccess.dir_exists_absolute(old) or FileAccess.file_exists(PATH):
+		return
+	DirAccess.make_dir_recursive_absolute(here)
+	var d := DirAccess.open(old)
+	if d == null:
+		return
+	for f in d.get_files():
+		if (f.begins_with("workshop_") or f == "settings.cfg") and not FileAccess.file_exists(here.path_join(f)):
+			DirAccess.copy_absolute(old.path_join(f), here.path_join(f))
+	var kept := DirAccess.open(old.path_join("library"))
+	if kept:
+		DirAccess.make_dir_recursive_absolute(here.path_join("library"))
+		for f in kept.get_files():
+			if not FileAccess.file_exists(here.path_join("library").path_join(f)):
+				DirAccess.copy_absolute(old.path_join("library").path_join(f), here.path_join("library").path_join(f))
 
 
 ## Sets the volumes. The window is left alone, so changing a setting never resizes it.

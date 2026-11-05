@@ -1,4 +1,4 @@
-# The SCons settings Farmus Maximus's trimmed export template was built with, kept here as a record because Roman Mosaic
+# The SCons settings Farmus Maximus's trimmed export template was built with, kept here as a record because Mosaicus Maximus
 # Workshop ships with a copy of that template (tools/engine/slim.windows.template_release.x86_64.exe). It covers: 2D drawn with the Compatibility
 # (OpenGL) renderer, sound in Ogg, MP3 and WAV, fonts, particles and the window features of the desktop strip. Read
 # by tools/engine/build_template.py; see read-me notes there. Everything left out is unused by the game.

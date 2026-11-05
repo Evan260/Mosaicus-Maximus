@@ -70,7 +70,7 @@ func _swap_menu() -> VBoxContainer:
 
 func _show_menu() -> void:
 	var col := _swap_menu()
-	var title := Ui.label(col, "Roman Mosaic Workshop", "Heading")
+	var title := Ui.label(col, "Mosaicus Maximus", "Heading")
 	title.add_theme_font_size_override("font_size", 16)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	Ui.label(col, "A town of floors, waiting to be laid", "MutedLabel").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

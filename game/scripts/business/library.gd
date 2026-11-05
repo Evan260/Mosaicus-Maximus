@@ -78,7 +78,7 @@ static func export_dir() -> String:
 	var base := OS.get_system_dir(OS.SYSTEM_DIR_PICTURES)
 	if base == "":
 		base = OS.get_user_data_dir()
-	return base.path_join("Roman Mosaic Workshop")
+	return base.path_join("Mosaicus Maximus")
 
 
 static func export_picture(entry: Dictionary) -> bool:
