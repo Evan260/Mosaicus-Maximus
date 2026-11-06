@@ -21,4 +21,5 @@ Thumbs.db
 
 # The trailer's recorded shots and renders, and the window size the recording script sets while it records
 marketing/recordings/
+marketing/store_renders/
 game/override.cfg

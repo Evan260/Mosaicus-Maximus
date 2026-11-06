@@ -131,22 +131,41 @@ func _drag(from: Vector2, to: Vector2) -> void:
 
 
 ## The game's icon: a small mosaic laid by the floor's own renderer, saved as a square picture, and then the game quits.
-func _make_icon(path: String) -> void:
+## The design the icon renderer lays: one from a file with --icon-design=PATH.json, or a motif built from the flags.
+func _icon_design() -> FloorDesign:
+	if has("icon-design"):
+		return FloorDesign.from_dict(JSON.parse_string(FileAccess.get_file_as_string(get_arg("icon-design"))))
 	var d := FloorDesign.for_room(get_arg("icon-room", "panel"))
+	if has("icon-tiles"):
+		d.w = int(num("icon-tiles", 20))
+		d.h = d.w
 	d.ground = get_arg("icon-ground", "white_marble")
 	d.set_border(get_arg("icon-border", "plain"))
 	d.border["stones"] = get_arg("icon-frame", "black_stone,black_stone,black_stone,black_stone").split(",")
+	# A ring round the picture frames it as a roundel, the shape a round profile picture is cropped to.
+	if has("icon-ring"):
+		var ring := d.add("roundel", d.w * 0.5, d.h * 0.5, num("icon-ring", 18.0))
+		var ring_stones := get_arg("icon-ring-stones", "black_stone,white_marble").split(",")
+		ring["stones"] = {"1": ring_stones[0], "2": ring_stones[1]}
 	var p := d.add(get_arg("icon-motif", "flower"), d.w * 0.5, d.h * 0.5, num("icon-size", 15.0))
+	p["fine"] = has("icon-fine")
 	if get_arg("icon-stones") == "own" and has("icon-allowed"):
 		for k in p["stones"]:
 			p["stones"][k] = Stones.nearest(p["stones"][k], Array(get_arg("icon-allowed").split(",")))
 	elif get_arg("icon-stones") != "own":
 		var colours := get_arg("icon-stones", "red_marble,ochre_marble,black_stone,red_marble").split(",")
 		p["stones"] = {"1": colours[0], "2": colours[1], "3": colours[2], "4": colours[3]}
+	return d
+
+
+func _make_icon(path: String) -> void:
+	var d := _icon_design()
 	var layout := MosaicLayout.new()
 	layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6))
+	var res_arg := get_arg("icon-res", "512").split("x")
+	var res := Vector2i(int(res_arg[0]), int(res_arg[res_arg.size() - 1]))
 	var vp := SubViewport.new()
-	vp.size = Vector2i(512, 512)
+	vp.size = res
 	vp.transparent_bg = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(vp)
@@ -159,7 +178,7 @@ func _make_icon(path: String) -> void:
 	var cam := Camera2D.new()
 	var world := Vector2(layout.w, layout.h) * FloorView.WORLD
 	cam.position = world * 0.5
-	cam.zoom = Vector2.ONE * 512.0 / world.x
+	cam.zoom = Vector2.ONE * float(res.x) / world.x
 	vp.add_child(cam)
 	cam.make_current()
 	for i in 4:
