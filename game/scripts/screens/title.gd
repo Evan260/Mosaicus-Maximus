@@ -26,6 +26,10 @@ func enter(_args: Dictionary) -> void:
 			_show_new()
 		"settings":
 			SettingsPanel.open(Nav.ui)
+		"forget":
+			var kept := Saves.slots()
+			if not kept[0].is_empty():
+				_confirm_forget(1, kept[0])
 
 
 func _process(delta: float) -> void:
@@ -109,17 +113,37 @@ func _slot_row(parent: Node, slot: int, s: Dictionary) -> void:
 		Audio.ui("click")
 		_continue(slot))
 	row.add_child(b)
-	var del := Ui.icon_button(row, "trash", "Forget this workshop (click twice)", func() -> void: pass)
+	var del := Ui.icon_button(row, "trash", "Forget this workshop", func() -> void: _confirm_forget(slot, s))
 	del.custom_minimum_size = Vector2(22, 30)
-	del.pressed.connect(func() -> void:
-		if del.has_meta("armed"):
-			Saves.delete(slot)
-			Audio.ui("rustle")
-			_show_menu()
-		else:
-			del.set_meta("armed", true)
-			Ui.tip_on(del, "Click again to forget %s's workshop for good" % s["name"])
-			del.modulate = Color(1.0, 0.6, 0.5))
+
+
+## Forgetting a workshop can't be undone, so the word "delete" has to be typed before it goes.
+func _confirm_forget(slot: int, s: Dictionary) -> void:
+	Audio.ui("click")
+	var col := _swap_menu()
+	var title := Ui.label(col, "Forget this workshop?", "Heading")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var floors := int(s["floors"])
+	Ui.label(col, "%s's workshop, on day %d with %d floor%s laid, will be gone for good. Type \"delete\" to forget it." % [s["name"], s["day"], floors, "" if floors == 1 else "s"], "", 226).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var field := LineEdit.new()
+	field.placeholder_text = "delete"
+	field.max_length = 20
+	col.add_child(field)
+	var row := Ui.hbox(col, 4)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var typed := func() -> bool: return field.text.strip_edges().to_lower() == "delete"
+	var forget := func() -> void:
+		if not typed.call():
+			return
+		Saves.delete(slot)
+		Audio.ui("rustle")
+		_show_menu()
+	var gone := Ui.button(row, "Forget it", forget, "trash")
+	gone.disabled = true
+	Ui.button(row, "Keep it", _show_menu, "arrow_l", true)
+	field.text_changed.connect(func(_t: String) -> void: gone.disabled = not typed.call())
+	field.text_submitted.connect(func(_t: String) -> void: forget.call())
+	field.grab_focus.call_deferred()
 
 
 ## Starting a workshop: your name and your dog.

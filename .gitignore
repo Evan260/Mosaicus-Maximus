@@ -18,3 +18,7 @@ __pycache__/
 *.pyc
 Thumbs.db
 .DS_Store
+
+# The trailer's recorded shots and renders, and the window size the recording script sets while it records
+marketing/recordings/
+game/override.cfg

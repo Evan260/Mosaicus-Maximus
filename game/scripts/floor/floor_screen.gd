@@ -251,7 +251,8 @@ func _stroke(from: Vector2, to: Vector2) -> void:
 			if stone < 0 and not _demo.has("demo"):
 				_hud.nudge_tray()
 				return
-			floor_view.brush(from, to, brush_radius(), -1 if _demo.has("demo") else stone)
+			# A recording lays the stone picked in the tray, as a player does, or every stone when none is picked.
+			floor_view.brush(from, to, brush_radius(), -1 if _demo.has("demo") and stone < 0 else stone)
 			if stone >= 0 and floor_view.stone_unplaced(stone) == 0:
 				select_stone(-1)
 		FloorView.Phase.REPAIR:
