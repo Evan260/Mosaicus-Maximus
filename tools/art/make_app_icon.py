@@ -5,7 +5,8 @@ The game lays the mosaic with its own floor renderer and saves it:
 Then: python tools/art/make_app_icon.py RENDER.png
 Writes game/icon.png (the window's icon) and game/icon.ico (the exe's and the taskbar's, in every size Windows asks for),
 rounded into a tile with a dark rim as Fishus Maximus's is, its corners and rim worked out on a 64 pixel grid so they
-step in the same blocks.
+step in the same blocks. With --profile SQUARE.png it rounds the marketing profile picture the same way instead:
+  python tools/art/make_app_icon.py --profile tools/art/profile_square.png   (writes marketing/profile_picture.png)
 """
 import sys
 from pathlib import Path
@@ -31,8 +32,7 @@ def rounded(square: Image.Image, size: int = 256) -> Image.Image:
     inner[:, 1:] &= tile[:, :-1]
     inner[:, :-1] &= tile[:, 1:]
     inner[0, :] = inner[-1, :] = inner[:, 0] = inner[:, -1] = False
-    block = np.ones((size // GRID, size // GRID), bool)
-    tile, rim = np.kron(tile, block), np.kron(tile & ~inner, block)
+    tile, rim = (np.array(Image.fromarray(m).resize((size, size), Image.NEAREST)) for m in (tile, tile & ~inner))
     art = np.array(square.convert("RGBA").resize((size, size), Image.LANCZOS))
     art[~tile] = 0
     art[rim] = (*RIM, 255)
@@ -40,6 +40,11 @@ def rounded(square: Image.Image, size: int = 256) -> Image.Image:
 
 
 def main():
+    if sys.argv[1] == "--profile":
+        square = Image.open(sys.argv[2])
+        rounded(square, square.width).save(ROOT / "marketing" / "profile_picture.png")
+        print("wrote marketing/profile_picture.png")
+        return
     render = Image.open(sys.argv[1]).convert("RGBA")
     big = rounded(render)
     big.save(ROOT / "game" / "icon.png")
