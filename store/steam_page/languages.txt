@@ -1,0 +1,7 @@
+In Steamworks, under Supported Languages, tick "Interface" for English only. Leave "Full Audio" and "Subtitles"
+unticked: the game has no spoken dialogue.
+
+English
+
+The game has no translations yet. If it gets some, tick "Interface" for each language here, and Steamworks lets you
+add a translated store description per language.

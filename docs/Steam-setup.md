@@ -8,7 +8,13 @@ What has to happen on Steam's side before launch. The game already does its part
 2. Add GodotSteam (the GDExtension build for Godot 4.7) to `game/addons/`. The game looks for its `Steam` object and uses it when it is there (`game/scripts/autoload/awards.gd`); without it, nothing breaks.
 3. While testing outside Steam, put a file named `steam_appid.txt` holding the App ID next to the game's executable.
 
-## 2. Achievements
+## 2. The store page
+
+Everything the store page needs is in `store/steam_page`: the capsules, the library art, the page background, the icons, the twelve screenshots and the text (the short description, About This Game, tags, languages, system requirements and the AI content disclosure). Its `README.txt` says which file goes in which Steamworks slot, and lists what is still to decide, such as the price in CAD.
+
+`python tools/steam/make_store_art.py` makes the pictures from the game itself: the capsules and library hero are mosaic floors the game lays at each picture's exact size, with the logo over them; the page background is the workshop at dusk; the screenshots are moments of the recorded trailer shots (any shot not yet recorded is recorded first). It writes only to `store/steam_page`, rendering the pieces it crops or combines into a temporary folder that it removes afterwards. Run it again after the art changes. The text files are written by hand.
+
+## 3. Achievements
 
 Enter each of these in Steamworks under Stats and Achievements, with exactly this API name. The list comes from `game/data/achievements.json`; regenerate this table if that list changes. Achievements earned before Steam was connected are sent the next time a screen opens with Steam running.
 
@@ -48,7 +54,7 @@ Each achievement also needs two 64 by 64 icons in Steamworks: one for when it is
 | `panel_set` | Set in stone | Set one of your picture panels into a client's floor |
 | `wall_mosaic` | Glass on the wall | Make a wall mosaic for a fountain niche |
 
-## 3. Steam Cloud
+## 4. Steam Cloud
 
 Use Auto-Cloud; the game needs no code for it. Each workshop slot is saved as `workshop_1.json`, `workshop_2.json` and `workshop_3.json`, each with one backup (`workshop_1.json.bak` and so on). Add two root paths per platform, one for the saves and one for their backups:
 

@@ -38,28 +38,41 @@ BANDS = [(255, 232, 160), (250, 212, 110), (240, 182, 72), (224, 150, 52), (204,
 LEAF_DARK, LEAF_MID, LEAF_LIGHT = (52, 86, 46), (86, 128, 62), (138, 172, 88)
 
 
-def glyph_line(text):
-    """One line of capitals as a coverage mask with letters a little apart, CAP pixels tall."""
+def glyph_line(text, cap_px=CAP, tracking=TRACKING):
+    """One line of capitals as a coverage mask with letters a little apart, cap_px pixels tall."""
     font = ImageFont.truetype(str(HERE / "Cinzel.ttf"), 10)
     font.set_variation_by_axes([900])
     cap = font.getbbox("H")
-    size = int(10 * CAP * SUPER / (cap[3] - cap[1]))
+    size = int(10 * cap_px * SUPER / (cap[3] - cap[1]))
     font = ImageFont.truetype(str(HERE / "Cinzel.ttf"), size)
     font.set_variation_by_axes([900])
     top = font.getbbox("H")[1]
     widths = [font.getbbox(ch)[2] for ch in text]
-    total = sum(widths) + TRACKING * SUPER * (len(text) - 1)
-    canvas = Image.new("L", (total + SUPER * 4, CAP * SUPER + SUPER * 2), 0)
+    total = sum(widths) + tracking * SUPER * (len(text) - 1)
+    canvas = Image.new("L", (total + SUPER * 4, cap_px * SUPER + SUPER * 2), 0)
     d = ImageDraw.Draw(canvas)
     x = SUPER * 2
     for ch, w in zip(text, widths):
         d.text((x, SUPER - top), ch, font=font, fill=255)
-        x += w + TRACKING * SUPER
+        x += w + tracking * SUPER
     small = canvas.resize((canvas.width // SUPER, canvas.height // SUPER), Image.BOX)
     mask = np.array(small) > 110
     cols = np.nonzero(mask.any(0))[0]
     rows = np.nonzero(mask.any(1))[0]
     return mask[rows[0]:rows[-1] + 1, cols[0]:cols[-1] + 1]
+
+
+def compact_name(cap_px=24, tracking=1, gap=4):
+    """The name alone in smaller, closer letters, for the Steam store's small capsule, which is too narrow for the
+    plain logo at twice its size."""
+    lines = [shade(glyph_line(t, cap_px, tracking)) for t in LINES]
+    width = max(l.width for l in lines)
+    name = Image.new("RGBA", (width, sum(l.height for l in lines) + gap), (0, 0, 0, 0))
+    y = 0
+    for l in lines:
+        name.alpha_composite(l, ((width - l.width) // 2, y))
+        y += l.height + gap
+    return name.crop(name.getbbox())
 
 
 def sprig(length, flip):

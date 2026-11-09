@@ -1,0 +1,30 @@
+WINDOWS (required)
+
+Minimum
+OS: Windows 10 or 11, 64-bit
+Processor: any dual-core processor from the last ten years
+Memory: 2 GB RAM
+Graphics: any graphics card or integrated graphics supporting OpenGL 3.3
+Storage: 100 MB available space
+
+Recommended
+Memory: 4 GB RAM
+Additional notes: The game is 2D and about 45 MB. The largest floors, of over ten thousand tiles, take a moment to set out on slower computers.
+
+
+MACOS (only if a Mac build ships; the game has only a Windows export so far)
+
+Minimum
+OS: macOS 11 or later, Apple silicon or Intel
+Memory: 2 GB RAM
+Graphics: any Mac that runs macOS 11
+Storage: 100 MB available space
+
+
+LINUX / STEAMOS (only if a Linux build ships)
+
+Minimum
+OS: a 64-bit distribution from the last five years, or SteamOS
+Memory: 2 GB RAM
+Graphics: OpenGL 3.3
+Storage: 100 MB available space

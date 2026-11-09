@@ -1,0 +1,13 @@
+For the Content Survey in Steamworks, which asks whether the game uses AI-generated content.
+
+Answer: yes, pre-generated content (made during development). No content is generated while the game is played.
+
+Text to paste into the description box:
+
+Much of the game's pixel art was generated with PixelLab, an AI pixel-art tool, then cleaned up, edited and assembled for the game: the workshop and its furniture, the clients' rooms, the town map, the people's portraits and the pictures in the pattern book. The dogs come from Farmus Maximus, the same studio's farm game, whose art was made the same way. The mosaic floors, the interface and the logo are drawn by the game's own code. Much of the game's code and writing was made with the help of an AI coding assistant. The music is by a human composer, and the sound effects were recorded or made by people, all credited in the credits file that comes with the game. No AI generates content while you play.
+
+Notes:
+- What PixelLab made is listed image by image in tools/art/ledger.csv; the sounds and music are listed in CREDITS.md.
+- Read the survey's own wording when you fill it in. If it says code written with AI tools does not need declaring,
+  the sentence about the code and writing can be left out.
+- Steam shows this text on the store page, so keep it accurate if more art is generated or replaced later.

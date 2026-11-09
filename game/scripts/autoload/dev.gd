@@ -37,6 +37,9 @@ func _ready() -> void:
 	if args.has("resize-at"):
 		get_tree().create_timer(float(args["resize-at"])).timeout.connect(func() -> void:
 			DisplayServer.window_set_size(DisplayServer.window_get_size() + Vector2i(96, 54)))
+	# --no-mouse ignores the real mouse, so wherever it rests over the window lights nothing up in a screenshot.
+	if args.has("no-mouse"):
+		get_tree().root.set_disable_input(true)
 	if args.has("icon"):
 		_make_icon.call_deferred(args["icon"])
 	if args.has("quit") and _shots.is_empty():

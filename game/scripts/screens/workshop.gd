@@ -61,7 +61,7 @@ func enter(_args: Dictionary) -> void:
 	_sky.size = Nav.BASE
 	_root.add_child(_sky)
 	_root.add_child(_scene)
-	if Dev.get_arg("panel") == "upgrades":
+	if Dev.get_arg("panel") == "upgrades" or Dev.has("furnished"):
 		Game.state["upgrades"].append_array(UPGRADE_PIECES)
 	if Dev.has("hour"):
 		Game.state["hour"] = Dev.num("hour", 8.0)
@@ -82,8 +82,9 @@ func enter(_args: Dictionary) -> void:
 		Game.state["story_seen"].append("intro")
 		var ch := Data.chapter(1)
 		_queue_event({"kind": "chapter", "n": 1, "title": ch.get("title", ""), "text": ch.get("text", "")})
-	if Dev.has("panel"):
+	if Dev.has("panel") or Dev.has("no-hud"):
 		Game.state["pending_events"].clear()
+	_bar.visible = not Dev.has("no-hud")
 	_show_next_event()
 	match Dev.get_arg("panel"):
 		"settings":

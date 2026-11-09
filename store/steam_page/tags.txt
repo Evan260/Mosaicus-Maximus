@@ -1,0 +1,25 @@
+Steamworks lets a game choose up to 20 tags, in order of importance; the first few carry the most weight in
+recommendations. Pick each from Steam's own list; if one is not offered, skip it.
+
+1. Cozy
+2. Crafting
+3. Relaxing
+4. Pixel Graphics
+5. Rome
+6. Simulation
+7. Management
+8. Casual
+9. Historical
+10. Design & Illustration
+11. Wholesome
+12. Colorful
+13. Economy
+14. Sandbox
+15. Cute
+16. 2D
+17. Family Friendly
+18. Atmospheric
+19. Singleplayer
+20. Indie
+
+Genres (Steamworks, Basic Info): Casual, Simulation, Indie
