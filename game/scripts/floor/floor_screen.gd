@@ -1,8 +1,7 @@
 extends Node
 ## The floor at the client's house: pick a stone and sweep it into the places it goes, then one wipe grouts and polishes.
-## Opened with {design: FloorDesign, job: Dictionary}, or with nothing to lay the test floor.
+## Opened with {design: FloorDesign, job: Dictionary}, or with nothing (or --sample=NAME) to lay a sample floor.
 
-const TEST_DESIGN := "res://designs/test_floor.png"
 const TILE_PX := Composer.TILE_PX
 const ZOOM_MIN := 0.2
 const ZOOM_MAX := 6.0
@@ -43,8 +42,8 @@ func enter(args: Dictionary) -> void:
 		design = FloorDesign.from_dict(job["design"])
 	if "big_brush" in Game.state["upgrades"]:
 		brush_tiles = 5.0
-	if design == null and Dev.has("sample"):
-		design = Samples.make(Dev.get_arg("sample"))
+	if design == null:
+		design = Samples.make(Dev.get_arg("sample", "sea"))
 		if Dev.has("panels"):
 			design.placements[0]["panel"] = "test"
 	_loading = LoadingCard.new()
@@ -54,11 +53,8 @@ func enter(args: Dictionary) -> void:
 	var layout := MosaicLayout.new()
 	_layout = layout
 	_task = WorkerThreadPool.add_task(func() -> void:
-		if d:
-			Composer.lay_out(d, layout)
-			_made = Composer.panel_mask(d, TILE_PX)
-		else:
-			layout.build((load(TEST_DESIGN) as Texture2D).get_image(), TILE_PX))
+		Composer.lay_out(d, layout)
+		_made = Composer.panel_mask(d, TILE_PX))
 
 
 ## Runs once the floor has been worked out on its worker thread: builds the floor, camera and interface.

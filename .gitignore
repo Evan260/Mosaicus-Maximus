@@ -11,7 +11,6 @@ tools/audio/downloads/
 tools/engine/*.exe
 
 # Recordings of the game
-videos/
 
 # Python and the OS
 __pycache__/
