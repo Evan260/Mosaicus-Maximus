@@ -1,7 +1,7 @@
 extends "res://tests/test_case.gd"
 ## Going from screen to screen and opening and closing windows, again and again, leaves nothing behind.
 
-const ROUTE := ["title", "workshop", "job_board", "design_table", "floor", "town_map", "library", "workshop"]
+const ROUTE := ["title", "workshop", "job_board", "design_table", "floor", "reveal", "town_map", "library", "workshop"]
 
 
 func test_screens_and_windows_leave_nothing_behind() -> void:

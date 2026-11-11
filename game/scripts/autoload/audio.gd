@@ -114,6 +114,8 @@ func quit(code: int = 0) -> void:
 
 
 func _process(delta: float) -> void:
+	if _quitting:
+		return
 	_clock += delta
 	if music_on and not _music.playing and not _tracks.is_empty():
 		_music_wait -= delta
