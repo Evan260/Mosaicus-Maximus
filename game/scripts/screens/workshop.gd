@@ -41,6 +41,7 @@ var _sunlit: Array[ShaderMaterial] = []
 var _glows: Array = []
 ## The lamps' flames and the glow painted round them, shown only while the lamps are lit.
 var _flames: TextureRect
+var _edges: EdgeFade
 var _end_day: Button
 var _t := 0.0
 var _leaving := false
@@ -68,6 +69,8 @@ func enter(_args: Dictionary) -> void:
 	if Dev.has("late"):
 		Game.state.merge({"coins": 14250, "reputation": 174, "day": 140, "chapter": 3}, true)
 	_room()
+	_edges = EdgeFade.make()
+	_root.add_child(_edges)
 	_build_bar()
 	_tip = Ui.panel(_root, "TipPanel")
 	_tip_label = Ui.label(_tip, "", "LightLabel")
@@ -128,6 +131,7 @@ func _layout() -> void:
 	_sky.position = _scene.position
 	for g in _glows:
 		g.get_parent().position = _scene.position
+	_edges.fit(Rect2(_scene.position, (load(ART + "room.png") as Texture2D).get_size()), s)
 	_bar.position = Vector2(4, 3)
 	_fit_bar()
 	if is_instance_valid(_popup):

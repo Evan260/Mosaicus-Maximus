@@ -1138,3 +1138,14 @@ func test_old_floors_keep_their_patterns_on_the_floor() -> void:
 					worst = float(shown) / maxf(1.0, full)
 					at = "%s seed %d, %s" % [room, seed, p["motif"]]
 	check(worst > 0.9, "every motif of an old floor lies on the floor, clear of a pool or an apse (worst %.2f, %s)" % [worst, at])
+
+
+func test_a_picture_smaller_than_the_window_fades_at_its_edges() -> void:
+	var e := EdgeFade.make()
+	e.fit(Rect2(Vector2.ZERO, Nav.BASE), Nav.BASE)
+	check(e.widths() == [0, 0, 0, 0], "a picture that fills the window keeps its edges as painted")
+	e.fit(Rect2(Vector2(80, 0), Nav.BASE), Vector2(640, 270))
+	check(e.widths() == [EdgeFade.FADE, 0, EdgeFade.FADE, 0], "in a wide window its sides fade and its top and bottom stay")
+	e.fit(Rect2(Vector2(0, 5), Nav.BASE), Vector2(480, 280))
+	check(e.widths() == [0, 5, 0, 5], "an edge never fades further than the room past it")
+	e.free()
