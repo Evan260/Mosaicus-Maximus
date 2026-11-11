@@ -105,6 +105,7 @@ func _display() -> void:
 
 func _gameplay() -> void:
 	_languages()
+	Ui.on_off(_page, tr("Tips when you point at a button"), Settings.tooltips, func() -> void: Settings.set_value("tooltips", not Settings.tooltips), WIDTH)
 	Ui.on_off(_page, tr("Larger text for messages"), Settings.large_text, func() -> void: Settings.set_value("large_text", not Settings.large_text), WIDTH)
 	Ui.on_off(_page, tr("Reduced motion"), Settings.reduced_motion, func() -> void: Settings.set_value("reduced_motion", not Settings.reduced_motion), WIDTH)
 	Ui.on_off(_page, tr("Show hints on the floor"), Settings.hints, func() -> void: Settings.set_value("hints", not Settings.hints), WIDTH)

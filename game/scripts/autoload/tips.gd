@@ -32,7 +32,7 @@ func _fit() -> void:
 
 
 func _process(delta: float) -> void:
-	var owner := _tip_owner(get_viewport().gui_get_hovered_control())
+	var owner := _tip_owner(get_viewport().gui_get_hovered_control()) if Settings.tooltips else null
 	if owner == null or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or get_viewport().gui_is_dragging():
 		_owner = null
 		_panel.visible = false

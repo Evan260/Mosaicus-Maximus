@@ -12,6 +12,8 @@ var effects := 0.9
 var fullscreen := false
 var maximized := false
 var hints := true
+## Whether a tip shows when the pointer rests on a button.
+var tooltips := true
 ## Twice the size for the guide's notes, tooltips and achievement cards.
 var large_text := false
 ## Keeps the screen still: no drifting title floor, sliding cards, turning pages or flickering lamps.
@@ -37,6 +39,7 @@ func _ready() -> void:
 		fullscreen = cfg.get_value("display", "fullscreen", fullscreen)
 		maximized = cfg.get_value("display", "maximized", maximized)
 		hints = cfg.get_value("play", "hints", hints)
+		tooltips = cfg.get_value("play", "tooltips", tooltips)
 		large_text = cfg.get_value("play", "large_text", large_text)
 		reduced_motion = cfg.get_value("play", "reduced_motion", reduced_motion)
 		background_sound = str(cfg.get_value("sound", "background_sound", background_sound))
@@ -159,6 +162,7 @@ func save(announce: bool = true) -> void:
 	cfg.set_value("display", "maximized", maximized)
 	cfg.set_value("display", "ui_scale_step", ui_scale_step)
 	cfg.set_value("play", "hints", hints)
+	cfg.set_value("play", "tooltips", tooltips)
 	cfg.set_value("play", "large_text", large_text)
 	cfg.set_value("play", "reduced_motion", reduced_motion)
 	cfg.set_value("sound", "background_sound", background_sound)
