@@ -223,13 +223,13 @@ func select_tool(name: String) -> void:
 	tool = name
 	if name == "lift":
 		floor_view.repair_stone = -1
-	Audio.ui("tab", -14.0)
+	Audio.play("tab", -14.0)
 
 
 func select_repair_stone(st: int) -> void:
 	tool = "stone"
 	floor_view.repair_stone = st
-	Audio.ui("tab", -14.0)
+	Audio.play("tab", -14.0)
 
 
 ## Chooses the stone to lay, and lights up where it goes.
@@ -239,7 +239,7 @@ func select_stone(st: int) -> void:
 	stone = st
 	floor_view.guide(st if floor_view.phase == FloorView.Phase.LAY else -1)
 	if st >= 0:
-		Audio.ui("tab", -14.0)
+		Audio.play("tab", -14.0)
 
 
 ## The next stone in the tray, after the one given, that still has tiles to lay; -1 when every tile is down. Tab uses it.

@@ -102,7 +102,7 @@ func enter(args: Dictionary) -> void:
 		_update_price()
 	Nav.resized.connect(_place)
 	_place.call_deferred()
-	Audio.ui("rustle", -8.0)
+	Audio.play("rustle", -8.0)
 	if str(job.get("kind", "commission")) in ["commission", "copy"]:
 		Guide.note("visit", "The client says what she wants. Slide the coins to set your price: the more you ask, the more she expects, and ask too much and she'll haggle. Then shake on it." if she else "The client says what he wants. Slide the coins to set your price: the more you ask, the more he expects, and ask too much and he'll haggle. Then shake on it.", "bottom_right")
 	else:
@@ -188,7 +188,7 @@ func _shake_on_it() -> void:
 		job["expected"] = Pricing.expectation(asked, budget)
 		_take()
 		return
-	Audio.ui("nope")
+	Audio.play("nope")
 	_patience -= 1
 	if _patience > 0:
 		_offer = maxi(budget, int(round(lerpf(budget, asked, 0.35))))
@@ -212,7 +212,7 @@ func _take() -> void:
 	if _done:
 		return
 	_done = true
-	Audio.ui("coins", -8.0)
+	Audio.play("coins", -8.0)
 	Game.state["active_job"] = job
 	Game.state["board"] = (Game.state["board"] as Array).filter(func(j: Dictionary) -> bool: return j.get("id", "") != job.get("id", ""))
 	Saves.save()

@@ -222,6 +222,6 @@ func close_top() -> bool:
 			top = c
 	if top == null:
 		return false
-	Audio.ui("click")
+	Audio.play("click")
 	(top.get_meta("close") as Callable).call()
 	return true

@@ -32,4 +32,4 @@ func enter(_args: Dictionary) -> void:
 		root.position = ((Nav.ui_size() - root.size) * 0.5).floor()
 	Nav.resized.connect(place)
 	place.call_deferred()
-	Audio.ui("page_turn", -6.0)
+	Audio.play("page_turn", -6.0)

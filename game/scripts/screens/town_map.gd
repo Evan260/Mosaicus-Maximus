@@ -181,7 +181,7 @@ func _show_floor(f: Dictionary, title: String) -> void:
 	Ui.label(col, Ui.text([tr("Paid %s.") % Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)]), "MutedLabel", 220)
 	_view.reset_size()
 	_view.position = ((Nav.ui_size() - _view.size) * 0.5).floor()
-	Audio.ui("page_turn", -8.0)
+	Audio.play("page_turn", -8.0)
 
 
 ## What the floor's owner thought of it: he or she by their portrait, or the owners when it isn't known.
@@ -220,7 +220,7 @@ func _start_visit(f: Dictionary, title: String) -> void:
 	var layout := MosaicLayout.new()
 	_pending = {"floor": f, "title": title, "layout": layout, "wait": wait}
 	_task = WorkerThreadPool.add_task(func() -> void: layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6)))
-	Audio.ui("page_turn", -8.0)
+	Audio.play("page_turn", -8.0)
 
 
 func _process(_delta: float) -> void:

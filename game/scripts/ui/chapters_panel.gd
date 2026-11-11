@@ -318,7 +318,7 @@ func turn_to(n: int) -> void:
 	if not is_instance_valid(_book) or not _book.is_inside_tree():
 		return
 	if Settings.reduced_motion:
-		Audio.ui("page_turn")
+		Audio.play("page_turn")
 		chapter = n
 		_fill()
 		return
@@ -330,7 +330,7 @@ func turn_to(n: int) -> void:
 	if not is_instance_valid(book) or not book.is_inside_tree():
 		_turning = false
 		return
-	Audio.ui("page_turn")
+	Audio.play("page_turn")
 	chapter = n
 	_fill()
 	var turn := PageTurn.new()

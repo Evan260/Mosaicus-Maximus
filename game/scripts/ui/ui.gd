@@ -28,7 +28,7 @@ static func button(parent: Node, text: String, action: Callable, icon_name: Stri
 	if main:
 		b.theme_type_variation = "MainButton"
 	b.pressed.connect(func() -> void:
-		Audio.ui("click")
+		Audio.play("click")
 		action.call())
 	if parent:
 		parent.add_child(b)
@@ -130,7 +130,7 @@ static func tab_button(parent: Node, text: String, action: Callable) -> Button:
 	for c in ["font_pressed_color", "font_hover_pressed_color"]:
 		b.add_theme_color_override(c, UiTheme.INK)
 	b.pressed.connect(func() -> void:
-		Audio.ui("page_turn", -10.0)
+		Audio.play("page_turn", -10.0)
 		action.call())
 	parent.add_child(b)
 	return b

@@ -62,7 +62,7 @@ func _build(text: String, corner: String, target: Variant) -> void:
 		Nav.ui.add_child(_arrow)
 		tree_exiting.connect(_arrow.queue_free)
 		_point()
-	Audio.ui("page_turn", -10.0)
+	Audio.play("page_turn", -10.0)
 	Nav.resized.connect(_place)
 	_place.call_deferred()
 

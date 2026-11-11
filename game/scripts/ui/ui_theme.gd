@@ -3,8 +3,8 @@ class_name UiTheme
 
 const DIR := "res://assets/ui/"
 const INK := Color8(58, 38, 30)
-const CREAM := Color8(240, 228, 202)
-const MUTED := Color8(132, 102, 76)
+const CREAM := Color8(242, 230, 204)
+const MUTED := Color8(140, 110, 84)
 const GOLD := Color8(236, 196, 96)
 const RED := Color8(168, 52, 44)
 const GREEN := Color8(78, 110, 52)

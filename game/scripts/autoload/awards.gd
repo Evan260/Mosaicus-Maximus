@@ -92,7 +92,7 @@ func _next() -> void:
 	_card.gui_input.connect(func(e: InputEvent) -> void:
 		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 			_leave(0.0))
-	Audio.ui("coins", -10.0)
+	Audio.play("coins", -10.0)
 	_tween = _card.create_tween()
 	if not Settings.reduced_motion:
 		_tween.tween_property(_card, "position", shown, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

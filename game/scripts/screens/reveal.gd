@@ -262,7 +262,7 @@ func _coin_shower() -> void:
 		tw.tween_property(c, "position:y", s.y * 0.55 + randf() * 20.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tw.parallel().tween_property(c, "modulate:a", 0.0, 0.5).set_delay(0.3)
 		tw.tween_callback(c.queue_free)
-	get_tree().create_timer(1.7).timeout.connect(func() -> void: Audio.ui("coins"))
+	get_tree().create_timer(1.7).timeout.connect(func() -> void: Audio.play("coins"))
 
 
 func _keep_it() -> void:
@@ -278,7 +278,7 @@ func _keep_it() -> void:
 	Library.add(design, _order, picture, info)
 	_keep.text = "Kept" if _room else "Kept in your library"
 	_keep.icon = UiTheme.icon("tick")
-	Audio.ui("page_turn", -8.0)
+	Audio.play("page_turn", -8.0)
 
 
 ## What the client adds for the picture panels from the bench set into the floor.

@@ -202,7 +202,7 @@ func nudge_tray() -> void:
 	tw.tween_property(_tray_panel, "position:y", home.y - 4, 0.08)
 	tw.tween_property(_tray_panel, "position:y", home.y, 0.12)
 	tw.tween_callback(func() -> void: _tray_panel.remove_meta("nudging"))
-	Audio.ui("nope", -14.0)
+	Audio.play("nope", -14.0)
 
 
 func _place() -> void:
@@ -226,7 +226,7 @@ func _icon_button(icon_name: String, tip: String, action: Callable) -> Button:
 	b.size_flags_horizontal = Control.SIZE_SHRINK_END
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.pressed.connect(func() -> void:
-		Audio.ui("click")
+		Audio.play("click")
 		action.call())
 	return b
 

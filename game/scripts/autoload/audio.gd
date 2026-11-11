@@ -210,7 +210,7 @@ func swipe(set_name: String, fresh: bool) -> void:
 
 
 ## An interface sound by name: click, coins, nope, page_turn, dog, rustle or tab.
-func ui(sound: String, db: float = -6.0) -> void:
+func play(sound: String, db: float = -6.0) -> void:
 	var variants: Array = _ui.get(sound, [])
 	if variants.is_empty():
 		return

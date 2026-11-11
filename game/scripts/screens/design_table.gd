@@ -173,7 +173,7 @@ func _build() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var id: String = t[0]
 		b.pressed.connect(func() -> void:
-			Audio.ui("page_turn", -10.0)
+			Audio.play("page_turn", -10.0)
 			tab = id
 			_fill_book())
 		tabs.add_child(b)
@@ -423,7 +423,7 @@ func _add_panel(panel: Dictionary) -> void:
 	p["outline"] = str(panel.get("outline", ""))
 	p["fine"] = bool(panel.get("fine", false))
 	p["panel"] = panel["id"]
-	Audio.ui("tab", -8.0)
+	Audio.play("tab", -8.0)
 	_select(design.placements.size() - 1)
 	_fill_book()
 	_dirty = true
@@ -452,7 +452,7 @@ func _add_border_slot(id: String, name: String) -> void:
 	b.toggle_mode = true
 	b.button_pressed = str(design.border.get("id", "")) == id
 	b.pressed.connect(func() -> void:
-		Audio.ui("click")
+		Audio.play("click")
 		_remember()
 		design.set_border(id)
 		if not free:
@@ -687,7 +687,7 @@ func _chip(key: String, icon: Texture2D, stone_id: String, name: String) -> void
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	Ui.tip_on(b, tr("%s: %s") % [name, Stones.title(stone_id)])
 	b.pressed.connect(func() -> void:
-		Audio.ui("click", -10.0)
+		Audio.play("click", -10.0)
 		role = key
 		_refresh_chips())
 	var code := _code_for(selected, key)
@@ -713,9 +713,9 @@ func _stone_of(placement: int, key: String) -> String:
 
 func _apply_stone(stone_id: String) -> void:
 	if _is_panel(selected):
-		Audio.ui("nope")
+		Audio.play("nope")
 		return
-	Audio.ui("click", -10.0)
+	Audio.play("click", -10.0)
 	_remember()
 	if selected >= 0:
 		var p: Dictionary = design.placements[selected]
@@ -887,7 +887,7 @@ func _on_press(tile: Vector2, button: int) -> void:
 		_pending = design.to_dict()
 	elif str(part[1]) != "":
 		role = part[1]
-	Audio.ui("click", -14.0)
+	Audio.play("click", -14.0)
 	_refresh_chips()
 
 
@@ -1000,7 +1000,7 @@ func _add_motif(motif_id: String, at: Vector2) -> void:
 	if not free:
 		if str(p.get("outline", "")) != "":
 			p["outline"] = Stones.nearest(p["outline"], _stones_allowed())
-	Audio.ui("tab", -8.0)
+	Audio.play("tab", -8.0)
 	_select(design.placements.size() - 1)
 	_dirty = true
 	_cost_dirty = true
@@ -1029,7 +1029,7 @@ func _turn() -> void:
 		_remember()
 		var p: Dictionary = design.placements[selected]
 		p["rot"] = (int(p.get("rot", 0)) + 1) % 4
-		Audio.ui("click", -10.0)
+		Audio.play("click", -10.0)
 		_dirty = true
 		_cost_dirty = true
 
@@ -1039,7 +1039,7 @@ func _flip() -> void:
 		_remember()
 		var p: Dictionary = design.placements[selected]
 		p["flip"] = not bool(p.get("flip", false))
-		Audio.ui("click", -10.0)
+		Audio.play("click", -10.0)
 		_dirty = true
 
 
@@ -1052,7 +1052,7 @@ func _mirror() -> void:
 	copy["x"] = design.w - float(copy["x"])
 	copy["flip"] = not bool(copy.get("flip", false))
 	design.placements.append(copy)
-	Audio.ui("tab", -8.0)
+	Audio.play("tab", -8.0)
 	_select(design.placements.size() - 1)
 	_dirty = true
 	_cost_dirty = true
@@ -1074,7 +1074,7 @@ func _remove() -> void:
 	design.placements.remove_at(selected)
 	if was_panel:
 		_fill_book()
-	Audio.ui("rustle", -10.0)
+	Audio.play("rustle", -10.0)
 	_select(-1)
 	_dirty = true
 	_cost_dirty = true
@@ -1113,7 +1113,7 @@ func _redo_step() -> void:
 
 func _restore(saved: Dictionary) -> void:
 	design = FloorDesign.from_dict(saved)
-	Audio.ui("page_turn", -14.0)
+	Audio.play("page_turn", -14.0)
 	_select(selected if selected < design.placements.size() else -1)
 	_fill_book()
 	_refresh_history()
@@ -1166,21 +1166,21 @@ func _still_needed() -> Dictionary:
 func _buy_stone() -> void:
 	_recost(true)
 	if Game.buy_shortfall(_still_needed()):
-		Audio.ui("coins")
+		Audio.play("coins")
 		Saves.save()
 	else:
-		Audio.ui("nope")
+		Audio.play("nope")
 	_recost()
 
 
 func _start_laying() -> void:
 	_recost(true)
 	if _start.disabled:
-		Audio.ui("nope")
+		Audio.play("nope")
 		return
 	if not free:
 		if not Game.take_stone(_still_needed()):
-			Audio.ui("nope")
+			Audio.play("nope")
 			return
 		# Stone taken out of the design since laying began goes back into stock.
 		for id in job.get("stone_taken", {}):

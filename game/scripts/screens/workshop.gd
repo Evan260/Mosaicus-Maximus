@@ -298,7 +298,7 @@ func _add_spot(h: Hotspot) -> void:
 
 func _use(what: String) -> void:
 	_tip.visible = false
-	Audio.ui("click")
+	Audio.play("click")
 	match what:
 		"town":
 			Nav.go("town_map")
@@ -402,12 +402,12 @@ func _pet() -> void:
 	if _dog.is_up():
 		_hearts()
 	else:
-		Audio.ui("rustle", -12.0)
+		Audio.play("rustle", -12.0)
 	_dog.pet()
 
 
 func _hearts() -> void:
-	Audio.ui("dog", -8.0)
+	Audio.play("dog", -8.0)
 	if Settings.reduced_motion:
 		return
 	var top := _dog.position + Rect2(_dog.texture.get_image().get_used_rect()).position + Vector2(_dog.texture.get_size().x * 0.4, -4)
@@ -430,7 +430,7 @@ func _flash(text: String) -> void:
 	_tip.visible = true
 	_tip.reset_size()
 	_tip.position = ((Nav.ui_size() - _tip.size) * 0.5).floor()
-	Audio.ui("nope", -8.0)
+	Audio.play("nope", -8.0)
 
 
 func _save_and_quit() -> void:
@@ -480,7 +480,7 @@ func _show_next_event() -> void:
 	var ok := Ui.button(col, "Carry on", carry_on, "tick", true)
 	Ui.closes_with(_popup, carry_on)
 	ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	Audio.ui("page_turn", -6.0)
+	Audio.play("page_turn", -6.0)
 	_layout.call_deferred()
 
 
@@ -559,10 +559,10 @@ func _open_merchant() -> void:
 		var price := Game.sack_price(sid)
 		Ui.button(cell, Ui.coins_text(price), func() -> void:
 			if Game.buy_sack(sid):
-				Audio.ui("coins")
+				Audio.play("coins")
 				have.text = tr("%d in stock") % Game.stock(sid)
 			else:
-				Audio.ui("nope"), "sack")
+				Audio.play("nope"), "sack")
 	var cargo := Story.ship_stone(Game.state)
 	if cargo != "":
 		var ship := Ui.panel(col, "CardPanel")
@@ -573,11 +573,11 @@ func _open_merchant() -> void:
 		labels.append(Ui.label(text, Story.ship_offer(Game.state), "", 270))
 		Ui.button(row, tr("Buy a sack: %s") % Ui.coins_text(Game.ship_sack_price()), func() -> void:
 			if Game.buy_from_ship():
-				Audio.ui("coins")
+				Audio.play("coins")
 				Saves.save()
 				_open_merchant()
 			else:
-				Audio.ui("nope"), "sack", true)
+				Audio.play("nope"), "sack", true)
 	Ui.narrow_to_fit(_panel, labels, Nav.ui_size().x - 8.0)
 	_layout.call_deferred()
 
@@ -651,7 +651,7 @@ func _give_up_panel() -> void:
 		Game.add_stock(id, int(busy["stone_taken"][id]))
 	Game.state["active_job"] = {}
 	Saves.save()
-	Audio.ui("rustle", -8.0)
+	Audio.play("rustle", -8.0)
 	_open_bench()
 
 
@@ -663,7 +663,7 @@ func _sell_panel(panel: Dictionary, value: int) -> void:
 	Game.state["panels"] = (Game.state["panels"] as Array).filter(func(p: Dictionary) -> bool: return p["id"] != panel["id"])
 	Game.earn(value, "Picture panel")
 	Game.bump("panels_sold")
-	Audio.ui("coins")
+	Audio.play("coins")
 	Saves.save()
 	_open_bench()
 
@@ -710,13 +710,13 @@ func _buy(id: String, cost: int) -> void:
 	if _leaving:
 		return
 	if not Game.spend(cost, Data.upgrades[id]["name"]):
-		Audio.ui("nope")
+		Audio.play("nope")
 		return
 	if id == "apprentice":
 		Game.state["apprentices"] = int(Game.state["apprentices"]) + 1
 	else:
 		Game.state["upgrades"].append(id)
-	Audio.ui("coins")
+	Audio.play("coins")
 	Saves.save()
 	_leaving = true
 	Nav.go("workshop")

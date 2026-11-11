@@ -129,7 +129,7 @@ func _slot_row(parent: Node, slot: int, s: Dictionary) -> void:
 	b.add_theme_constant_override("line_spacing", 1)
 	b.icon = UiTheme.icon("house")
 	b.pressed.connect(func() -> void:
-		Audio.ui("click")
+		Audio.play("click")
 		_continue(slot))
 	row.add_child(b)
 	var del := Ui.icon_button(row, "trash", "Delete this workshop", func() -> void: _confirm_delete(slot, s))
@@ -138,7 +138,7 @@ func _slot_row(parent: Node, slot: int, s: Dictionary) -> void:
 
 ## Deleting a workshop can't be undone, so the word "delete" has to be typed before it goes.
 func _confirm_delete(slot: int, s: Dictionary) -> void:
-	Audio.ui("click")
+	Audio.play("click")
 	_page = "delete"
 	var col := _swap_menu()
 	var title := Ui.label(col, "Delete this workshop?", "Heading")
@@ -159,7 +159,7 @@ func _confirm_delete(slot: int, s: Dictionary) -> void:
 		if not typed.call():
 			return
 		Saves.delete(slot)
-		Audio.ui("rustle")
+		Audio.play("rustle")
 		_show_menu()
 	var gone := Ui.button(row, "Delete", delete, "trash")
 	gone.disabled = true
@@ -214,7 +214,7 @@ func _begin() -> void:
 		return
 	var slot := Saves.free_slot()
 	if slot == 0:
-		Audio.ui("nope")
+		Audio.play("nope")
 		return
 	var who := _name_edit.text.strip_edges()
 	if who == "":
@@ -230,4 +230,4 @@ func _continue(slot: int) -> void:
 	if Saves.load_slot(slot):
 		Nav.go("workshop")
 	else:
-		Audio.ui("nope")
+		Audio.play("nope")

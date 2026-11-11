@@ -115,7 +115,7 @@ func _add_slot(e: Dictionary) -> void:
 	b.add_child(t)
 	Ui.tip_on(b, _title_of(e))
 	b.pressed.connect(func() -> void:
-		Audio.ui("page_turn", -10.0)
+		Audio.play("page_turn", -10.0)
 		_choose(e))
 	_grid.add_child(b)
 	_slots[e["id"]] = b
@@ -189,7 +189,7 @@ func _gif_done() -> void:
 	var ok := Library.export_picture(_gif_for) and Library.export_gif(_gif_for, _gif)
 	_note.text = "Copied to Pictures, in a Mosaicus Maximus folder." if ok else "That couldn't be copied."
 	_copy.disabled = false
-	Audio.ui("page_turn", -8.0)
+	Audio.play("page_turn", -8.0)
 
 
 ## Builds the chosen floor's tiles on a worker thread, after any build already running, then does what was asked.
@@ -293,7 +293,7 @@ func _remove_it() -> void:
 		return
 	_finish_tasks()
 	Library.remove(_chosen)
-	Audio.ui("rustle")
+	Audio.play("rustle")
 	Nav.go("library", {"back": _back_to})
 
 
