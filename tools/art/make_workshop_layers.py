@@ -1,10 +1,15 @@
 """Cuts the workshop's furniture out of the inpainted rooms, one layer a piece, so the game can light each up on hover.
 
-Run: python tools/art/make_workshop_layers.py [--debug OUT.png]
+Run: python tools/art/make_workshop_layers.py [--debug OUT.png] [--redo-wide]
 Reads tools/art/sources/workshop/ (made by make_workshop.sh); writes game/assets/art/workshop/room.png, a picture per
 piece, and layers.json with where each sits. Only the pixels that really changed are kept, so the wall around a piece
 stays the empty room's wall and no patch shows where the painting was done.
+
+The room carries on past the painting at the sides, above and below, painted once by PixelLab into wide.png, which is
+kept; --redo-wide paints it again (it costs about 50 cents).
 """
+import base64
+import io
 import json
 import sys
 from pathlib import Path
@@ -12,6 +17,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw
+
+import pixellab
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "tools/art/sources"
@@ -61,6 +68,81 @@ SHAPES = {
 }
 
 
+# How far the room carries on past the painting, in room pixels: enough for a 21:9 screen. The ceiling at the top fades
+# into the dark instead.
+SIDE = 52
+BELOW = 16
+WIDE_WORDS = ("more of the same cozy Roman workshop room carrying on: plain warm plaster walls with a red painted band "
+              "along their foot, terracotta tiled floor, dark wooden ceiling beams above, plain and empty, no furniture, "
+              "no doors, no windows, seen straight on from the front, warm cozy pixel art, same style and light as the room")
+
+
+def grow(mask, n=1):
+    return cv2.dilate(mask.astype(np.uint8), np.ones((2 * n + 1, 2 * n + 1), np.uint8)) > 0
+
+
+def paint_tile(img, rect, mask, words, fill=True):
+    """Repaints the mask's part of one tile of the picture through PixelLab, without the rest of the room as context,
+    since with it PixelLab paints small copies of the room into the area. The tile holds the room's own pixels beside
+    the area, so PixelLab carries on what it sees; a new area is first filled with the average colour round it, and a
+    join is repainted over what is there."""
+    x0, y0, x1, y1 = rect
+    tile = img[y0:y1, x0:x1].copy()
+    m = mask[y0:y1, x0:x1]
+    if fill:
+        tile[m] = tile[grow(m, 2) & ~m].mean(axis=0).astype(np.uint8)
+    r = pixellab.call("POST", "/inpaint-image-pro-flash", {
+        "image": pixellab.png_b64(Image.fromarray(tile)),
+        "mask_image": pixellab.png_b64(Image.fromarray((m * 255).astype(np.uint8)).convert("RGB")),
+        "description": words, "no_background": False, "output_method": "Modify current layer"})
+    job = pixellab.wait(r["background_job_id"]) if "background_job_id" in r else r
+    data = pixellab.first_image(job.get("last_response", job))
+    if not data:
+        sys.exit(json.dumps(job)[:1500])
+    out = np.array(Image.open(io.BytesIO(base64.b64decode(data))).convert("RGB").resize((x1 - x0, y1 - y0), Image.NEAREST))
+    img[y0:y1, x0:x1][m] = out[m]
+    print(f"painted {rect}")
+
+
+def box(shape, x0, y0, x1, y1):
+    m = np.zeros(shape, bool)
+    m[y0:y1, x0:x1] = True
+    return m
+
+
+def widen(empty):
+    """The empty room with its margins painted, cached in wide.png; the painting itself is always laid in again.
+    The left margin is painted whole, which brings a wall and a corner like the room's own beside the doorway's stone
+    post; painted a band at a time it came back as a flat pillar. The right margin and the floor below are painted a
+    band at a time outwards, each tile reaching back over what is painted, so the sunlit wall and the tiles run on."""
+    h, w = empty.shape[:2]
+    W, H = w + 2 * SIDE, h + BELOW
+    cached = D / "wide.png"
+    if "--redo-wide" in sys.argv or not cached.exists():
+        before = pixellab.balance()
+        wide = np.zeros((H, W, 3), np.uint8)
+        wide[:h, SIDE:SIDE + w] = empty
+        paint_tile(wide, (0, 0, SIDE + 76, h), box(wide.shape, 0, 0, SIDE, h), WIDE_WORDS)
+        for x in (SIDE + w + 16, SIDE + w + 32, W):
+            paint_tile(wide, (x - 64, 0, x, h), box(wide.shape, x - 16 if x < W else SIDE + w + 32, 0, x, h), WIDE_WORDS)
+        for tx in (0, W // 2 - 8):
+            paint_tile(wide, (tx, H - 64, tx + W // 2 + 8, H), box(wide.shape, tx and W // 2, h, tx + W // 2 + 8, H), WIDE_WORDS)
+        # The joins: the floor under the doorway's post, where the left margin meets the floor below, and the middle
+        # of the floor below, each painted again over what is there with both sides in the tile.
+        paint_tile(wide, (SIDE - 32, H - 64, SIDE + 32, H), box(wide.shape, SIDE - 8, h - 24, SIDE, H), WIDE_WORDS, fill=False)
+        paint_tile(wide, (0, H - 48, 64, H), box(wide.shape, 0, h - 6, SIDE, h + 8), WIDE_WORDS, fill=False)
+        paint_tile(wide, (W // 2 - 32, H - 64, W // 2 + 32, H), box(wide.shape, W // 2 - 8, h, W // 2 + 8, H), WIDE_WORDS, fill=False)
+        wide[:h, SIDE:SIDE + w] = empty
+        # PixelLab paints in steps of four pixels, so a row below the last whole step takes the row above's colours.
+        for y in range(H // 4 * 4, H):
+            wide[y] = wide[y - 1]
+        Image.fromarray(wide).save(cached)
+        pixellab.record("inpaint", str(cached.relative_to(ROOT)), before, pixellab.balance())
+    wide = np.array(Image.open(cached).convert("RGB"))
+    wide[:h, SIDE:SIDE + w] = empty
+    return wide
+
+
 def flames_mask(painted, empty):
     """What shows only while the lamps are lit: each flame and the glow painted round it on the wall."""
     ys, xs = np.mgrid[0:empty.shape[0], 0:empty.shape[1]]
@@ -96,7 +178,7 @@ def silhouette(painted, empty, area):
     return (keep > 0) & area
 
 
-def sky_and_sun(empty):
+def sky_and_sun(empty, margins=False):
     """Where the sky shows through the door and window, cut out so the game can draw its own; and how sunlit each
     pixel of wall and floor is, from 0 to 255, so the sunlight can fade at night."""
     r, g, b = empty[..., 0], empty[..., 1], empty[..., 2]
@@ -110,6 +192,8 @@ def sky_and_sun(empty):
     wall = np.clip((light - 190.0) / 35.0, 0.0, 1.0)
     floor = np.clip((light - 125.0) / 35.0, 0.0, 1.0) * (r > 180)
     sun = np.where(rows < 102, wall, floor)
+    if margins:
+        return sky, sun * 255
     sun[14:117, 8:31] = 0
     sun[:4] = 0
     sun[16:54, 170:212] = 0
@@ -135,16 +219,26 @@ def main():
     empty[:, :EDGE] = empty[:, EDGE:EDGE + 1]
     empty[:, -EDGE:] = empty[:, -EDGE - 1:-EDGE]
     OUT.mkdir(parents=True, exist_ok=True)
+    h, w = empty.shape[:2]
+    wide = widen(empty.astype(np.uint8)).astype(np.int16)
+    inside = (slice(0, h), slice(SIDE, SIDE + w))
     sky, sun = sky_and_sun(empty)
-    room = np.dstack([empty.astype(np.uint8), np.where(sky, 0, 255).astype(np.uint8)])
-    Image.fromarray(room, "RGBA").resize((empty.shape[1] * SCALE, empty.shape[0] * SCALE), Image.NEAREST).save(OUT / "room.png")
+    # The margins are lit by the same rule as the painting, reading the wall and floor from the wide room's own rows.
+    _, wide_sun = sky_and_sun(wide, margins=True)
+    wide_sun[inside] = sun
+    wide_sky = np.zeros(wide.shape[:2], bool)
+    wide_sky[inside] = sky
+    room = np.dstack([wide.astype(np.uint8), np.where(wide_sky, 0, 255).astype(np.uint8)])
+    size = (wide.shape[1] * SCALE, wide.shape[0] * SCALE)
+    Image.fromarray(room, "RGBA").resize(size, Image.NEAREST).save(OUT / "room.png")
     # The light map: red is painted sunlight, which fades at night; green is the view outdoors, which lamps don't reach.
-    outside = np.zeros(sun.shape, np.uint8)
-    outside[14:117, 8:31] = 255
-    outside[23:47, 181:202] = 255
-    light_map = np.dstack([sun.astype(np.uint8), outside, np.zeros(sun.shape, np.uint8)])
-    Image.fromarray(light_map, "RGB").resize((empty.shape[1] * SCALE, empty.shape[0] * SCALE), Image.NEAREST).save(OUT / "room_sun.png")
-    layers = {}
+    outside = np.zeros(wide_sun.shape, np.uint8)
+    outside[14:117, SIDE + 8:SIDE + 31] = 255
+    outside[23:47, SIDE + 181:SIDE + 202] = 255
+    light_map = np.dstack([wide_sun.astype(np.uint8), outside, np.zeros(wide_sun.shape, np.uint8)])
+    Image.fromarray(light_map, "RGB").resize(size, Image.NEAREST).save(OUT / "room_sun.png")
+    # The room's own place is kept with the pieces', which are all measured from the painting's corner.
+    layers = {"room": [-SIDE * SCALE, 0, size[0], size[1]]}
     debug = empty.copy()
     for name, painting, masks in PIECES:
         area = np.zeros(empty.shape[:2], bool)
@@ -222,12 +316,13 @@ def show_outlines(path):
     """The furnished room with every traced shape outlined, for checking the tracing by eye."""
     room = Image.open(OUT / "room.png").convert("RGBA")
     layers = json.loads((OUT / "layers.json").read_text())
-    for name in layers:
-        room.alpha_composite(Image.open(OUT / f"{name}.png").convert("RGBA"), tuple(layers[name][:2]))
+    dx, dy = -layers["room"][0], -layers["room"][1]
+    for name in [n for n in layers if n != "room"]:
+        room.alpha_composite(Image.open(OUT / f"{name}.png").convert("RGBA"), (layers[name][0] + dx, layers[name][1] + dy))
     pic = np.asarray(room).copy()
     for name in SHAPES:
         a = np.asarray(Image.open(OUT / f"{name}_shape.png"))[..., 3] > 127
-        x, y = layers[name][:2]
+        x, y = layers[name][0] + dx, layers[name][1] + dy
         edge = np.zeros_like(a)
         edge[1:-1, 1:-1] = ~a[1:-1, 1:-1] & (a[:-2, 1:-1] | a[2:, 1:-1] | a[1:-1, :-2] | a[1:-1, 2:])
         ys, xs = np.nonzero(edge)

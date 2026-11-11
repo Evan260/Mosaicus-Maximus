@@ -112,3 +112,8 @@ time,kind,name,cost_usd,cost_generations,usd_left
 2026-11-04T17:34:01,inpaint,tools\art\sources\rooms\dining_room_3.png,0.0235,0,0.0540
 2026-11-04T18:13:23,inpaint,tools\art\sources\rooms\bakery_2.png,0.0236,0,0.0304
 2026-11-04T18:13:43,inpaint,tools\art\sources\rooms\bakery_3.png,0.0234,0,0.0069
+2026-11-11T11:55:11,inpaint,tools\art\sources\workshop\wide.png,0.1792,0,8.6104
+2026-11-11T11:56:50,inpaint,tools\art\sources\workshop\wide.png,0.0813,0,8.5291
+2026-11-11T12:04:42,inpaint,tools\art\sources\workshop\wide.png,0.4516,0,8.0461
+2026-11-11T12:17:59,inpaint,tools/art/sources/workshop/wide.png,0.8240,0,7.2222
+2026-11-11T12:20:54,inpaint,tools/art/sources/workshop/wide.png,0.0693,0,7.1529

@@ -38,11 +38,12 @@ var _panel: Control
 var _dog: DogView
 var _layers := {}
 var _sky: SkyView
-var _room_mat: ShaderMaterial
 var _sunlit: Array[ShaderMaterial] = []
 var _glows: Array = []
 ## The lamps' flames and the glow painted round them, shown only while the lamps are lit.
 var _flames: TextureRect
+## Where the room's picture lies, measured from the painting's corner: it reaches past it on every side.
+var _room_rect := Rect2()
 var _edges: EdgeFade
 var _end_day: Button
 var _t := 0.0
@@ -138,7 +139,7 @@ func _layout() -> void:
 	_root.size = s
 	var view := Nav.picture_view()
 	_edges.position = view.position
-	_edges.fit(Rect2(-view.position, (load(ART + "room.png") as Texture2D).get_size()), view.size)
+	_edges.fit(Rect2(_room_rect.position - view.position, _room_rect.size), view.size)
 	_bar.position = Vector2(4, 3)
 	_fit_bar()
 	if is_instance_valid(_popup):
@@ -153,16 +154,15 @@ func _layout() -> void:
 
 ## The room painting, its furniture piece by piece, the dog in its basket, and what each piece does when clicked.
 func _room() -> void:
+	var rects: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(ART + "layers.json"))
+	var r0: Array = rects["room"]
+	_room_rect = Rect2(r0[0], r0[1], r0[2], r0[3])
 	var back := TextureRect.new()
 	back.texture = load(ART + "room.png")
+	back.position = _room_rect.position
 	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_room_mat = ShaderMaterial.new()
-	_room_mat.shader = load("res://shaders/room.gdshader")
-	_room_mat.set_shader_parameter("sun", load(ART + "room_sun.png"))
-	back.material = _room_mat
-	_sunlit.append(_room_mat)
 	_scene.add_child(back)
-	var rects: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(ART + "layers.json"))
+	_follow_sun(back)
 	var owned: Array = Game.state["upgrades"]
 	var spots := []
 	for piece in PIECES:
@@ -269,10 +269,11 @@ func _follow_sun(t: TextureRect) -> void:
 		m = ShaderMaterial.new()
 		m.shader = load("res://shaders/room.gdshader")
 		t.material = m
-	var room := Vector2(480, 272)
 	m.set_shader_parameter("sun", load(ART + "room_sun.png"))
-	m.set_shader_parameter("sun_origin", t.position / room)
-	m.set_shader_parameter("sun_span", t.texture.get_size() / room)
+	m.set_shader_parameter("sun_origin", (t.position - _room_rect.position) / _room_rect.size)
+	m.set_shader_parameter("sun_span", t.texture.get_size() / _room_rect.size)
+	m.set_shader_parameter("room_size", _room_rect.size)
+	m.set_shader_parameter("room_origin", _room_rect.position)
 	_sunlit.append(m)
 
 
