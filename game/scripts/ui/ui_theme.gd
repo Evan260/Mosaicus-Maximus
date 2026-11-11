@@ -9,25 +9,65 @@ const GOLD := Color8(236, 196, 96)
 const RED := Color8(168, 52, 44)
 const GREEN := Color8(78, 110, 52)
 const WAX_LO := Color8(68, 44, 32)
-const TEXT := 10
-const HEADING := 8
+## Languages Silkscreen has every letter for; the rest draw their headings in the body font.
+const SILKSCREEN := ["en", "fr", "de", "es", "it", "pt"]
+## Languages drawn in Fusion Pixel's 8-pixel Chinese, Japanese and Korean fonts, whose Latin letters match them.
+const HAN := {"ja": "ja", "ko": "ko", "zh_CN": "zh_hans", "zh_TW": "zh_tw"}
+const FONTS := "res://assets/fonts/"
 
 static var _theme: Theme
-static var _body: FontFile
-static var _title: FontFile
+## Each language's fonts, made once and kept, since text drawn with a font that is then thrown away shows as blocks.
+static var _bodies := {}
+static var _titles := {}
 
 
-static func body_font() -> FontFile:
-	if _body == null:
-		_body = _crisp(load("res://assets/fonts/fusion-pixel-10px-proportional-latin.ttf.woff2"))
-	return _body
+## The font for running text in the current language, or in the language given.
+static func body_font(locale: String = "") -> Font:
+	var loc := _locale(locale)
+	if not _bodies.has(loc):
+		var ten := _crisp(load(FONTS + "fusion-pixel-10px-proportional-latin.ttf.woff2"))
+		if HAN.has(loc):
+			var han := _crisp(load(FONTS + "fusion-pixel-8px-proportional-%s.ttf.woff2" % HAN[loc]))
+			han.fallbacks = [ten]
+			_bodies[loc] = han
+		else:
+			_bodies[loc] = ten
+	return _bodies[loc]
 
 
-## Silkscreen, the blocky capitals used for headings, at 8 or 16 pixels.
-static func title_font() -> FontFile:
-	if _title == null:
-		_title = _crisp(load("res://assets/fonts/Silkscreen-Regular.ttf"))
-	return _title
+## Silkscreen, the blocky capitals used for headings, where it has the language's letters; otherwise the body font.
+static func title_font(locale: String = "") -> Font:
+	var loc := _locale(locale)
+	if not loc.get_slice("_", 0) in SILKSCREEN:
+		return body_font(loc)
+	if not _titles.has(loc):
+		var f := _crisp(load(FONTS + "Silkscreen-Regular.ttf"))
+		f.fallbacks = [body_font(loc)]
+		_titles[loc] = f
+	return _titles[loc]
+
+
+## The pixel size running text is drawn at, which is the size its pixel font is drawn for.
+static func text_size(locale: String = "") -> int:
+	return 8 if HAN.has(_locale(locale)) else 10
+
+
+## A heading's pixel size, or twice that for a title: Silkscreen is drawn at 8, other fonts at their own size.
+static func heading_size(big: bool = false) -> int:
+	var n := 8 if _locale("").get_slice("_", 0) in SILKSCREEN else text_size()
+	return n * 2 if big else n
+
+
+## The language showing now, as the game names its translations: "zh_CN" for any simplified Chinese.
+static func language() -> String:
+	return _locale("")
+
+
+static func _locale(locale: String) -> String:
+	var loc := locale if locale != "" else TranslationServer.get_locale()
+	if loc.begins_with("zh"):
+		return "zh_TW" if loc.contains("TW") or loc.contains("Hant") or loc.contains("HK") else "zh_CN"
+	return loc
 
 
 static func icon(name: String) -> Texture2D:
@@ -54,8 +94,7 @@ static func build() -> Theme:
 	if _theme:
 		return _theme
 	var t := Theme.new()
-	t.default_font = body_font()
-	t.default_font_size = TEXT
+	_set_fonts(t)
 	t.set_color("font_color", "Label", INK)
 	t.set_constant("line_spacing", "Label", 0)
 	for state in [["normal", "button"], ["hover", "button_hover"], ["pressed", "button_pressed"], ["disabled", "button_disabled"]]:
@@ -74,14 +113,10 @@ static func build() -> Theme:
 		t.set_type_variation(variant[0], "PanelContainer")
 		t.set_stylebox("panel", variant[0], panel(variant[1], variant[2], variant[3]))
 	t.set_type_variation("Heading", "Label")
-	t.set_font("font", "Heading", title_font())
-	t.set_font_size("font_size", "Heading", HEADING)
 	t.set_color("font_color", "Heading", INK)
 	t.set_type_variation("LightLabel", "Label")
 	t.set_color("font_color", "LightLabel", CREAM)
 	t.set_type_variation("LightHeading", "Label")
-	t.set_font("font", "LightHeading", title_font())
-	t.set_font_size("font_size", "LightHeading", HEADING)
 	t.set_color("font_color", "LightHeading", GOLD)
 	t.set_type_variation("MutedLabel", "Label")
 	t.set_color("font_color", "MutedLabel", MUTED)
@@ -119,6 +154,20 @@ static func build() -> Theme:
 		t.set_stylebox("grabber_pressed", bar, _flat(Color8(176, 128, 82), 2))
 	_theme = t
 	return t
+
+
+## Switches the shared theme to the current language's fonts; every control drawn with it follows.
+static func use_language() -> void:
+	if _theme:
+		_set_fonts(_theme)
+
+
+static func _set_fonts(t: Theme) -> void:
+	t.default_font = body_font()
+	t.default_font_size = text_size()
+	for v in ["Heading", "LightHeading"]:
+		t.set_font("font", v, title_font())
+		t.set_font_size("font_size", v, heading_size())
 
 
 ## A slider's groove: stretched along its length, six pixels tall.

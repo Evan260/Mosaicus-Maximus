@@ -7,7 +7,8 @@ Music: Bard's Tales: Peaceful Harp Music Pack (LITE edition) by Amos Chab (Mytha
 https://mythagomusic.itch.io/bards-tales-peaceful-harp-music-pack-lite
 
 Fonts: Silkscreen by Jason Kottke and Fusion Pixel by TakWolf, both under the SIL Open Font
-Licence 1.1, https://openfontlicense.org
+Licence 1.1, https://openfontlicense.org. Fusion Pixel includes glyphs from Ark Pixel Font,
+Misaki, Galmuri, Boutique Bitmap and Miseki Bitmap.
 
 Sounds: recordings from Freesound and Kenney, all CC0.
 
