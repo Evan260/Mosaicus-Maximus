@@ -2,7 +2,7 @@ class_name SettingsPanel
 extends PanelContainer
 ## Volume, hints, full screen and language, opened from the title and the workshop, where it can also change the dog.
 
-const UI_SIZES := {-1: "Smaller", 0: "Normal", 1: "Larger"}
+const UI_SIZES := {-1: "Smaller", 0: "Normal", 1: "Larger", 2: "Largest"}
 
 ## Each language's name in that language, for the language list.
 const NATIVE_NAMES := {"en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "it": "Italiano", "pt_BR": "Português (BR)",

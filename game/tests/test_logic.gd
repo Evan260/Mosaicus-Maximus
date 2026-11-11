@@ -1386,13 +1386,15 @@ func test_the_pictures_fill_the_window_by_a_whole_scale() -> void:
 
 
 func test_the_interface_size_setting_steps_round_three_sizes() -> void:
-	check(Settings.next_ui_step(0) == 1 and Settings.next_ui_step(1) == -1 and Settings.next_ui_step(-1) == 0, "Normal, Larger, Smaller, then Normal again")
+	check(Settings.next_ui_step(0) == 1 and Settings.next_ui_step(1) == 2 and Settings.next_ui_step(2) == -1 and Settings.next_ui_step(-1) == 0, "Normal, Larger, Largest, Smaller, then Normal again")
 	check(Nav.ui_scale_for(Vector2(1920, 1080), -1) == 2, "Smaller at 1080p is twice")
 	check(Nav.ui_scale_for(Vector2(1920, 1080), 1) == 4, "Larger at 1080p is four times, as large as the room")
 	check(Nav.ui_scale_for(Vector2(1280, 720), -1) == 1, "Smaller never goes below once")
 	check(Nav.ui_scale_for(Vector2(1280, 720), 1) == 2, "Larger at 720p is twice")
 	check(Nav.ui_scale_for(Vector2(2560, 1080), 1) == 4, "Larger stops where 480 by 270 still fits")
-	check(SettingsPanel.UI_SIZES.size() == 3, "the setting offers three sizes")
+	check(SettingsPanel.UI_SIZES.size() == 4, "the setting offers four sizes")
+	check(Nav.ui_scale_for(Vector2(2560, 1440), 2) == 5, "Largest at 1440p is five times")
+	check(Nav.ui_scale_for(Vector2(1920, 1080), 2) == 4, "Largest stops where 480 by 270 still fits")
 
 
 func test_the_players_own_music_is_found_in_their_folder() -> void:
