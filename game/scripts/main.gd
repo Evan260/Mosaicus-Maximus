@@ -12,4 +12,6 @@ func _ready() -> void:
 	if Dev.has("trailer-shot"):
 		add_child(load("res://tools/trailer/shots.gd").new())
 		return
-	Nav.go.call_deferred(Dev.get_arg("screen", "title"), {})
+	if Dev.made_up():
+		Dev.make_state()
+	Nav.go.call_deferred(Dev.get_arg("screen", "workshop" if Dev.made_up() else "title"), {})

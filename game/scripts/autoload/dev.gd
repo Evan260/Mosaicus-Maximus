@@ -1,7 +1,9 @@
 extends Node
 ## Command-line options for checking the game without a hand on the mouse: screenshots, bursts of frames, window size.
 ## --shot=PATH [--shot-at=SECONDS] saves one screenshot; --burst=PREFIX [--burst-start, --burst-gap, --burst-count]
-## saves several; --quit closes the game after the last one; --window=WxH sets the window size.
+## saves several; --quit closes the game after the last one; --window=WxH sets the window size; --no-save writes
+## nothing, settings included; --demo-state and --max-state open a workshop part way through or with everything;
+## --achievement[=ID] slides in an achievement's card; --ui-size=N sets the interface size for the run.
 
 var args := {}
 var time := 0.0
@@ -42,8 +44,34 @@ func _ready() -> void:
 		get_tree().root.set_disable_input(true)
 	if args.has("icon"):
 		_make_icon.call_deferred(args["icon"])
+	if args.has("achievement"):
+		get_tree().create_timer(float(args.get("achievement-at", "1.0"))).timeout.connect(_show_achievement)
 	if args.has("quit") and _shots.is_empty():
 		get_tree().create_timer(float(args.get("quit-at", "3.0"))).timeout.connect(get_tree().quit)
+
+
+## Whether this run made up its workshop, so it is never saved or sent to Steam.
+func made_up() -> bool:
+	return has("demo-state") or has("max-state")
+
+
+## Sets up the workshop --demo-state or --max-state asks for: part way into chapter 3, or every chapter with everything.
+func make_state() -> void:
+	Game.new_game("Lucia")
+	var st := Game.state
+	st["_dev"] = true
+	st["guide_off"] = true
+	if has("max-state"):
+		Story.unlock(st, Data.chapters.size())
+		st.merge({"coins": 99999, "reputation": int(Data.chapters[-1]["reputation"]), "day": 200, "apprentices": 1}, true)
+		st["upgrades"] = Data.upgrade_order.filter(func(id: String) -> bool: return id != "apprentice")
+		for id in st["unlocked_stones"]:
+			Game.add_stock(id, 2000)
+	else:
+		Story.unlock(st, 3)
+		st.merge({"coins": 14250, "reputation": 174, "day": 140}, true)
+	st["story_seen"].append("intro")
+	Achievements.check(st)
 
 
 func has(key: String) -> bool:
@@ -70,6 +98,15 @@ func _take_shot(path: String, last: bool) -> void:
 	print("saved ", path)
 	if last and args.has("quit"):
 		get_tree().quit()
+
+
+## Slides in the card for the achievement named by --achievement=ID, or the first one, without earning it.
+func _show_achievement() -> void:
+	var id := get_arg("achievement")
+	for a in Achievements.all():
+		if id == "" or a["id"] == id:
+			Awards.show_card(a)
+			return
 
 
 func _point(ui_at: Vector2, click: bool) -> void:

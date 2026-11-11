@@ -273,11 +273,11 @@ func brush_radius() -> float:
 func _stroke(from: Vector2, to: Vector2) -> void:
 	match floor_view.phase:
 		FloorView.Phase.LAY:
-			if stone < 0 and not _demo.has("demo"):
+			if stone < 0 and not _demo.has("auto-lay"):
 				_hud.nudge_tray()
 				return
 			# A recording lays the stone picked in the tray, as a player does, or every stone when none is picked.
-			floor_view.brush(from, to, brush_radius(), -1 if _demo.has("demo") and stone < 0 else stone)
+			floor_view.brush(from, to, brush_radius(), -1 if _demo.has("auto-lay") and stone < 0 else stone)
 			if stone >= 0 and floor_view.stone_unplaced(stone) == 0:
 				select_stone(-1)
 		FloorView.Phase.REPAIR:
@@ -356,7 +356,7 @@ func _on_phase(phase: int) -> void:
 
 
 func _draw_cursor() -> void:
-	var p := _demo_prev if _demo.has("demo") and _demo_prev != Vector2.INF else _to_world(get_viewport().get_mouse_position())
+	var p := _demo_prev if _demo.has("auto-lay") and _demo_prev != Vector2.INF else _to_world(get_viewport().get_mouse_position())
 	var tint := Color(1.0, 0.96, 0.85, 0.55)
 	if floor_view.phase == FloorView.Phase.LAY and stone >= 0:
 		tint = Color(Stones.LIST[stone]["tile"], 0.9)
@@ -372,31 +372,31 @@ func _draw_cursor() -> void:
 
 
 ## A scripted sweep back and forth across the floor, for recording the laying without a hand on the mouse.
-## With --finish-demo it then wipes the grout and polishes, a few seconds each.
+## With --finish-auto-lay it then wipes the grout and polishes, a few seconds each.
 func _run_demo() -> void:
-	if _demo.has("finish-demo") and floor_view.phase == FloorView.Phase.REPAIR:
+	if _demo.has("finish-auto-lay") and floor_view.phase == FloorView.Phase.REPAIR:
 		floor_view.mend_all()
 		if floor_view.repairs_done():
 			floor_view.finish_repairs()
 		return
-	if _demo.has("finish-demo"):
+	if _demo.has("finish-auto-lay"):
 		if floor_view.phase == FloorView.Phase.DIG:
 			tool = "trowel"
 		elif floor_view.phase == FloorView.Phase.GROUT:
 			tool = "sponge" if floor_view.coverage() < 0.5 else "cloth"
-	if _demo.has("finish-demo") and floor_view.phase in [FloorView.Phase.GROUT, FloorView.Phase.DIG]:
-		if not _demo.has("demo"):
-			_demo["demo"] = ""
+	if _demo.has("finish-auto-lay") and floor_view.phase in [FloorView.Phase.GROUT, FloorView.Phase.DIG]:
+		if not _demo.has("auto-lay"):
+			_demo["auto-lay"] = ""
 		if _demo.get("_phase_seen", -1) != floor_view.phase:
 			_demo["_phase_seen"] = floor_view.phase
-			_demo["demo-start"] = str(_time + 0.6)
-			_demo["demo-seconds"] = _demo.get("finish-seconds", "4.0")
-			_demo["demo-passes"] = "10"
+			_demo["auto-lay-start"] = str(_time + 0.6)
+			_demo["auto-lay-seconds"] = _demo.get("finish-seconds", "4.0")
+			_demo["auto-lay-passes"] = "10"
 			_demo_prev = Vector2.INF
-	if not _demo.has("demo"):
+	if not _demo.has("auto-lay"):
 		return
-	var start := float(_demo.get("demo-start", "0.6"))
-	var length := float(_demo.get("demo-seconds", "8.0"))
+	var start := float(_demo.get("auto-lay-start", "0.6"))
+	var length := float(_demo.get("auto-lay-seconds", "8.0"))
 	var u := (_time - start) / length
 	if u < 0.0 or u > 1.0:
 		if u > 1.0 and _demo_prev != Vector2.INF:
@@ -405,11 +405,11 @@ func _run_demo() -> void:
 	var area := Rect2(Vector2(0.06, 0.1) * floor_view.size_world(), Vector2(0.88, 0.8) * floor_view.size_world())
 	if floor_view.phase != FloorView.Phase.LAY:
 		area = Rect2(Vector2.ZERO, floor_view.size_world())
-	elif _demo.has("demo-rect"):
-		var r: PackedStringArray = str(_demo["demo-rect"]).split(",")
+	elif _demo.has("auto-lay-rect"):
+		var r: PackedStringArray = str(_demo["auto-lay-rect"]).split(",")
 		var tw := floor_view.tile_world()
 		area = Rect2(float(r[0]) * tw, float(r[1]) * tw, (float(r[2]) - float(r[0])) * tw, (float(r[3]) - float(r[1])) * tw)
-	var passes := float(_demo.get("demo-passes", "5"))
+	var passes := float(_demo.get("auto-lay-passes", "5"))
 	var lane := fmod(u * passes, 1.0)
 	var row := floorf(u * passes)
 	var x := lane if int(row) % 2 == 0 else 1.0 - lane

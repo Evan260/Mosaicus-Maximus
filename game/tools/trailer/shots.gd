@@ -194,7 +194,7 @@ func _shot_floor() -> void:
 	job["stone_paid"] = true
 	job["stone_taken"] = Composer.stone_counts(design).duplicate()
 	# The recording's own sweep never starts; the shot moves the brush itself, and the floor finishes on its own.
-	Dev.args.merge({"demo": "", "demo-start": "99999", "fill-at": "8.0", "fill-seconds": "2.6", "finish-demo": "", "finish-seconds": "3.0"}, true)
+	Dev.args.merge({"auto-lay": "", "auto-lay-start": "99999", "fill-at": "8.0", "fill-seconds": "2.6", "finish-auto-lay": "", "finish-seconds": "3.0"}, true)
 	Nav.go("floor", {"design": design, "job": job})
 	while Nav.current_name != "floor" or Nav.current == null or Nav.current.cursor == null:
 		await get_tree().process_frame
@@ -369,7 +369,7 @@ func _hide_brush() -> void:
 
 ## A floor found under an old house: the trowel scrapes the dirt away, then the gaps are mended.
 func _shot_dig() -> void:
-	Dev.args.merge({"sample": "cave", "restore": "0.3", "finish-demo": "", "finish-seconds": "4.0"}, true)
+	Dev.args.merge({"sample": "cave", "restore": "0.3", "finish-auto-lay": "", "finish-seconds": "4.0"}, true)
 	Nav.go("floor", {})
 	if _tall():
 		await _fill_tall(1.2, 0.07)
@@ -449,7 +449,7 @@ func _pet(dog: Dictionary) -> void:
 ## An old floor under a house, close on its picture: the trowel is picked and the dirt scraped from all round the
 ## picture first, the words CAVE CANEM coming up as a clue, and from the guard dog itself last.
 func _shot_guess_dig() -> void:
-	Dev.args.merge({"sample": "cave", "restore": "0.3", "demo": "", "demo-start": "99999"}, true)
+	Dev.args.merge({"sample": "cave", "restore": "0.3", "auto-lay": "", "auto-lay-start": "99999"}, true)
 	Nav.go("floor", {})
 	await _hide_brush()
 	var screen: Node = Nav.current

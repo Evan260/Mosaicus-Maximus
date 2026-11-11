@@ -17,7 +17,7 @@ var _timer := 0.0
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
-	if "--demo" in str(args) or "--no-save" in args or "--max-state" in args:
+	if "--auto-lay" in str(args) or "--no-save" in args or Dev.made_up():
 		enabled = false
 		Library.enabled = false
 	if Dev.has("library-dir"):

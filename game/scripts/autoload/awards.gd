@@ -38,7 +38,7 @@ func _process(delta: float) -> void:
 	if _steam:
 		_steam.call("run_callbacks")
 	_wait += delta
-	if _wait < CHECK_EVERY or str(Game.state.get("name", "")) == "" or Dev.has("run-tests"):
+	if _wait < CHECK_EVERY or str(Game.state.get("name", "")) == "" or Dev.has("run-tests") or Dev.has("achievement"):
 		return
 	_wait = 0.0
 	for a in Achievements.check(Game.state):
@@ -54,9 +54,16 @@ func _sync() -> void:
 		_unlock_on_steam(str(id))
 
 
-## Only a real workshop sends achievements: never one made up by a test or a dev option such as --panel=award.
+## Only a real workshop sends achievements: never one made up by a test or a dev option such as --max-state.
 func may_send() -> bool:
-	return Saves.enabled and not Dev.has("panel") and not Game.state.get("_dev", false)
+	return Saves.enabled and not Dev.has("panel") and not Dev.has("achievement") and not Game.state.get("_dev", false)
+
+
+## Shows an achievement's card in turn with any others waiting, without earning it.
+func show_card(a: Dictionary) -> void:
+	_queue.append(a)
+	if _card == null:
+		_next()
 
 
 func _unlock_on_steam(id: String) -> void:

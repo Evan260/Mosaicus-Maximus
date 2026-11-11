@@ -72,8 +72,6 @@ func enter(_args: Dictionary) -> void:
 		Game.state["upgrades"].append_array(UPGRADE_PIECES)
 	if Dev.has("hour"):
 		Game.state["hour"] = Dev.num("hour", 8.0)
-	if Dev.has("late"):
-		Game.state.merge({"coins": 14250, "reputation": 174, "day": 140, "chapter": 3}, true)
 	_room()
 	_edges = EdgeFade.make()
 	_pictures.add_child(_edges)
@@ -127,10 +125,6 @@ func enter(_args: Dictionary) -> void:
 			Game.state["reputation"] = 40
 			_queue_event({"kind": "chapter", "n": 2, "title": Data.chapter(2)["title"], "text": Data.chapter(2)["text"]})
 			_show_next_event()
-		"award":
-			Game.state["name"] = "Dev"
-			Game.state["_dev"] = true
-			Game.state["floors"].append({"score": 0.9})
 
 
 func open_settings() -> void:

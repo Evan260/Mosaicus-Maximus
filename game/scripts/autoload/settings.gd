@@ -32,7 +32,8 @@ var _behind := false
 
 
 func _ready() -> void:
-	_bring_old_saves()
+	if not Dev.has("no-save"):
+		_bring_old_saves()
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
 		master = cfg.get_value("sound", "master", master)
@@ -48,6 +49,8 @@ func _ready() -> void:
 		background_sound = str(cfg.get_value("sound", "background_sound", background_sound))
 		ui_scale_step = clampi(int(cfg.get_value("display", "ui_scale_step", ui_scale_step)), -1, 2)
 		language = str(cfg.get_value("play", "language", language))
+	if Dev.has("ui-size"):
+		ui_scale_step = clampi(int(Dev.num("ui-size", 0)), -1, 2)
 	_load_translations()
 	TranslationServer.set_locale(language if language in TranslationServer.get_loaded_locales() else _system_language())
 	# --locale=xx shows the game in another language without keeping it.
@@ -157,6 +160,10 @@ func message_scale() -> int:
 
 ## Keeps the settings; `announce` false keeps a dragged slider from rebuilding the window under the pointer.
 func save(announce: bool = true) -> void:
+	if Dev.has("no-save"):
+		if announce:
+			changed.emit()
+		return
 	var cfg := ConfigFile.new()
 	cfg.set_value("sound", "master", master)
 	cfg.set_value("sound", "music", music)
