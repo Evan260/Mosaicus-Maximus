@@ -105,6 +105,11 @@ func _display() -> void:
 
 func _gameplay() -> void:
 	_languages()
+	var notes := Settings.guide and not (_in_game and bool(Game.state.get("guide_off", false)))
+	Ui.on_off(_page, tr("Your uncle's notes"), notes, func() -> void:
+		if _in_game:
+			Game.state["guide_off"] = notes
+		Settings.set_value("guide", not notes), WIDTH)
 	Ui.on_off(_page, tr("Tips when you point at a button"), Settings.tooltips, func() -> void: Settings.set_value("tooltips", not Settings.tooltips), WIDTH)
 	Ui.on_off(_page, tr("Larger text for messages"), Settings.large_text, func() -> void: Settings.set_value("large_text", not Settings.large_text), WIDTH)
 	Ui.on_off(_page, tr("Reduced motion"), Settings.reduced_motion, func() -> void: Settings.set_value("reduced_motion", not Settings.reduced_motion), WIDTH)

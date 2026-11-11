@@ -15,7 +15,7 @@ var _t := 0.0
 
 ## Whether the guide is still running: until the first floor is done and the day ended, unless it was skipped.
 static func active() -> bool:
-	return not bool(Game.state.get("guide_off", false)) and (Game.state.get("floors", []) as Array).size() <= 1 and (str(Game.state.get("name", "")) != "" or Dev.has("guide"))
+	return Settings.guide and not bool(Game.state.get("guide_off", false)) and (Game.state.get("floors", []) as Array).size() <= 1 and (str(Game.state.get("name", "")) != "" or Dev.has("guide"))
 
 
 ## Shows a note once, at a corner of the screen, "top" or "right", with an arrow at the target if given: a Control,
