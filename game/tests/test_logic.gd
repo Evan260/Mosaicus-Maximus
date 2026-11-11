@@ -1453,3 +1453,27 @@ func test_title_new_workshop_text_is_centred() -> void:
 	check(fresh != null and fresh.has_meta("centred"), "the title's New workshop button centres its text on the whole button, not beside its icon")
 	title._menu.free()
 	title.free()
+
+
+func test_chapters_book_fits_every_spread() -> void:
+	game.new_game("Book")
+	for loc in TranslationServer.get_loaded_locales():
+		TranslationServer.set_locale(loc)
+		UiTheme.use_language()
+		var holder := Control.new()
+		holder.theme = UiTheme.build()
+		add_child(holder)
+		var book := ChaptersPanel.open(holder, Vector2(480, 270))
+		check(book._marks.get_children().filter(func(c: Node) -> bool: return c is Button).size() == Data.chapters.size(), "a bookmark for every chapter (%s)" % loc)
+		for n in range(1, Data.chapters.size() + 1):
+			book.chapter = n
+			book._fill()
+			await get_tree().process_frame
+			await get_tree().process_frame
+			for view in book._pages:
+				var col := view.get_child(0) as Control
+				check(col.size.y <= view.size.y + 0.5, "chapter %d's %s page fits without scrolling in %s (%d of %d)" % [n, "left" if view == book._pages[0] else "right", loc, col.size.y, view.size.y])
+		check(book.get_combined_minimum_size().x <= 472 and book.get_combined_minimum_size().y <= 262, "the book fits a 480 by 270 interface (%s)" % loc)
+		holder.free()
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()
