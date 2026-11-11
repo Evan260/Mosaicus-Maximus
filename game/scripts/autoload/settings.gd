@@ -29,6 +29,10 @@ var language := ""
 ## The window's mode before going full screen, so F11 brings back a maximised window as it was.
 var _before := DisplayServer.WINDOW_MODE_WINDOWED
 var _behind := false
+## Frames a second while another window has the focus, so a game left open in the background barely uses the computer.
+const BEHIND_FPS := 30
+## Off for the benchmark, which times frames whether or not its window has the focus.
+var pace_behind := true
 
 
 func _ready() -> void:
@@ -126,6 +130,11 @@ func apply() -> void:
 	Audio.set_volumes(whole, music, effects)
 
 
+## Slows the game down while it is behind other windows, except for a recording, which runs at its own fixed rate.
+func pace() -> void:
+	Engine.max_fps = BEHIND_FPS if _behind and pace_behind and Engine.get_write_movie_path() == "" else 0
+
+
 func _restore_window() -> void:
 	if "--window" in str(OS.get_cmdline_user_args()):
 		return
@@ -140,6 +149,7 @@ func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_FOCUS_IN]:
 		_behind = what == NOTIFICATION_APPLICATION_FOCUS_OUT
 		apply()
+		pace()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		var mode := DisplayServer.window_get_mode()
 		maximized = mode == DisplayServer.WINDOW_MODE_MAXIMIZED or (mode == DisplayServer.WINDOW_MODE_FULLSCREEN and _before == DisplayServer.WINDOW_MODE_MAXIMIZED)

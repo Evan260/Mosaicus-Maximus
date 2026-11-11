@@ -19,6 +19,7 @@ func _ready() -> void:
 	seconds = Dev.num("bench-seconds", 5.0)
 	Saves.enabled = false
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	Settings.pace_behind = false
 	Engine.max_fps = 0
 	_vp_rid = get_viewport().get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(_vp_rid, true)
