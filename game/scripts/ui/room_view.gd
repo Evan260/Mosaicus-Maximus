@@ -57,6 +57,8 @@ func setup(room: String, layout: MosaicLayout, stones: Dictionary) -> void:
 	_camera.make_current()
 	_fit_floor()
 	Nav.resized.connect(_fit_floor)
+	Nav.resized.connect(place)
+	place()
 	var floor_rect := ColorRect.new()
 	floor_rect.position = box.position
 	floor_rect.size = box.size
@@ -76,8 +78,15 @@ func setup(room: String, layout: MosaicLayout, stones: Dictionary) -> void:
 	add_child(painting)
 
 
-## Draws the floor at about the size it shows on screen, so it stays sharp when the interface's scale changes.
+## Sets the room right of centre on the picture layer, leaving the left side for the client's card.
+func place() -> void:
+	var view := Nav.picture_view()
+	var x := minf((view.size.x - size.x) * 0.5 + 24.0, view.size.x - size.x + 24.0)
+	position = (view.position + Vector2(x, (view.size.y - size.y) * 0.5)).floor()
+
+
+## Draws the floor at about the size it shows on screen, so it stays sharp when the window's scale changes.
 func _fit_floor() -> void:
-	var wide := clampi(int(_floor_width * Nav.scale_factor() * 1.25), 512, 2048)
+	var wide := clampi(int(_floor_width * Nav.picture_scale() * 1.25), 512, 2048)
 	_viewport.size = Vector2i(wide, int(ceil(wide * _world.y / _world.x)))
 	_camera.zoom = Vector2.ONE * wide / _world.x

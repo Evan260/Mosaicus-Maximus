@@ -23,6 +23,8 @@ const BASKET := Vector2(326, 239)
 const FLAMES := [[Vector2(108, 126), 175.0], [Vector2(324, 56), 145.0]]
 
 var _root: Control
+## The room and everything painted in it, on the picture layer.
+var _pictures: Control
 var _scene: Control
 var _bar: PanelContainer
 var _coins: Label
@@ -54,14 +56,17 @@ func enter(_args: Dictionary) -> void:
 	_root = Control.new()
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	Nav.ui.add_child(_root)
+	_pictures = Control.new()
+	_pictures.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	Nav.pictures.add_child(_pictures)
 	_scene = Control.new()
 	_scene.custom_minimum_size = Nav.BASE
 	_scene.size = Nav.BASE
 	_scene.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sky = SkyView.new()
 	_sky.size = Nav.BASE
-	_root.add_child(_sky)
-	_root.add_child(_scene)
+	_pictures.add_child(_sky)
+	_pictures.add_child(_scene)
 	if Dev.get_arg("panel") == "upgrades" or Dev.has("furnished"):
 		Game.state["upgrades"].append_array(UPGRADE_PIECES)
 	if Dev.has("hour"):
@@ -70,7 +75,7 @@ func enter(_args: Dictionary) -> void:
 		Game.state.merge({"coins": 14250, "reputation": 174, "day": 140, "chapter": 3}, true)
 	_room()
 	_edges = EdgeFade.make()
-	_root.add_child(_edges)
+	_pictures.add_child(_edges)
 	_build_bar()
 	_tip = Ui.panel(_root, "TipPanel")
 	_tip_label = Ui.label(_tip, "", "LightLabel")
@@ -131,11 +136,9 @@ func open_settings() -> void:
 func _layout() -> void:
 	var s := Nav.ui_size()
 	_root.size = s
-	_scene.position = ((s - Nav.BASE) * 0.5).floor()
-	_sky.position = _scene.position
-	for g in _glows:
-		g.get_parent().position = _scene.position
-	_edges.fit(Rect2(_scene.position, (load(ART + "room.png") as Texture2D).get_size()), s)
+	var view := Nav.picture_view()
+	_edges.position = view.position
+	_edges.fit(Rect2(-view.position, (load(ART + "room.png") as Texture2D).get_size()), view.size)
 	_bar.position = Vector2(4, 3)
 	_fit_bar()
 	if is_instance_valid(_popup):
@@ -221,7 +224,7 @@ func _room() -> void:
 	if "lamps" in owned:
 		var light := Control.new()
 		light.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_root.add_child(light)
+		_pictures.add_child(light)
 		for f in FLAMES:
 			var halo := LampGlow.make(f[0], 12.0, 0.45)
 			light.add_child(halo)
@@ -288,10 +291,11 @@ func _add_spot(h: Hotspot) -> void:
 		_tip_label.text = h.tip
 		_tip.visible = true
 		_tip.reset_size()
-		var above := Vector2(h.position.x + h.size.x * 0.5 - _tip.size.x * 0.5, h.position.y - _tip.size.y - 3)
-		if above.y < 46:
-			above.y = h.position.y + h.size.y + 3
-		_tip.position = (_scene.position + above).clamp(Vector2(2, 2), Nav.ui_size() - _tip.size - Vector2(2, 2)).floor())
+		var r := Nav.picture_rect_to_ui(Rect2(h.position, h.size))
+		var above := Vector2(r.get_center().x - _tip.size.x * 0.5, r.position.y - _tip.size.y - 3)
+		if above.y < _bar.get_rect().end.y + 2:
+			above.y = r.end.y + 3
+		_tip.position = above.clamp(Vector2(2, 2), Nav.ui_size() - _tip.size - Vector2(2, 2)).floor())
 
 
 func _use(what: String) -> void:

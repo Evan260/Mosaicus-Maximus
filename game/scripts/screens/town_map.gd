@@ -17,11 +17,19 @@ const ROOM_DISTRICT := {
 }
 
 var _root: Control
+## The painted map, on the picture layer.
 var _map: Control
+## The names and markers over the map, on the interface layer, each kept at its place on the map.
+var _marks: Control
+var _pinned: Array = []
+var _back: Button
+var _edges: EdgeFade
 var _tip: PanelContainer
 var _tip_label: Label
 var _view: PanelContainer
 var _visit: Control
+## The visited room and the dark round it, on the picture layer over the map.
+var _visit_room: Control
 var _task := -1
 var _pending := {}
 
@@ -31,8 +39,14 @@ func enter(_args: Dictionary) -> void:
 	Nav.ui.add_child(_root)
 	_map = Control.new()
 	_map.size = Nav.BASE
+	_map.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_map.draw.connect(_draw_map)
-	_root.add_child(_map)
+	Nav.pictures.add_child(_map)
+	_edges = EdgeFade.make()
+	Nav.pictures.add_child(_edges)
+	_marks = Control.new()
+	_marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_marks)
 	if ResourceLoader.exists(MAP):
 		var back := TextureRect.new()
 		back.texture = load(MAP)
@@ -42,13 +56,13 @@ func enter(_args: Dictionary) -> void:
 	for id in DISTRICTS:
 		var d: Dictionary = DISTRICTS[id]
 		var open := int(d["chapter"]) <= chapter
-		var tag := Ui.panel(_map, "TipPanel")
+		var tag := Ui.panel(_marks, "TipPanel")
 		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var name_label := Ui.label(tag, tr(str(d["name"])) if open else tr("%s (chapter %d)") % [tr(str(d["name"])), d["chapter"]], "LightLabel")
 		if not open:
 			name_label.add_theme_color_override("font_color", Color8(170, 150, 130))
 		tag.reset_size()
-		tag.position = (Vector2(d["at"]) - Vector2(tag.size.x * 0.5, 24)).floor()
+		_pin(tag, d["at"], Vector2(tag.size.x * 0.5, 24))
 	var floors: Array = Game.state["floors"]
 	if Dev.has("visit"):
 		var room := Dev.get_arg("room", "study")
@@ -62,15 +76,26 @@ func enter(_args: Dictionary) -> void:
 	_tip_label = Ui.label(_tip, "", "LightLabel")
 	_tip.visible = false
 	_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var back := Ui.button(_root, "Back to the workshop", func() -> void: Nav.go("workshop"), "arrow_l")
+	_back = Ui.button(_root, "Back to the workshop", func() -> void: Nav.go("workshop"), "arrow_l")
+	var back := _back
 	var place := func() -> void:
 		var s := Nav.ui_size()
 		_root.size = s
-		_map.position = ((s - Nav.BASE) * 0.5).floor()
+		var view := Nav.picture_view()
+		_edges.position = view.position
+		_edges.fit(Rect2(-view.position, Nav.BASE), view.size)
+		for p in _pinned:
+			(p[0] as Control).position = (Nav.picture_to_ui(p[1]) - p[2]).floor()
 		back.reset_size()
 		back.position = Vector2(s.x - back.size.x - 6, s.y - back.size.y - 6)
 	Nav.resized.connect(place)
 	place.call()
+
+
+## Keeps a control on the interface layer over a point of the map, `offset` up and left of it in interface pixels.
+func _pin(c: Control, at: Vector2, offset: Vector2) -> void:
+	_pinned.append([c, at, offset])
+	c.position = (Nav.picture_to_ui(at) - offset).floor()
 
 
 func _draw_map() -> void:
@@ -114,7 +139,6 @@ func _marker(f: Dictionary, i: int) -> void:
 	var b := Button.new()
 	b.icon = UiTheme.icon("tile")
 	b.flat = true
-	b.position = (at - Vector2(8, 8)).floor()
 	b.size = Vector2(16, 16)
 	var who := Ui.text(f.get("client_name", ""))
 	var room := Data.room_name(f.get("room", ""))
@@ -123,20 +147,21 @@ func _marker(f: Dictionary, i: int) -> void:
 		_tip_label.text = tip
 		_tip.visible = true
 		_tip.reset_size()
-		_tip.position = (_map.position + at - Vector2(_tip.size.x * 0.5, 22)).floor())
+		_tip.position = (Nav.picture_to_ui(at) - Vector2(_tip.size.x * 0.5, 22)).floor())
 	b.mouse_exited.connect(func() -> void: _tip.visible = false)
 	b.pressed.connect(func() -> void: _show_floor(f, tip))
-	_map.add_child(b)
+	_marks.add_child(b)
+	_pin(b, at, Vector2(8, 8))
 
 
 func _rival() -> void:
 	var at := Vector2(430, 196)
-	var tag := Ui.panel(_map, "TipPanel")
+	var tag := Ui.panel(_marks, "TipPanel")
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var rep := int(Game.state["rival"].get("reputation", 0))
 	Ui.label(tag, tr("The rival workshop\nreputation %d") % rep, "LightLabel")
 	tag.reset_size()
-	tag.position = (at - Vector2(tag.size.x * 0.5, 18)).floor()
+	_pin(tag, at, Vector2(tag.size.x * 0.5, 18))
 
 
 func _show_floor(f: Dictionary, title: String) -> void:
@@ -181,10 +206,17 @@ func _start_visit(f: Dictionary, title: String) -> void:
 	_visit = Control.new()
 	_visit.size = Nav.ui_size()
 	_root.add_child(_visit)
+	_visit_room = Control.new()
+	_visit_room.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	Nav.pictures.add_child(_visit_room)
 	var shade := ColorRect.new()
 	shade.color = Color(0.13, 0.1, 0.09)
-	shade.size = _visit.size
-	_visit.add_child(shade)
+	shade.position = -Nav.BASE * 4.0
+	shade.size = Nav.BASE * 9.0
+	_visit_room.add_child(shade)
+	_visit.tree_exiting.connect(_visit_room.queue_free)
+	_marks.visible = false
+	_back.visible = false
 	var wait := Ui.label(_visit, "Walking over to see it...", "LightLabel")
 	wait.position = ((_visit.size - Vector2(120, 10)) * 0.5).floor()
 	var d := FloorDesign.from_dict(f.get("design", {}))
@@ -204,11 +236,10 @@ func _process(_delta: float) -> void:
 	(_pending["wait"] as Label).queue_free()
 	var f: Dictionary = _pending["floor"]
 	var room := RoomView.new()
-	_visit.add_child(room)
+	_visit_room.add_child(room)
 	room.setup(str(f.get("room", "")), _pending["layout"], f.get("stones", {}))
 	room.floor_view.shine(0.4, 1.6)
 	var s := Nav.ui_size()
-	room.position = Vector2(minf((s.x - room.size.x) * 0.5 + 24.0, s.x - room.size.x + 24.0), (s.y - room.size.y) * 0.5).floor()
 	var card := Ui.panel(_visit, "PagePanel")
 	var col := Ui.vbox(card, 4)
 	Ui.label(col, str(_pending["title"]), "Heading", 150)
@@ -218,6 +249,8 @@ func _process(_delta: float) -> void:
 	Ui.label(col, Ui.text([tr("Paid %s.") % Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)]), "", 150)
 	Ui.button(col, "Back to the map", func() -> void:
 		_visit.queue_free()
-		_visit = null, "arrow_l", true)
+		_visit = null
+		_marks.visible = true
+		_back.visible = true, "arrow_l", true)
 	card.reset_size()
 	card.position = Vector2(6, floorf((s.y - card.size.y) * 0.5))

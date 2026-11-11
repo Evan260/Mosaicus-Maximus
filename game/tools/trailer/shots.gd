@@ -24,6 +24,10 @@ func _ready() -> void:
 	Tips.process_mode = Node.PROCESS_MODE_DISABLED
 	# A shot that opens a later chapter at once would otherwise earn its achievement on screen.
 	Awards.process_mode = Node.PROCESS_MODE_DISABLED
+	# The shots were framed for an interface as large as the pictures, the largest whole scale that fits.
+	var frame := get_viewport().get_visible_rect().size
+	Nav.ui_scale_override = maxi(1, int(minf(frame.x / Nav.BASE.x, frame.y / Nav.BASE.y)))
+	Nav.refit()
 	_scale = float(Nav.scale_factor())
 	var layer := CanvasLayer.new()
 	layer.layer = 128
@@ -626,7 +630,10 @@ func _screen_open(name: String) -> void:
 func _zoom_ui(k: float, at: Vector2) -> void:
 	await get_tree().process_frame
 	var size := get_viewport().get_visible_rect().size
-	Nav.ui_layer.transform = Transform2D(0.0, Vector2(k, k), 0.0, (size * 0.5 - at * k).round())
+	var shift := (size * 0.5 - at * k).round()
+	Nav.ui_layer.transform = Transform2D(0.0, Vector2(k, k), 0.0, shift)
+	var p := float(Nav.picture_scale()) / Nav.scale_factor()
+	Nav.pictures_layer.transform = Transform2D(0.0, Vector2(k * p, k * p), 0.0, shift + Nav.picture_origin() / Nav.scale_factor() * k)
 	_scale = k
 	_pointer.scale = Vector2.ONE * k
 

@@ -35,6 +35,7 @@ func enter(_args: Dictionary) -> void:
 		grid.add_theme_constant_override("h_separation", 6)
 		grid.add_theme_constant_override("v_separation", 6)
 		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.alignment = FlowContainer.ALIGNMENT_CENTER
 		scroll.add_child(grid)
 		var board: Array = Game.state["board"]
 		if board.is_empty():

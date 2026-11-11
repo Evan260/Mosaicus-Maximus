@@ -102,17 +102,12 @@ func _setup() -> void:
 ## The floor in the client's painted room, set right of centre so the client's card has the left side.
 func _setup_room() -> void:
 	_room = RoomView.new()
-	Nav.ui.add_child(_room)
+	Nav.pictures.add_child(_room)
 	_room.setup(design.room, _layout, _stones)
 	_floor = _room.floor_view
 	_floor.shine(0.9, 1.8)
 	_room.modulate.a = 0.0
 	_room.create_tween().tween_property(_room, "modulate:a", 1.0, 0.6)
-	var place := func() -> void:
-		var s := Nav.ui_size()
-		_room.position = Vector2(minf((s.x - _room.size.x) * 0.5 + 24.0, s.x - _room.size.x + 24.0), (s.y - _room.size.y) * 0.5).floor()
-	Nav.resized.connect(place)
-	place.call()
 	_wrap = 156.0
 	_build_card()
 	Audio.glissando()

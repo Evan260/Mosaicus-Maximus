@@ -1362,3 +1362,24 @@ func test_a_picture_smaller_than_the_window_fades_at_its_edges() -> void:
 	e.fit(Rect2(Vector2(0, 5), Nav.BASE), Vector2(480, 280))
 	check(e.widths() == [0, 5, 0, 5], "an edge never fades further than the room past it")
 	e.free()
+
+
+func test_the_interface_is_one_step_finer_than_what_fits() -> void:
+	check(Nav.ui_scale_for(Vector2(1920, 1080)) == 3, "1080p draws the interface three times, 640 by 360")
+	check(Nav.ui_scale_for(Vector2(2560, 1440)) == 4, "1440p draws it four times")
+	check(Nav.ui_scale_for(Vector2(2560, 1080)) == 3, "an ultrawide 1080 screen goes by its height")
+	check(Nav.ui_scale_for(Vector2(1280, 1024)) == 2, "a tall window goes by its width")
+	check(Nav.ui_scale_for(Vector2(1280, 720)) == 1, "a small window still draws it at least once")
+	check(Nav.ui_scale_for(Vector2(300, 200)) == 1, "a tiny window never goes below one")
+	for size in [Vector2(1920, 1080), Vector2(2560, 1440), Vector2(3440, 1440), Vector2(1280, 1024), Vector2(1280, 720)]:
+		var k := Nav.ui_scale_for(size, 1)
+		check(size.x / k >= Nav.BASE.x and size.y / k >= Nav.BASE.y, "even the largest interface keeps 480 by 270 at %s" % size)
+
+
+func test_the_pictures_fill_the_window_by_a_whole_scale() -> void:
+	check(Nav.picture_scale_for(Vector2(1920, 1080)) == 4, "1080p shows the room exactly four times")
+	check(Nav.picture_scale_for(Vector2(2560, 1440)) == 6, "1440p crops a little rather than leave a border")
+	check(Nav.picture_scale_for(Vector2(1280, 720)) == 3, "720p crops a little too")
+	check(Nav.picture_scale_for(Vector2(2560, 1080)) == 4, "an ultrawide screen would lose too much top and bottom, so it fits")
+	check(Nav.picture_scale_for(Vector2(3440, 1440)) == 5, "so does a wider one")
+	check(Nav.picture_scale_for(Vector2(1280, 1024)) == 2, "a tall window would lose too much of the sides, so it fits")

@@ -4,7 +4,7 @@ A cozy craft and business game in Godot 4.7 (GDScript, 2D, GL Compatibility). Yo
 
 ## Where things are
 
-- `game/scripts/autoload/`: `Dev` (command-line options and screenshots), `Data` (everything in `game/data/*.json`), `Audio`, `Settings`, `Game` (the workshop's state), `Saves` (three slots, each with a `.bak`), `Nav` (screens and the two layers), `Tips` (tooltips at the interface's scale; give a control one with `Ui.tip_on`, never `tooltip_text`), `Awards` (checks `Achievements` every second, slides in a card for each one earned, and sends them to Steam through GodotSteam when it is there).
+- `game/scripts/autoload/`: `Dev` (command-line options and screenshots), `Data` (everything in `game/data/*.json`), `Audio`, `Settings`, `Game` (the workshop's state), `Saves` (three slots, each with a `.bak`), `Nav` (screens and the three layers), `Tips` (tooltips at the interface's scale; give a control one with `Ui.tip_on`, never `tooltip_text`), `Awards` (checks `Achievements` every second, slides in a card for each one earned, and sends them to Steam through GodotSteam when it is there).
 - `game/scripts/design/`: `Stones` (the 16 stones), `FloorDesign`, `Composer` (design to colour map), `MotifLibrary`, `BorderPainter`, `MosaicLayout` (colour map to tiles), `RandomDesign`, `Samples`.
 - `game/scripts/floor/`: `FloorView` (every tile in two batches, plus grout, polish, dirt and repairs), `FloorScreen`, `FloorHud`.
 - `game/scripts/business/`: `Brief` (wishes, and `judge` for a job's whole verdict), `Looks` (the five qualities clients see, tastes and stars), `Pricing`, `JobFactory` (commissions, copies, contests, restorations), `Story` (finishing jobs, chapters and what each brings, days, ships, learned tastes), `Achievements` (from `data/achievements.json`, judged from the save's `stats` and floors), `Damage`, `Library` (kept floors in `user://library/`: picture, thumbnail, design and laying order).
@@ -20,7 +20,7 @@ A cozy craft and business game in Godot 4.7 (GDScript, 2D, GL Compatibility). Yo
 
 ## Fixed decisions
 
-- The interface is pixel art at 480 by 270, scaled up by a whole number by `Nav`. Floors render at full resolution in `Nav.world`.
+- `Nav` draws three layers. Floors render at full resolution in `Nav.world`. Painted pictures made for a 480 by 270 view (the workshop's room, the town map, the clients' rooms) go in `Nav.pictures`, scaled by `Nav.picture_scale()`: the smallest whole number that covers the window if that crops at most 12% a side, else the largest that fits, with `EdgeFade` softening any edge. The interface is pixel art in `Nav.ui`, one scale step finer than what fits the window (`Nav.ui_scale_for`, as Farmus Maximus does it: three times at 1080p, so 640 by 360), never so large that 480 by 270 won't fit. Anything on the interface that points at a picture converts with `Nav.picture_to_ui`.
 - A tile is 6 design pixels; picture panels use half-size tiles through the composer's fine mask.
 - Every balance number lives in `game/data/balance.json`. Pacing is checked by `test_pacing_report`.
 - Briefs only ask for motifs, tags and stones the player has unlocked (`JobFactory.possible`).
