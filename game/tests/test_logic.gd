@@ -1595,3 +1595,10 @@ func test_a_floor_half_laid_comes_back_as_it_was() -> void:
 	check(b.phase == a.phase, "and the floor is at the same step")
 	a.free()
 	b.free()
+
+
+func test_a_made_up_workshop_never_sends_achievements_to_steam() -> void:
+	game.new_game("Steam")
+	check(Awards.may_send() == saves.enabled, "a real workshop sends its achievements")
+	game.state["_dev"] = true
+	check(not Awards.may_send(), "one made up by a dev option never does")

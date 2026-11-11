@@ -129,6 +129,7 @@ func enter(_args: Dictionary) -> void:
 			_show_next_event()
 		"award":
 			Game.state["name"] = "Dev"
+			Game.state["_dev"] = true
 			Game.state["floors"].append({"score": 0.9})
 
 

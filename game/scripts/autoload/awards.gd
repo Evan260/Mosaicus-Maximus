@@ -54,8 +54,13 @@ func _sync() -> void:
 		_unlock_on_steam(str(id))
 
 
+## Only a real workshop sends achievements: never one made up by a test or a dev option such as --panel=award.
+func may_send() -> bool:
+	return Saves.enabled and not Dev.has("panel") and not Game.state.get("_dev", false)
+
+
 func _unlock_on_steam(id: String) -> void:
-	if _steam:
+	if _steam and may_send():
 		_steam.call("setAchievement", id)
 		_steam.call("storeStats")
 
