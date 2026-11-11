@@ -50,6 +50,8 @@ var _t := 0.0
 var _leaving := false
 var _sold_at := -1000
 var _list_scroll: ScrollContainer
+## The day and part of the day the top bar shows, so its text is only made again when they change.
+var _day_key := ""
 
 
 func enter(_args: Dictionary) -> void:
@@ -242,19 +244,21 @@ func _process(delta: float) -> void:
 	if _flames:
 		_flames.modulate.a = lit
 	var ambient := Daylight.light(hour)
+	var lamp_array := PackedVector4Array(lamps)
 	for m in _sunlit:
 		m.set_shader_parameter("night", night)
 		m.set_shader_parameter("ambient", ambient)
 		m.set_shader_parameter("lamp_count", lamps.size())
 		if not lamps.is_empty():
-			m.set_shader_parameter("lamps", PackedVector4Array(lamps))
+			m.set_shader_parameter("lamps", lamp_array)
 	for g in _glows:
 		g.night = night
 		g.lit = lit
 	var part := Daylight.part_of_day(hour)
-	var day := tr("Day %d, %s") % [int(Game.state["day"]), Daylight.part_name(part)]
-	if _day.text != day:
-		_day.text = day
+	var day_key := "%d %s" % [int(Game.state["day"]), part]
+	if day_key != _day_key:
+		_day_key = day_key
+		_day.text = tr("Day %d, %s") % [int(Game.state["day"]), Daylight.part_name(part)]
 		_fit_bar()
 	_end_day.theme_type_variation = "MainButton" if part in ["evening", "night"] else ""
 
