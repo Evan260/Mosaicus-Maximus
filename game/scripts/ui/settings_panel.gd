@@ -49,7 +49,8 @@ func _build(in_game: bool) -> void:
 			queue_free()
 			AchievementsPanel.open(get_parent()), "laurel")
 	Ui.button(col, "Done", func() -> void: queue_free(), "tick", true)
-	_languages(sides)
+	var languages := _languages(sides)
+	_own_music(languages if languages else col)
 	Nav.resized.connect(_place)
 	_place.call_deferred()
 
@@ -60,10 +61,10 @@ func _place() -> void:
 
 
 ## Every translated language, named in its own words and letters, so a player can find theirs whatever is showing.
-func _languages(parent: Node) -> void:
+func _languages(parent: Node) -> VBoxContainer:
 	var locales := TranslationServer.get_loaded_locales()
 	if locales.size() < 2:
-		return
+		return null
 	var col := Ui.vbox(parent, 4)
 	Ui.label(col, "Language", "Heading")
 	var grid := GridContainer.new()
@@ -84,6 +85,15 @@ func _languages(parent: Node) -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.add_theme_font_override("font", UiTheme.body_font(loc))
 		b.add_theme_font_size_override("font_size", UiTheme.text_size(loc))
+	return col
+
+
+## The player's own music folder, whose tracks play between the game's, under the languages where there is room;
+## what it does is in the button's tip, so the panel still fits a 480 by 270 interface.
+func _own_music(parent: VBoxContainer) -> void:
+	Ui.label(parent, "Your own music", "Heading")
+	var open := Ui.button(parent, "Open folder", Audio.open_music_folder)
+	Ui.tip_on(open, "Music you put in this folder (.ogg, .mp3 or .wav) plays between the game's own tracks.")
 
 
 func _slider(parent: Node, label: String, value: float, apply: Callable) -> void:

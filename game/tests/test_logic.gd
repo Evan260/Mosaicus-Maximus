@@ -1393,3 +1393,26 @@ func test_the_interface_size_setting_steps_round_three_sizes() -> void:
 	check(Nav.ui_scale_for(Vector2(1280, 720), 1) == 2, "Larger at 720p is twice")
 	check(Nav.ui_scale_for(Vector2(2560, 1080), 1) == 4, "Larger stops where 480 by 270 still fits")
 	check(SettingsPanel.UI_SIZES.size() == 3, "the setting offers three sizes")
+
+
+func test_the_players_own_music_is_found_in_their_folder() -> void:
+	var folder := ProjectSettings.globalize_path(Audio.PLAYER_MUSIC_DIR)
+	var had := DirAccess.dir_exists_absolute(folder)
+	var before: Array = Audio.player_tracks()
+	DirAccess.make_dir_recursive_absolute(folder)
+	var made := ["zz_test_tune.ogg", "zz_test_notes.txt"]
+	for f in made:
+		FileAccess.open(folder.path_join(f), FileAccess.WRITE).store_string("x")
+	var found: Array = Audio.player_tracks()
+	check(found.has(folder.path_join("zz_test_tune.ogg")), "a music file in the folder is played")
+	check(not found.has(folder.path_join("zz_test_notes.txt")), "anything that isn't music is left out")
+	check(Audio._load_external(folder.path_join("zz_test_tune.ogg")) == null, "a file that can't be read is skipped")
+	for f in DirAccess.get_files_at("res://assets/audio/music/"):
+		if f.ends_with(".ogg"):
+			check(Audio._load_external(ProjectSettings.globalize_path("res://assets/audio/music/" + f)) is AudioStreamOggVorbis, "a real Ogg file from outside the game's files plays")
+			break
+	for f in made:
+		DirAccess.remove_absolute(folder.path_join(f))
+	if not had:
+		DirAccess.remove_absolute(folder)
+	check(Audio.player_tracks().size() == before.size(), "the test leaves the folder as it was")

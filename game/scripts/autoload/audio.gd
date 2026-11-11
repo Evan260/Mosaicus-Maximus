@@ -7,6 +7,9 @@ const HARP_DIR := "res://assets/audio/harp/"
 const TOOLS_DIR := "res://assets/audio/tools/"
 const UI_DIR := "res://assets/audio/ui/"
 const MUSIC_DIR := "res://assets/audio/music/"
+## The player's own music, beside the saves, played between the game's tracks; Settings opens it.
+const PLAYER_MUSIC_DIR := "user://music/"
+const MUSIC_TYPES := ["ogg", "mp3", "wav"]
 const MUSIC_GAP := Vector2(40.0, 110.0)  # quiet between tracks, so the harp never wears thin
 const SWIPE_GAP := 0.2
 const VOICES := 32
@@ -40,7 +43,7 @@ var _rng := RandomNumberGenerator.new()
 var _ui := {}
 var _music: AudioStreamPlayer
 var _tracks: Array = []
-var _track_index := -1
+var _last_track := ""
 var _music_wait := 3.0
 var music_on := true
 
@@ -67,7 +70,6 @@ func _ready() -> void:
 			var path := MUSIC_DIR + f.trim_suffix(".import")
 			if not path in _tracks:
 				_tracks.append(path)
-	_tracks.shuffle()
 	var master := AudioServer.get_bus_index("Master")
 	var limiter := AudioEffectHardLimiter.new()
 	limiter.ceiling_db = -1.5
@@ -95,9 +97,12 @@ func _process(delta: float) -> void:
 	if music_on and not _music.playing and not _tracks.is_empty():
 		_music_wait -= delta
 		if _music_wait <= 0.0:
-			_track_index = (_track_index + 1) % _tracks.size()
-			_music.stream = load(_tracks[_track_index])
-			_music.play()
+			var track := _pick_track()
+			if track:
+				_music.stream = track
+				_music.play()
+			else:
+				_music_wait = 30.0
 	if _clock - _last_land > 0.25:
 		for k in VOICES:
 			if _melody[k] and _players[k].playing:
@@ -112,6 +117,47 @@ func _process(delta: float) -> void:
 			_queue.remove_at(i)
 		else:
 			i += 1
+
+
+## A track at random from the game's music and the player's own folder, which is looked at afresh each time, never the
+## one just played while there is another.
+func _pick_track() -> AudioStream:
+	var choices: Array = _tracks + player_tracks()
+	if choices.size() > 1:
+		choices.erase(_last_track)
+	var pick: String = choices[_rng.randi() % choices.size()]
+	_last_track = pick
+	return load(pick) if pick.begins_with("res://") else _load_external(pick)
+
+
+## The music files in the player's own folder, as full paths.
+static func player_tracks() -> Array:
+	var out := []
+	var folder := ProjectSettings.globalize_path(PLAYER_MUSIC_DIR)
+	if DirAccess.dir_exists_absolute(folder):
+		for file in DirAccess.get_files_at(folder):
+			if file.get_extension().to_lower() in MUSIC_TYPES:
+				out.append(folder.path_join(file))
+	return out
+
+
+## Reads a music file from outside the game's own files; an unreadable file gives nothing and is skipped.
+static func _load_external(path: String) -> AudioStream:
+	match path.get_extension().to_lower():
+		"ogg":
+			return AudioStreamOggVorbis.load_from_file(path)
+		"mp3":
+			return AudioStreamMP3.load_from_file(path)
+		"wav":
+			return AudioStreamWAV.load_from_file(path)
+	return null
+
+
+## Opens the player's music folder in the file explorer, making it first if need be.
+func open_music_folder() -> void:
+	var folder := ProjectSettings.globalize_path(PLAYER_MUSIC_DIR)
+	DirAccess.make_dir_recursive_absolute(folder)
+	OS.shell_open(folder)
 
 
 ## Tiles touched down this frame: a few clicks across it, the rest dropped so the sound stops when the tiles do.
