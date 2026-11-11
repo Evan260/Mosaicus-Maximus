@@ -69,19 +69,21 @@ func _next() -> void:
 	Ui.icon(row, "laurel")
 	var col := Ui.vbox(row, 0)
 	Ui.label(col, "Achievement", "MutedLabel")
-	Ui.label(col, tr(str(a["name"])), "Heading", 150)
-	Ui.label(col, tr(str(a["text"])), "", 150)
+	var big := Settings.message_scale()
+	Ui.label(col, tr(str(a["name"])), "Heading", 150 * big).add_theme_font_size_override("font_size", UiTheme.heading_size() * big)
+	Ui.label(col, tr(str(a["text"])), "", 150 * big).add_theme_font_size_override("font_size", UiTheme.text_size() * big)
 	_card.reset_size()
 	var s := Nav.ui_size()
 	var shown := Vector2(s.x - _card.size.x - 6, 46)
-	_card.position = Vector2(s.x + 4, shown.y)
+	_card.position = shown if Settings.reduced_motion else Vector2(s.x + 4, shown.y)
 	_card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_card.gui_input.connect(func(e: InputEvent) -> void:
 		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 			_leave(0.0))
 	Audio.ui("coins", -10.0)
 	_tween = _card.create_tween()
-	_tween.tween_property(_card, "position", shown, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if not Settings.reduced_motion:
+		_tween.tween_property(_card, "position", shown, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_leave(HOLD)
 
 
@@ -92,7 +94,8 @@ func _leave(wait: float) -> void:
 		_tween = _card.create_tween()
 	var card := _card
 	_tween.tween_interval(wait)
-	_tween.tween_property(card, "position:x", Nav.ui_size().x + 4, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	if not Settings.reduced_motion:
+		_tween.tween_property(card, "position:x", Nav.ui_size().x + 4, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	_tween.tween_callback(func() -> void:
 		card.queue_free()
 		if _card == card:

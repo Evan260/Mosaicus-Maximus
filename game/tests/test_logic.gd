@@ -1541,3 +1541,20 @@ func test_settings_fit_the_smallest_interface_in_every_language() -> void:
 	SettingsPanel.tab = "Sound"
 	TranslationServer.set_locale("en")
 	UiTheme.use_language()
+
+
+func test_background_sound_quietens_behind_other_windows() -> void:
+	var was: String = Settings.background_sound
+	var loud: float = Settings.master
+	Settings.master = 0.9
+	var bus := AudioServer.get_bus_index("Master")
+	Settings.background_sound = "muted"
+	Settings._behind = true
+	Settings.apply()
+	check(AudioServer.get_bus_volume_db(bus) < -60.0, "muted behind other windows silences the game")
+	Settings._behind = false
+	Settings.apply()
+	check(AudioServer.get_bus_volume_db(bus) > -60.0, "and the sound comes back with the focus")
+	Settings.background_sound = was
+	Settings.master = loud
+	Settings.apply()

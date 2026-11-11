@@ -93,6 +93,9 @@ func _sound() -> void:
 	_slider(tr("Effects"), Settings.effects, func(v: float) -> void: Settings.effects = v)
 	Ui.setting(_page, tr("Your own music"), tr("Open folder"), Audio.open_music_folder, WIDTH)
 	Ui.label(_page, tr("Music you put in this folder (.ogg, .mp3 or .wav) plays between the game's own tracks."), "MutedLabel", WIDTH)
+	var quiet := {"full": "Full volume", "quieter": "Quieter", "muted": "Muted"}
+	Ui.setting(_page, tr("While you use other windows"), tr(quiet.get(Settings.background_sound, "Full volume")), func() -> void:
+		Settings.set_value("background_sound", {"full": "quieter", "quieter": "muted"}.get(Settings.background_sound, "full")), WIDTH)
 
 
 func _display() -> void:
@@ -102,6 +105,8 @@ func _display() -> void:
 
 func _gameplay() -> void:
 	_languages()
+	Ui.on_off(_page, tr("Larger text for messages"), Settings.large_text, func() -> void: Settings.set_value("large_text", not Settings.large_text), WIDTH)
+	Ui.on_off(_page, tr("Reduced motion"), Settings.reduced_motion, func() -> void: Settings.set_value("reduced_motion", not Settings.reduced_motion), WIDTH)
 	Ui.on_off(_page, tr("Show hints on the floor"), Settings.hints, func() -> void: Settings.set_value("hints", not Settings.hints), WIDTH)
 	if _in_game:
 		Ui.setting(_page, tr("Your dog"), tr("Change"), func() -> void:

@@ -53,7 +53,8 @@ func _process(delta: float) -> void:
 		_fit()
 		_floor.lay_rest(6.0)
 	if _cam:
-		_cam.position = _floor.size_world() * 0.5 + Vector2(sin(_t * 0.07), cos(_t * 0.05)) * 60.0
+		var drift := Vector2.ZERO if Settings.reduced_motion else Vector2(sin(_t * 0.07), cos(_t * 0.05)) * 60.0
+		_cam.position = _floor.size_world() * 0.5 + drift
 
 
 func _fit() -> void:

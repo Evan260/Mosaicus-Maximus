@@ -317,6 +317,11 @@ func turn_to(n: int) -> void:
 		return
 	if not is_instance_valid(_book) or not _book.is_inside_tree():
 		return
+	if Settings.reduced_motion:
+		Audio.ui("page_turn")
+		chapter = n
+		_fill()
+		return
 	_turning = true
 	var book := _book
 	var direction := 1 if _place_in_book(n) > _place_in_book(chapter) else -1

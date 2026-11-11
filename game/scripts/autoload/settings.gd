@@ -12,12 +12,19 @@ var effects := 0.9
 var fullscreen := false
 var maximized := false
 var hints := true
+## Twice the size for the guide's notes, tooltips and achievement cards.
+var large_text := false
+## Keeps the screen still: no drifting title floor, sliding cards, turning pages or flickering lamps.
+var reduced_motion := false
+## How loud the game stays while another window has the focus: "full", "quieter" or "muted".
+var background_sound := "full"
 ## How much larger or smaller than usual the interface is drawn: Smaller -1, Normal 0, Larger 1 or Largest 2 scale steps.
 var ui_scale_step := 0
 ## A language code such as "fr" or "zh_CN"; empty until chosen, when the computer's own language is used if the game has it.
 var language := ""
 ## The window's mode before going full screen, so F11 brings back a maximised window as it was.
 var _before := DisplayServer.WINDOW_MODE_WINDOWED
+var _behind := false
 
 
 func _ready() -> void:
@@ -30,6 +37,9 @@ func _ready() -> void:
 		fullscreen = cfg.get_value("display", "fullscreen", fullscreen)
 		maximized = cfg.get_value("display", "maximized", maximized)
 		hints = cfg.get_value("play", "hints", hints)
+		large_text = cfg.get_value("play", "large_text", large_text)
+		reduced_motion = cfg.get_value("play", "reduced_motion", reduced_motion)
+		background_sound = str(cfg.get_value("sound", "background_sound", background_sound))
 		ui_scale_step = clampi(int(cfg.get_value("display", "ui_scale_step", ui_scale_step)), -1, 2)
 		language = str(cfg.get_value("play", "language", language))
 	_load_translations()
@@ -98,9 +108,13 @@ func _bring_old_saves() -> void:
 				DirAccess.copy_absolute(old.path_join("library").path_join(f), here.path_join("library").path_join(f))
 
 
-## Sets the volumes. The window is left alone, so changing a setting never resizes it.
+## Sets the volumes, quieter or silent while another window has the focus if so chosen; the window is left alone.
 func apply() -> void:
-	Audio.set_volumes(master, music, effects)
+	var whole := master
+	# A recording is made while other windows have the focus, so it always keeps its sound.
+	if _behind and Engine.get_write_movie_path() == "":
+		whole *= float({"quieter": 0.25, "muted": 0.0}.get(background_sound, 1.0))
+	Audio.set_volumes(whole, music, effects)
 
 
 func _restore_window() -> void:
@@ -114,6 +128,9 @@ func _restore_window() -> void:
 
 
 func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_FOCUS_IN]:
+		_behind = what == NOTIFICATION_APPLICATION_FOCUS_OUT
+		apply()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		var mode := DisplayServer.window_get_mode()
 		maximized = mode == DisplayServer.WINDOW_MODE_MAXIMIZED or (mode == DisplayServer.WINDOW_MODE_FULLSCREEN and _before == DisplayServer.WINDOW_MODE_MAXIMIZED)
@@ -123,7 +140,13 @@ func _notification(what: int) -> void:
 ## Changes one setting by name and keeps it.
 func set_value(key: String, value: Variant) -> void:
 	set(key, value)
+	apply()
 	save()
+
+
+## How many times the usual size a message's text is drawn.
+func message_scale() -> int:
+	return 2 if large_text else 1
 
 
 ## Keeps the settings; `announce` false keeps a dragged slider from rebuilding the window under the pointer.
@@ -136,6 +159,9 @@ func save(announce: bool = true) -> void:
 	cfg.set_value("display", "maximized", maximized)
 	cfg.set_value("display", "ui_scale_step", ui_scale_step)
 	cfg.set_value("play", "hints", hints)
+	cfg.set_value("play", "large_text", large_text)
+	cfg.set_value("play", "reduced_motion", reduced_motion)
+	cfg.set_value("sound", "background_sound", background_sound)
 	cfg.set_value("play", "language", language)
 	cfg.save(PATH)
 	if announce:

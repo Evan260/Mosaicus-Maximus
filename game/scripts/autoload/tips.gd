@@ -61,6 +61,7 @@ func _tip_owner(c: Control) -> Control:
 
 func _show(text: String) -> void:
 	var lines := _wrap(text)
+	_label.add_theme_font_size_override("font_size", UiTheme.text_size() * Settings.message_scale())
 	if _label.text != lines or not _panel.visible:
 		_label.text = lines
 		_panel.visible = true
@@ -78,22 +79,23 @@ func _show(text: String) -> void:
 ## Breaks a tip into lines by hand, between letters where a language leaves no spaces, as a self-sizing panel can't.
 func _wrap(text: String) -> String:
 	var font := UiTheme.body_font()
-	var size := UiTheme.text_size()
+	var size := UiTheme.text_size() * Settings.message_scale()
+	var wrap := WRAP * Settings.message_scale()
 	var out := PackedStringArray()
 	var line := ""
 	for word in text.split(" "):
 		var next := word if line == "" else line + " " + word
-		if font.get_string_size(next, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= WRAP:
+		if font.get_string_size(next, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= wrap:
 			line = next
 			continue
 		if line != "":
 			out.append(line)
 		line = ""
-		if font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= WRAP:
+		if font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= wrap:
 			line = word
 			continue
 		for c in word:
-			if line != "" and font.get_string_size(line + c, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > WRAP:
+			if line != "" and font.get_string_size(line + c, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > wrap:
 				out.append(line)
 				line = ""
 			line += c

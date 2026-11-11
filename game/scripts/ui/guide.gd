@@ -44,7 +44,9 @@ func _build(text: String, corner: String, target: Variant) -> void:
 	var head := Ui.hbox(col, 3)
 	Ui.icon(head, "laurel")
 	Ui.label(head, "Your uncle's notes", "LightHeading")
-	Ui.label(col, text, "LightLabel", WIDTH)
+	var big := Settings.message_scale()
+	var words := Ui.label(col, text, "LightLabel", minf(WIDTH * big, Nav.ui_size().x - 24.0))
+	words.add_theme_font_size_override("font_size", UiTheme.text_size() * big)
 	var row := Ui.hbox(col, 4)
 	var skip := Ui.button(row, "Skip the guide", func() -> void:
 		Game.state["guide_off"] = true
@@ -97,4 +99,4 @@ func _point() -> void:
 	var up := target.position.y < 40.0
 	_arrow.rotation = -PI * 0.5 if up else PI * 0.5
 	var at := Vector2(target.get_center().x - 8.0, target.end.y + 2.0 if up else target.position.y + 6.0).floor()
-	_arrow.position = at + Vector2(0.0, 2.0 * cos(_t * PI / 0.4) - 2.0)
+	_arrow.position = at + (Vector2.ZERO if Settings.reduced_motion else Vector2(0.0, 2.0 * cos(_t * PI / 0.4) - 2.0))

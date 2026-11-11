@@ -241,7 +241,7 @@ func _process(delta: float) -> void:
 	var lamps := []
 	var lit := Daylight.lamps_lit(hour)
 	if "lamps" in Game.state["upgrades"] and lit > 0.0:
-		var flicker := 0.92 + 0.05 * sin(_t * 9.0) + 0.03 * sin(_t * 23.0) + randf() * 0.02
+		var flicker := 0.95 if Settings.reduced_motion else 0.92 + 0.05 * sin(_t * 9.0) + 0.03 * sin(_t * 23.0) + randf() * 0.02
 		for f in FLAMES:
 			lamps.append(Vector4(f[0].x, f[0].y, f[1], (0.08 + 0.95 * night) * flicker * lit))
 	if _flames:
@@ -413,6 +413,8 @@ func _pet() -> void:
 
 func _hearts() -> void:
 	Audio.ui("dog", -8.0)
+	if Settings.reduced_motion:
+		return
 	var top := _dog.position + Rect2(_dog.texture.get_image().get_used_rect()).position + Vector2(_dog.texture.get_size().x * 0.4, -4)
 	for i in 3:
 		var heart := Label.new()
