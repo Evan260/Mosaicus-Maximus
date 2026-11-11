@@ -9,6 +9,8 @@ var effects := 0.9
 var fullscreen := false
 var maximized := false
 var hints := true
+## How much larger or smaller than usual the interface is drawn: -1, 0 or 1 scale steps.
+var ui_scale_step := 0
 ## A language code such as "fr" or "zh_CN"; empty until chosen, when the computer's own language is used if the game has it.
 var language := ""
 ## The window's mode before going full screen, so F11 brings back a maximised window as it was.
@@ -25,6 +27,7 @@ func _ready() -> void:
 		fullscreen = cfg.get_value("display", "fullscreen", fullscreen)
 		maximized = cfg.get_value("display", "maximized", maximized)
 		hints = cfg.get_value("play", "hints", hints)
+		ui_scale_step = clampi(int(cfg.get_value("display", "ui_scale_step", ui_scale_step)), -1, 1)
 		language = str(cfg.get_value("play", "language", language))
 	_load_translations()
 	TranslationServer.set_locale(language if language in TranslationServer.get_loaded_locales() else _system_language())
@@ -121,9 +124,22 @@ func save() -> void:
 	cfg.set_value("sound", "effects", effects)
 	cfg.set_value("display", "fullscreen", fullscreen)
 	cfg.set_value("display", "maximized", maximized)
+	cfg.set_value("display", "ui_scale_step", ui_scale_step)
 	cfg.set_value("play", "hints", hints)
 	cfg.set_value("play", "language", language)
 	cfg.save(PATH)
+
+
+## The interface size after `step`: Normal, then Larger, then Smaller, then Normal again.
+static func next_ui_step(step: int) -> int:
+	return (step + 2) % 3 - 1
+
+
+## Steps the interface size on to the next of Smaller, Normal and Larger, and lays the screen out again at it.
+func cycle_ui_size() -> void:
+	ui_scale_step = next_ui_step(ui_scale_step)
+	save()
+	Nav.refit()
 
 
 func toggle_fullscreen() -> void:

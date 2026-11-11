@@ -75,7 +75,7 @@ func _ready() -> void:
 func scale_factor() -> int:
 	if ui_scale_override > 0:
 		return ui_scale_override
-	return ui_scale_for(get_viewport().get_visible_rect().size)
+	return ui_scale_for(get_viewport().get_visible_rect().size, Settings.ui_scale_step)
 
 
 ## Screen pixels per picture pixel.

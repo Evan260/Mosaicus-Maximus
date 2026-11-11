@@ -2,6 +2,8 @@ class_name SettingsPanel
 extends PanelContainer
 ## Volume, hints, full screen and language, opened from the title and the workshop, where it can also change the dog.
 
+const UI_SIZES := {-1: "Smaller", 0: "Normal", 1: "Larger"}
+
 ## Each language's name in that language, for the language list.
 const NATIVE_NAMES := {"en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "it": "Italiano", "pt_BR": "Português (BR)",
 	"pl": "Polski", "tr": "Türkçe", "ru": "Русский", "uk": "Українська", "ja": "日本語", "ko": "한국어", "zh_CN": "简体中文", "zh_TW": "繁體中文"}
@@ -32,6 +34,13 @@ func _build(in_game: bool) -> void:
 		Settings.save())
 	col.add_child(hints)
 	Ui.button(col, "Full screen (F11)", Settings.toggle_fullscreen)
+	var sizes := Ui.hbox(col, 6)
+	Ui.label(sizes, "Interface size").size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var size_button := Ui.button(sizes, UI_SIZES[Settings.ui_scale_step], func() -> void: pass)
+	size_button.custom_minimum_size.x = 64
+	size_button.pressed.connect(func() -> void:
+		Settings.cycle_ui_size()
+		size_button.text = UI_SIZES[Settings.ui_scale_step])
 	if in_game:
 		Ui.button(col, "Your dog", func() -> void:
 			queue_free()
