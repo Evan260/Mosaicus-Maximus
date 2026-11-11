@@ -105,7 +105,7 @@ func _show_menu() -> void:
 	Ui.button(row, "Free design", func() -> void: Nav.go("design_table", {"free": true}), "brush")
 	Ui.button(row, "Library", func() -> void: Nav.go("library", {"back": "title"}), "book")
 	Ui.button(row, "Settings", open_settings, "gear")
-	Ui.button(row, "Quit", func() -> void: get_tree().quit())
+	Ui.button(row, "Quit", quit_game)
 
 
 ## One saved workshop: its name and how far along it is, and a bin that asks first.
@@ -184,6 +184,12 @@ func _show_new() -> void:
 	var go := Ui.button(buttons, "Open the workshop", _begin, "house", true)
 	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_edit.grab_focus.call_deferred()
+
+
+## Quitting here does what closing the window does, so the window's size and the settings are kept.
+func quit_game() -> void:
+	get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	get_tree().quit()
 
 
 ## Escape steps back from a new workshop or a deletion to the menu, and never quits from the title.
