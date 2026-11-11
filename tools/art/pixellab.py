@@ -219,8 +219,9 @@ def cmd_inpaint(a):
         sys.exit("mask is empty")
     W, H = image.size
     # PixelLab repaints areas from 32 to 256 pixels a side, so a thin area is sent with some of its surroundings.
-    tw = min(256, max(32, (bx[2] - bx[0] + 3) // 4 * 4), W // 4 * 4)
-    th = min(256, max(32, (bx[3] - bx[1] + 3) // 4 * 4), H // 4 * 4)
+    least = size(a.tile) if a.tile else {"width": 32, "height": 32}
+    tw = min(256, max(least["width"], (bx[2] - bx[0] + 3) // 4 * 4), W // 4 * 4)
+    th = min(256, max(least["height"], (bx[3] - bx[1] + 3) // 4 * 4), H // 4 * 4)
     done = Image.new("L", image.size, 0)
     for tx, ty in tiles(bx, max(tw, th)):
         tx = min((max(0, tx) + 3) // 4 * 4, (W - tw) // 4 * 4)
@@ -373,6 +374,7 @@ def main():
     s.add_argument("--out", required=True)
     s.add_argument("--transparent", action="store_true")
     s.add_argument("--no-context", action="store_true", help="do not send the full image; use when it contains what is being removed")
+    s.add_argument("--tile", help="WIDTHxHEIGHT, the least each tile sent may be, so a thin area is painted seeing more of the picture round it")
     s.set_defaults(fn=cmd_inpaint)
 
     s = sub.add_parser("proflash", help="Pro Flash image, optionally matching a style reference")
