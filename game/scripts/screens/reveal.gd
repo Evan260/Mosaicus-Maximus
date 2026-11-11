@@ -318,3 +318,8 @@ func _finish() -> void:
 		Game.bump("panels_set", used.size())
 	Saves.save()
 	Nav.go("workshop")
+
+
+func _exit_tree() -> void:
+	Nav.leave_task(_task)
+	_task = -1

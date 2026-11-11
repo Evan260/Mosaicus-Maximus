@@ -109,7 +109,7 @@ func quit(code: int = 0) -> void:
 	for p in _players:
 		p.stop()
 	await get_tree().create_timer(0.1, true, false, true).timeout
-	await get_tree().process_frame
+	await Nav.close()
 	get_tree().quit(code)
 
 

@@ -232,3 +232,8 @@ func _continue(slot: int) -> void:
 		Nav.go("workshop")
 	else:
 		Audio.play("nope")
+
+
+func _exit_tree() -> void:
+	Nav.leave_task(_task)
+	_task = -1

@@ -271,3 +271,8 @@ func _leave_visit() -> void:
 func go_back() -> bool:
 	Nav.go("workshop")
 	return true
+
+
+func _exit_tree() -> void:
+	Nav.leave_task(_task)
+	_task = -1

@@ -419,3 +419,8 @@ func _run_demo() -> void:
 		_demo_prev = p
 	_stroke(_demo_prev, p)
 	_demo_prev = p
+
+
+func _exit_tree() -> void:
+	Nav.leave_task(_task)
+	_task = -1

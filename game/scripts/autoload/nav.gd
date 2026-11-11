@@ -38,6 +38,8 @@ var _busy := false
 var _fitted := Vector2.ZERO
 ## A fixed interface scale, for recordings that frame the interface as it was laid out for them; 0 picks it as usual.
 var ui_scale_override := 0
+## Worker tasks whose screen closed before they finished, each waited for once done, since a task never waited for is never freed.
+var _left_tasks: Array[int] = []
 
 
 func _ready() -> void:
@@ -182,6 +184,27 @@ func _forget_screen_listeners() -> void:
 func _process(_delta: float) -> void:
 	if get_viewport().get_visible_rect().size != _fitted:
 		_fit()
+	for task in _left_tasks.duplicate():
+		if WorkerThreadPool.is_task_completed(task):
+			WorkerThreadPool.wait_for_task_completion(task)
+			_left_tasks.erase(task)
+
+
+## Takes over a worker task a closing screen started, so it is finished off without making the next screen wait.
+func leave_task(task: int) -> void:
+	if task >= 0:
+		_left_tasks.append(task)
+
+
+## Closes the screen and waits for every worker task, as the game quits, since a task still running at exit crashes it.
+func close() -> void:
+	if current:
+		current.queue_free()
+		current = null
+		await get_tree().process_frame
+	for task in _left_tasks:
+		WorkerThreadPool.wait_for_task_completion(task)
+	_left_tasks.clear()
 
 
 ## Lays every layer out again, as after the interface scale is changed.
