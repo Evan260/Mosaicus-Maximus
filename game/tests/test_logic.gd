@@ -1438,3 +1438,18 @@ func test_centred_button_text_ignores_its_icon() -> void:
 	check(done.get_theme_stylebox("hover").get_margin(SIDE_RIGHT) == box_style.get_margin(SIDE_RIGHT), "and keeps it when hovered")
 	check(not listed.has_theme_stylebox_override("normal"), "a left-aligned button keeps its icon as it is")
 	box.free()
+
+
+func test_title_new_workshop_text_is_centred() -> void:
+	for n in range(1, 4):
+		saves.delete(n)
+	var title: Node = load("res://scripts/screens/title.gd").new()
+	title._show_menu()
+	await get_tree().process_frame
+	var fresh: Button = null
+	for b in title._menu.find_children("*", "Button", true, false):
+		if (b as Button).text == "New workshop":
+			fresh = b
+	check(fresh != null and fresh.has_meta("centred"), "the title's New workshop button centres its text on the whole button, not beside its icon")
+	title._menu.free()
+	title.free()
