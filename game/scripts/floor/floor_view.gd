@@ -67,8 +67,6 @@ var repaired := {}
 var repair_stone := -1
 ## Off when the floor is drawn into a painted room, which has walls of its own.
 var walls_visible := true
-## Off for a wall mosaic or a panel at the bench, which have no doorway.
-var door_visible := true
 var _finish_mats: Array[ShaderMaterial] = []
 ## Every tile in the order it was laid, for the time-lapse.
 var order := PackedInt32Array()
@@ -751,15 +749,7 @@ func _draw_walls(c: Node2D) -> void:
 	c.draw_rect(Rect2(-t, -t, fw + 2 * t, t), plaster)
 	c.draw_rect(Rect2(-t, 0, t, fh), plaster)
 	c.draw_rect(Rect2(fw, 0, t, fh), plaster)
-	var door := 16 * tile_world() if door_visible else 0.0
-	var door_x := (fw - door) * 0.5
-	c.draw_rect(Rect2(-t, fh, door_x + t, t), plaster)
-	c.draw_rect(Rect2(door_x + door, fh, fw - door_x - door + t, t), plaster)
-	# The doorway: a marble threshold the wall's full depth, a groove where the door closes, and a post each side.
-	c.draw_rect(Rect2(door_x, fh, door, t), Color8(198, 190, 176))
-	c.draw_rect(Rect2(door_x, fh + t * 0.42, door, t * 0.12), Color8(150, 142, 130))
-	c.draw_rect(Rect2(door_x - t * 0.3, fh, t * 0.3, t), face)
-	c.draw_rect(Rect2(door_x + door, fh, t * 0.3, t), face)
+	c.draw_rect(Rect2(-t, fh, fw + 2 * t, t), plaster)
 	c.draw_rect(Rect2(-t, -t, fw + 2 * t, 6), Color8(228, 214, 190))
 	var lip := 10.0
 	c.draw_rect(Rect2(0, -lip, fw, lip), face)

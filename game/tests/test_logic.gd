@@ -1416,3 +1416,9 @@ func test_the_players_own_music_is_found_in_their_folder() -> void:
 	if not had:
 		DirAccess.remove_absolute(folder)
 	check(Audio.player_tracks().size() == before.size(), "the test leaves the folder as it was")
+
+
+func test_floor_walls_have_no_doorway() -> void:
+	var fv := FloorView.new()
+	check(not "door_visible" in fv, "the wall below a floor is plain, with no doorway drawn in it")
+	fv.free()

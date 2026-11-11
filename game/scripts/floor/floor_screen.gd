@@ -62,8 +62,6 @@ func _ready_floor() -> void:
 	var layout := _layout
 	_loading.queue_free()
 	floor_view = FloorView.new()
-	var room := Data.room(str(job.get("room", design.room if design else "")))
-	floor_view.door_visible = not (bool(room.get("wall", false)) or bool(room.get("bench", false)))
 	Nav.world.add_child(floor_view)
 	floor_view.setup(layout)
 	if not _made.is_empty():

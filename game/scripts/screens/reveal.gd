@@ -77,8 +77,6 @@ func _setup() -> void:
 		_setup_room()
 		return
 	_floor = FloorView.new()
-	var room := Data.room(design.room)
-	_floor.door_visible = not (bool(room.get("wall", false)) or bool(room.get("bench", false)))
 	Nav.world.add_child(_floor)
 	_floor.setup(_layout)
 	_floor.show_finished()
