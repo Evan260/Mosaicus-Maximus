@@ -28,10 +28,10 @@ func enter(_args: Dictionary) -> void:
 			_show_new()
 		"settings":
 			open_settings()
-		"forget":
+		"delete":
 			var kept := Saves.slots()
 			if not kept[0].is_empty():
-				_confirm_forget(1, kept[0])
+				_confirm_delete(1, kept[0])
 
 
 func open_settings() -> void:
@@ -99,7 +99,7 @@ func _show_menu() -> void:
 	fresh.custom_minimum_size.y = 22
 	if Saves.free_slot() == 0:
 		fresh.disabled = true
-		Ui.tip_on(fresh, "You already keep three workshops. Forget one to start another.")
+		Ui.tip_on(fresh, "You already keep three workshops. Delete one to start another.")
 	var row := Ui.hbox(col, 3)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	Ui.button(row, "Free design", func() -> void: Nav.go("design_table", {"free": true}), "brush")
@@ -108,7 +108,7 @@ func _show_menu() -> void:
 	Ui.button(row, "Quit", func() -> void: get_tree().quit())
 
 
-## One saved workshop: its name and how far along it is, and a bin that asks twice.
+## One saved workshop: its name and how far along it is, and a bin that asks first.
 func _slot_row(parent: Node, slot: int, s: Dictionary) -> void:
 	var row := Ui.hbox(parent, 3)
 	var b := Button.new()
@@ -123,20 +123,20 @@ func _slot_row(parent: Node, slot: int, s: Dictionary) -> void:
 		Audio.ui("click")
 		_continue(slot))
 	row.add_child(b)
-	var del := Ui.icon_button(row, "trash", "Forget this workshop", func() -> void: _confirm_forget(slot, s))
+	var del := Ui.icon_button(row, "trash", "Delete this workshop", func() -> void: _confirm_delete(slot, s))
 	del.custom_minimum_size = Vector2(22, 30)
 
 
-## Forgetting a workshop can't be undone, so the word "delete" has to be typed before it goes.
-func _confirm_forget(slot: int, s: Dictionary) -> void:
+## Deleting a workshop can't be undone, so the word "delete" has to be typed before it goes.
+func _confirm_delete(slot: int, s: Dictionary) -> void:
 	Audio.ui("click")
 	_page = "delete"
 	var col := _swap_menu()
-	var title := Ui.label(col, "Forget this workshop?", "Heading")
+	var title := Ui.label(col, "Delete this workshop?", "Heading")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var floors := int(s["floors"])
 	var word := tr("delete")
-	var gone_text := tr("%s's workshop, on day %d with 1 floor laid, will be gone for good. Type \"%s\" to forget it.") % [s["name"], s["day"], word] if floors == 1 else tr("%s's workshop, on day %d with %d floors laid, will be gone for good. Type \"%s\" to forget it.") % [s["name"], s["day"], floors, word]
+	var gone_text := tr("%s's workshop, on day %d with 1 floor laid, will be gone for good. Type \"%s\" to delete it.") % [s["name"], s["day"], word] if floors == 1 else tr("%s's workshop, on day %d with %d floors laid, will be gone for good. Type \"%s\" to delete it.") % [s["name"], s["day"], floors, word]
 	Ui.label(col, gone_text, "", 226).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var field := LineEdit.new()
 	field.placeholder_text = word
@@ -146,17 +146,17 @@ func _confirm_forget(slot: int, s: Dictionary) -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	# The English word works in every language, for a player whose keyboard can't type the translated one.
 	var typed := func() -> bool: return field.text.strip_edges().to_lower() in ["delete", word.to_lower()]
-	var forget := func() -> void:
+	var delete := func() -> void:
 		if not typed.call():
 			return
 		Saves.delete(slot)
 		Audio.ui("rustle")
 		_show_menu()
-	var gone := Ui.button(row, "Forget it", forget, "trash")
+	var gone := Ui.button(row, "Delete", delete, "trash")
 	gone.disabled = true
-	Ui.button(row, "Keep it", _show_menu, "arrow_l", true)
+	Ui.button(row, "Cancel", _show_menu, "arrow_l", true)
 	field.text_changed.connect(func(_t: String) -> void: gone.disabled = not typed.call())
-	field.text_submitted.connect(func(_t: String) -> void: forget.call())
+	field.text_submitted.connect(func(_t: String) -> void: delete.call())
 	field.grab_focus.call_deferred()
 
 
