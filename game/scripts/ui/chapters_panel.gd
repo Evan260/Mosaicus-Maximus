@@ -1,6 +1,7 @@
 class_name ChaptersPanel
 extends PanelContainer
-## The chapters as an open book, opened from the laurel in the top bar: a bookmark and a spread for each chapter.
+## The chapters as an open book, opened from the laurel in the top bar: a bookmark and a spread for each chapter,
+## and a last bookmark, a laurel, for the achievements.
 
 const STACK := 3
 const SPINE := 4
@@ -15,6 +16,8 @@ const EDGE := Color8(160, 122, 84)
 const TAB := Color8(214, 190, 146)
 const LEATHER := Color8(104, 60, 40)
 const NUMERALS := ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+## The first spread after the last chapter, which lists the achievements; any more spreads they need count down from it.
+const AWARDS := 0
 
 static var _papers := {}
 static var _cover: StyleBoxTexture
@@ -102,6 +105,10 @@ func _fill() -> void:
 	_marks.add_child(gap)
 	for ch in Data.chapters:
 		_bookmark(int(ch["n"]))
+	_bookmark(AWARDS)
+	if chapter <= AWARDS:
+		_awards(_column(_pages[0]), _column(_pages[1]))
+		return
 	_story(_column(_pages[0]))
 	_brings(_column(_pages[1]))
 
@@ -116,9 +123,13 @@ func _column(view: ScrollContainer) -> VBoxContainer:
 ## A ribbon beside the right page with the chapter's numeral; the open one is the colour of the paper.
 func _bookmark(n: int) -> void:
 	var now := int(Game.state["chapter"])
-	var open_now := n == chapter
+	var open_now := n == chapter or (n == AWARDS and chapter < AWARDS)
 	var b := Button.new()
-	b.text = NUMERALS[n - 1] if n <= NUMERALS.size() else str(n)
+	if n == AWARDS:
+		b.icon = UiTheme.icon("laurel")
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	else:
+		b.text = NUMERALS[n - 1] if n <= NUMERALS.size() else str(n)
 	b.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	b.custom_minimum_size = Vector2(24, 22)
 	b.focus_mode = Control.FOCUS_NONE
@@ -135,13 +146,15 @@ func _bookmark(n: int) -> void:
 		box.corner_radius_bottom_right = 2
 		box.content_margin_left = 3
 		box.content_margin_right = 4
+		box.content_margin_top = 2 if n == AWARDS else -1
+		box.content_margin_bottom = 2 if n == AWARDS else -1
 		b.add_theme_stylebox_override(state, box)
-	var ink := UiTheme.INK if n <= now + 1 else UiTheme.MUTED
+	var ink := UiTheme.INK if n <= now + 1 or n == AWARDS else UiTheme.MUTED
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
 		b.add_theme_color_override(c, ink)
 	b.add_theme_font_override("font", UiTheme.title_font("en"))
 	b.add_theme_font_size_override("font_size", 8)
-	Ui.tip_on(b, tr("Chapter %d: %s") % [n, tr(Data.chapter(n)["title"])])
+	Ui.tip_on(b, "Achievements" if n == AWARDS else tr("Chapter %d: %s") % [n, tr(Data.chapter(n)["title"])])
 	b.pressed.connect(func() -> void: turn_to(n))
 	_marks.add_child(b)
 
@@ -165,6 +178,62 @@ func _story(page: VBoxContainer) -> void:
 	page.add_child(_progress(int(st["reputation"]) - from, int(ch["reputation"]) - from, w))
 	Ui.label(page, tr("Reputation %d of %d: %d more to go.") % [int(st["reputation"]), int(ch["reputation"]), int(ch["reputation"]) - int(st["reputation"])], "", w)
 	Ui.label(page, "Every finished floor earns reputation, and better floors earn more. Enough reputation opens the next chapter.", "MutedLabel", w)
+
+
+## The achievements, the earned ones first, running on from page to page over as many spreads as they need: each
+## name with a gold dot when earned, and how to earn it in its tip.
+func _awards(left: VBoxContainer, right: VBoxContainer) -> void:
+	var have: Array = Game.state.get("achievements", [])
+	var w := _text_width()
+	var spread := AWARDS - chapter
+	var pages := _award_pages(have)
+	if spread == 0:
+		var title := Ui.label(left, "Achievements", "Heading", w)
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var count := Ui.label(left, tr("%d of %d earned") % [have.size(), Achievements.all().size()], "MutedLabel", w)
+		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	for side in 2:
+		var page: VBoxContainer = [left, right][side]
+		page.add_theme_constant_override("separation", 1)
+		for a in pages[spread * 2 + side] if spread * 2 + side < pages.size() else []:
+			var earned: bool = a["id"] in have
+			var row := Ui.hbox(page, 3)
+			var mark := Art.new()
+			mark.kind = "dot" if earned else "ring"
+			mark.custom_minimum_size = Vector2(4, 9)
+			mark.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			row.add_child(mark)
+			var name := Ui.label(row, tr(str(a["name"])), "" if earned else "MutedLabel", w - 7)
+			Ui.tip_on(name, tr(str(a["text"])))
+	var gap := Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.add_child(gap)
+	var turns := Ui.hbox(right, 2)
+	turns.alignment = BoxContainer.ALIGNMENT_END
+	if spread > 0:
+		Ui.icon_button(turns, "arrow_l", "Previous page", func() -> void: turn_to(chapter + 1))
+	if (spread + 1) * 2 < pages.size():
+		Ui.icon_button(turns, "arrow_r", "Next page", func() -> void: turn_to(chapter - 1))
+
+
+## The achievements in page-sized groups: the first page leaves room for its heading, and the right pages for the arrows.
+func _award_pages(have: Array) -> Array:
+	var ordered := Achievements.all().filter(func(a: Dictionary) -> bool: return a["id"] in have)
+	ordered += Achievements.all().filter(func(a: Dictionary) -> bool: return not a["id"] in have)
+	var font := UiTheme.body_font()
+	var size := UiTheme.text_size()
+	var line := font.get_height(size) + 1.0
+	var full := _pages[0].size.y
+	var pages := [[]]
+	var room := full - UiTheme.heading_size() - line - 6.0
+	for a in ordered:
+		var tall := font.get_multiline_string_size(tr(str(a["name"])), HORIZONTAL_ALIGNMENT_LEFT, _text_width() - 7, size).y + 1.0
+		if tall > room and not pages[-1].is_empty():
+			pages.append([])
+			room = full - (24.0 if pages.size() % 2 == 0 else 0.0)
+		pages[-1].append(a)
+		room -= tall
+	return pages
 
 
 ## The right page: whether the chapter is done, open or still to come, and everything it brings.
@@ -241,7 +310,7 @@ func _flat(c: Color) -> StyleBoxFlat:
 
 ## Pictures the pages as they are, lays the new spread out underneath, and turns a PageTurn leaf over it.
 func turn_to(n: int) -> void:
-	if n == chapter or n < 1 or n > Data.chapters.size():
+	if n == chapter or n > Data.chapters.size():
 		return
 	if _turning:
 		_queued = n
@@ -250,7 +319,7 @@ func turn_to(n: int) -> void:
 		return
 	_turning = true
 	var book := _book
-	var direction := 1 if n > chapter else -1
+	var direction := 1 if _place_in_book(n) > _place_in_book(chapter) else -1
 	var shots := await PageTurn.capture(self, [_shot(1 if direction > 0 else 0), _shot(0 if direction > 0 else 1)], Nav.scale_factor())
 	# The book may have been closed while its pages were pictured, and is then left closed.
 	if not is_instance_valid(book) or not book.is_inside_tree():
@@ -273,6 +342,17 @@ func turn_to(n: int) -> void:
 	var backs := await PageTurn.capture(self, [_shot(0 if direction > 0 else 1)], Nav.scale_factor())
 	if is_instance_valid(turn):
 		turn.back = backs[0]
+
+
+## Where a spread lies in the book: the achievements come after the last chapter.
+func _place_in_book(n: int) -> int:
+	return Data.chapters.size() + 1 + AWARDS - n if n <= AWARDS else n
+
+
+## Opens the book at the achievements, at once, without turning to them.
+func show_awards() -> void:
+	chapter = AWARDS
+	_fill()
 
 
 func _landed() -> void:
@@ -391,6 +471,8 @@ class Art extends Control:
 			"dot":
 				draw_rect(Rect2(0, 5, 3, 3), UiTheme.GOLD.darkened(0.3))
 				draw_rect(Rect2(0, 5, 2, 2), UiTheme.GOLD)
+			"ring":
+				draw_rect(Rect2(0, 5, 3, 3), UiTheme.MUTED, false, 1.0)
 			"band":
 				var left := floorf((size.x - colours.size() * 4 - 1) / 2.0)
 				draw_rect(Rect2(left, 1, colours.size() * 4 + 1, 5), Color8(196, 176, 140))

@@ -404,6 +404,27 @@ func test_new_game_keeps_the_dog() -> void:
 		v.free()
 
 
+func test_every_breed_comes_in_three_coats() -> void:
+	for breed in DogView.BREEDS:
+		var coats := DogView.coats_for(breed)
+		check(coats.size() >= 3, "the %s comes in at least three coats" % breed)
+		check(breed == "hound" or coats.keys()[0] == "natural", "a %s saved in its natural coat keeps that look" % breed)
+		var looks := {}
+		for coat in coats:
+			var v := DogView.make({"breed": breed, "coat": coat})
+			v.play("sit")
+			check(v.texture != null, "the %s in its %s coat has its pictures" % [breed, coat])
+			var img := v.texture.get_image()
+			img.convert(Image.FORMAT_RGBA8)
+			looks[img.get_data().hex_encode()] = coat
+			v.free()
+		check(looks.size() == coats.size(), "each of the %s's coats looks different: %s" % [breed, looks.values()])
+	var old := DogView.make({"breed": "lapdog", "coat": "natural"})
+	old.play("sit")
+	check(old.texture.resource_path.begins_with(DogView.DIR), "a lapdog saved in its natural coat is drawn as painted")
+	old.free()
+
+
 
 func _framed_room() -> FloorDesign:
 	var d := FloorDesign.for_room("dining_room")
@@ -1466,8 +1487,12 @@ func test_chapters_book_fits_every_spread() -> void:
 		holder.theme = UiTheme.build()
 		add_child(holder)
 		var book := ChaptersPanel.open(holder, Vector2(480, 270))
-		check(book._marks.get_children().filter(func(c: Node) -> bool: return c is Button).size() == Data.chapters.size(), "a bookmark for every chapter (%s)" % loc)
-		for n in range(1, Data.chapters.size() + 1):
+		check(book._marks.get_children().filter(func(c: Node) -> bool: return c is Button).size() == Data.chapters.size() + 1, "a bookmark for every chapter and one for the achievements (%s)" % loc)
+		var listed := 0
+		for pg in book._award_pages([]):
+			listed += (pg as Array).size()
+		check(listed == Achievements.all().size(), "the achievements spreads list every achievement (%s)" % loc)
+		for n in range(-1, Data.chapters.size() + 1):
 			book.chapter = n
 			book._fill()
 			await get_tree().process_frame

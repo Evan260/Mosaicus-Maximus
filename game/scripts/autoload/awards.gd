@@ -1,15 +1,16 @@
 extends CanvasLayer
 ## Achievements as they are earned: a parchment card with a laurel slides in at the top right on any screen, one after
-## another, and each is handed to Steam when the game runs through Steam. Earned ones live in the save, so ones earned
-## without Steam are sent the next time it is there.
+## another, stays five seconds unless clicked away, and each is handed to Steam when the game runs through Steam. Earned
+## ones live in the save, so ones earned without Steam are sent the next time it is there.
 
-const HOLD := 4.5
+const HOLD := 5.0
 const CHECK_EVERY := 1.0
 
 var _steam: Object = null
 var _root: Control
 var _queue: Array = []
 var _card: PanelContainer
+var _tween: Tween
 var _wait := 0.0
 
 
@@ -74,12 +75,26 @@ func _next() -> void:
 	var s := Nav.ui_size()
 	var shown := Vector2(s.x - _card.size.x - 6, 46)
 	_card.position = Vector2(s.x + 4, shown.y)
+	_card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_card.gui_input.connect(func(e: InputEvent) -> void:
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			_leave(0.0))
 	Audio.ui("coins", -10.0)
-	var tw := _card.create_tween()
-	tw.tween_property(_card, "position", shown, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_interval(HOLD)
-	tw.tween_property(_card, "position:x", s.x + 4, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tw.tween_callback(func() -> void:
-		_card.queue_free()
-		_card = null
-		_next())
+	_tween = _card.create_tween()
+	_tween.tween_property(_card, "position", shown, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_leave(HOLD)
+
+
+## Slides the card back out after `wait` seconds, or at once when it is clicked, and brings on the next.
+func _leave(wait: float) -> void:
+	if wait == 0.0:
+		_tween.kill()
+		_tween = _card.create_tween()
+	var card := _card
+	_tween.tween_interval(wait)
+	_tween.tween_property(card, "position:x", Nav.ui_size().x + 4, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_tween.tween_callback(func() -> void:
+		card.queue_free()
+		if _card == card:
+			_card = null
+			_next())

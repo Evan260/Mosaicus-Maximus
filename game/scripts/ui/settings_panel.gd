@@ -45,9 +45,6 @@ func _build(in_game: bool) -> void:
 		Ui.button(col, "Your dog", func() -> void:
 			queue_free()
 			DogPanel.open(get_parent()), "paw")
-		Ui.button(col, "Achievements", func() -> void:
-			queue_free()
-			AchievementsPanel.open(get_parent()), "laurel")
 	var languages := _languages(sides)
 	_own_music(languages if languages else col)
 	var corner := Ui.vbox(sides, 0)

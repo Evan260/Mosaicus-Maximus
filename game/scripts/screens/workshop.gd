@@ -119,7 +119,9 @@ func enter(_args: Dictionary) -> void:
 		"chapters":
 			_show_panel(ChaptersPanel.open(_root))
 		"achievements":
-			_show_panel(AchievementsPanel.open(_root))
+			var book := ChaptersPanel.open(_root)
+			book.show_awards()
+			_show_panel(book)
 		"letter":
 			Story.unlock(Game.state, 2)
 			Game.state["reputation"] = 40
@@ -533,7 +535,7 @@ func _show_panel(p: Control) -> void:
 
 ## The settings panel opens the dog and achievements panels itself, so they are caught as they join the room.
 func _adopt_panel(node: Node) -> void:
-	if node is SettingsPanel or node is DogPanel or node is AchievementsPanel or node is ChaptersPanel:
+	if node is SettingsPanel or node is DogPanel or node is ChaptersPanel:
 		_show_panel(node as Control)
 
 
