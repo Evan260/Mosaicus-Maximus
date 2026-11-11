@@ -12,6 +12,7 @@ var _chooser: DogChooser
 var _begun := false
 ## Which page the menu shows: "menu", "new" or "delete".
 var _page := "menu"
+var _version: Label
 
 
 func enter(_args: Dictionary) -> void:
@@ -21,6 +22,11 @@ func enter(_args: Dictionary) -> void:
 	var layout := MosaicLayout.new()
 	_layout = layout
 	_task = WorkerThreadPool.add_task(func() -> void: layout.build(Composer.compose(design, 6), 6, Composer.fine_mask(design, 6)))
+	_version = Ui.label(Nav.ui, "v" + str(ProjectSettings.get_setting("application/config/version", "")), "LightLabel")
+	_version.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_version.modulate.a = 0.7
+	_version.add_theme_color_override("font_outline_color", UiTheme.INK)
+	_version.add_theme_constant_override("outline_size", 2)
 	Nav.resized.connect(_place)
 	_show_menu()
 	match Dev.get_arg("panel"):
@@ -64,6 +70,9 @@ func _fit() -> void:
 
 
 func _place() -> void:
+	if is_instance_valid(_version):
+		_version.reset_size()
+		_version.position = (Nav.ui_size() - _version.size - Vector2(4, 2)).floor()
 	if not is_instance_valid(_menu):
 		return
 	_menu.reset_size()
