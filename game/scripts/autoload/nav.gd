@@ -24,6 +24,7 @@ var ui_layer: CanvasLayer
 var ui: Control
 var current: Node
 var current_name := ""
+var _args := {}
 var _fade: ColorRect
 var _busy := false
 var _fitted := Vector2.ZERO
@@ -88,6 +89,7 @@ func go(screen: String, args: Dictionary = {}) -> void:
 	add_child(s)
 	current = s
 	current_name = screen
+	_args = args
 	if s.has_method("enter"):
 		s.enter(args)
 	screen_changed.emit(screen)
@@ -95,6 +97,13 @@ func go(screen: String, args: Dictionary = {}) -> void:
 	back.tween_property(_fade, "color:a", 0.0, 0.2)
 	await back.finished
 	_busy = false
+
+
+## Builds the current screen again, as after a change of language, with its settings open where they were.
+func reopen() -> void:
+	await go(current_name, _args)
+	if current and current.has_method("open_settings"):
+		current.open_settings()
 
 
 ## Drops the last screen's listeners, keeping the autoloads', since a leftover one pointing at a freed panel crashes.

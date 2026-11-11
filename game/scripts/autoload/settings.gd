@@ -9,6 +9,8 @@ var effects := 0.9
 var fullscreen := false
 var maximized := false
 var hints := true
+## A language code such as "fr" or "zh_CN"; empty until chosen, when the computer's own language is used if the game has it.
+var language := ""
 ## The window's mode before going full screen, so F11 brings back a maximised window as it was.
 var _before := DisplayServer.WINDOW_MODE_WINDOWED
 
@@ -23,8 +25,50 @@ func _ready() -> void:
 		fullscreen = cfg.get_value("display", "fullscreen", fullscreen)
 		maximized = cfg.get_value("display", "maximized", maximized)
 		hints = cfg.get_value("play", "hints", hints)
+		language = str(cfg.get_value("play", "language", language))
+	_load_translations()
+	TranslationServer.set_locale(language if language in TranslationServer.get_loaded_locales() else _system_language())
+	# --locale=xx shows the game in another language without keeping it.
+	var trial := Dev.get_arg("locale")
+	if trial != "":
+		TranslationServer.set_locale(trial)
 	apply.call_deferred()
 	_restore_window.call_deferred()
+
+
+## Loads every translated column of the strings sheet; one without even the word "Language" is still waiting for Azure.
+func _load_translations() -> void:
+	for file in ResourceLoader.list_directory("res://translations/"):
+		if file.get_extension() == "translation":
+			var t: Translation = load("res://translations/" + file)
+			if t.locale == "en" or t.get_message("Language") != "":
+				TranslationServer.add_translation(t)
+
+
+## The computer's own language if the game has it, matching "fr_CA" to "fr" and "zh_Hans_CN" to "zh_CN"; otherwise English.
+func _system_language() -> String:
+	var have := TranslationServer.get_loaded_locales()
+	var os := OS.get_locale()
+	if os in have:
+		return os
+	if os.begins_with("zh"):
+		var traditional := os.contains("Hant") or os.ends_with("TW") or os.ends_with("HK") or os.ends_with("MO")
+		var zh := "zh_TW" if traditional else "zh_CN"
+		return zh if zh in have else "en"
+	var lang := OS.get_locale_language()
+	for loc in have:
+		if loc.get_slice("_", 0) == lang:
+			return loc
+	return "en"
+
+
+## Shows the game in another language and keeps the choice: the fonts change with it, and the screen is built again.
+func set_language(code: String) -> void:
+	language = code
+	save()
+	TranslationServer.set_locale(code)
+	UiTheme.use_language()
+	Nav.reopen()
 
 
 ## The first time the game starts under this name, copies the saves, settings and kept floors from its old folder.
@@ -78,6 +122,7 @@ func save() -> void:
 	cfg.set_value("display", "fullscreen", fullscreen)
 	cfg.set_value("display", "maximized", maximized)
 	cfg.set_value("play", "hints", hints)
+	cfg.set_value("play", "language", language)
 	cfg.save(PATH)
 
 
