@@ -45,7 +45,7 @@ func _run() -> void:
 	OS.remove_logger(errors)
 	print("%d passed" % passed)
 	print("FAILURES: %d" % failures if failures else "ALL TESTS PASSED")
-	get_tree().quit(1 if failures else 0)
+	Audio.quit(1 if failures else 0)
 
 
 class ErrorCounter extends Logger:

@@ -200,7 +200,6 @@ func _show_new() -> void:
 ## Quitting here does what closing the window does, so the window's size and the settings are kept.
 func quit_game() -> void:
 	get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
-	get_tree().quit()
 
 
 ## Escape steps back from a new workshop or a deletion to the menu, and never quits from the title.

@@ -62,7 +62,7 @@ func _run() -> void:
 	await _wait(5.5)
 	if Nav.current_name != "reveal":
 		_problem("the finished floor did not open the reveal (on %s)" % Nav.current_name)
-		get_tree().quit(1)
+		Audio.quit(1)
 		return
 	await _wait(3.0)
 	await _shot("8_reveal")
@@ -74,7 +74,7 @@ func _run() -> void:
 	if Game.coins() <= coins_before:
 		_problem("the client did not pay: %d before, %d after" % [coins_before, Game.coins()])
 	print("flow: %d d before laying, %d d after, reputation %d, %d problems" % [coins_before, Game.coins(), int(Game.state["reputation"]), problems])
-	get_tree().quit(1 if problems else 0)
+	Audio.quit(1 if problems else 0)
 
 
 func _go(screen: String, args: Dictionary, shot_name: String, settle: float = 1.2) -> void:

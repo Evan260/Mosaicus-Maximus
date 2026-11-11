@@ -76,7 +76,7 @@ func _run() -> void:
 	Dev.args.erase("visit")
 	Dev.args.erase("room")
 	_write()
-	get_tree().quit()
+	Audio.quit()
 
 
 ## A floor table with sixteen motifs on it, the most a busy floor has.

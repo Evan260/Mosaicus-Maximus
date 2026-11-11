@@ -47,7 +47,7 @@ func _ready() -> void:
 	if args.has("achievement"):
 		get_tree().create_timer(float(args.get("achievement-at", "1.0"))).timeout.connect(_show_achievement)
 	if args.has("quit") and _shots.is_empty():
-		get_tree().create_timer(float(args.get("quit-at", "3.0"))).timeout.connect(get_tree().quit)
+		get_tree().create_timer(float(args.get("quit-at", "3.0"))).timeout.connect(func() -> void: Audio.quit())
 
 
 ## Whether this run made up its workshop, so it is never saved or sent to Steam.
@@ -97,7 +97,7 @@ func _take_shot(path: String, last: bool) -> void:
 	get_viewport().get_texture().get_image().save_png(path)
 	print("saved ", path)
 	if last and args.has("quit"):
-		get_tree().quit()
+		Audio.quit()
 
 
 ## Slides in the card for the achievement named by --achievement=ID, or the first one, without earning it.
@@ -224,4 +224,4 @@ func _make_icon(path: String) -> void:
 	for i in 4:
 		await RenderingServer.frame_post_draw
 	vp.get_texture().get_image().save_png(path)
-	get_tree().quit()
+	Audio.quit()

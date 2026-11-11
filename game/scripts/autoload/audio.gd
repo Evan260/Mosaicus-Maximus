@@ -46,6 +46,7 @@ var _tracks: Array = []
 var _last_track := ""
 var _music_wait := 3.0
 var music_on := true
+var _quitting := false
 
 
 func _ready() -> void:
@@ -80,6 +81,7 @@ func _ready() -> void:
 			var b := AudioServer.bus_count - 1
 			AudioServer.set_bus_name(b, bus_name)
 			AudioServer.set_bus_send(b, "Master")
+	get_tree().auto_accept_quit = false
 	_music = AudioStreamPlayer.new()
 	_music.bus = "Music"
 	_music.finished.connect(func() -> void: _music_wait = _rng.randf_range(MUSIC_GAP.x, MUSIC_GAP.y))
@@ -90,6 +92,25 @@ func _ready() -> void:
 		add_child(p)
 		_players.append(p)
 		_melody.append(false)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		quit()
+
+
+## Stops every sound and quits once the audio server has let go of them, so nothing playing is left behind at exit.
+func quit(code: int = 0) -> void:
+	if _quitting:
+		return
+	_quitting = true
+	_queue.clear()
+	_music.stop()
+	for p in _players:
+		p.stop()
+	await get_tree().create_timer(0.1, true, false, true).timeout
+	await get_tree().process_frame
+	get_tree().quit(code)
 
 
 func _process(delta: float) -> void:
