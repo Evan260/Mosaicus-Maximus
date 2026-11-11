@@ -96,6 +96,7 @@ func _ready_floor() -> void:
 	_hud = FloorHud.new()
 	_hud.setup(self)
 	Nav.ui.add_child(_hud)
+	_resume()
 	_hud.visible = not Dev.has("no-hud")
 	_started_msec = Time.get_ticks_msec()
 	_time = 0.0
@@ -164,7 +165,6 @@ func _unhandled_input(event: InputEvent) -> void:
 					select_stone(order[n])
 
 
-## Leaving a floor half done keeps the job, and the stone already paid for, for later.
 ## Escape asks whether to leave the floor.
 func go_back() -> bool:
 	if floor_view != null:
@@ -172,13 +172,35 @@ func go_back() -> bool:
 	return true
 
 
+## Keeps the floor as far as it has got in the job, so it is waiting as it was after a save, a close or a crash.
+func before_save() -> void:
+	if floor_view == null or job.is_empty() or job.get("free", false) or not is_same(job, Game.state["active_job"]):
+		return
+	var progress := floor_view.snapshot()
+	progress["design"] = _design_key()
+	job["progress"] = progress
+
+
+## Lays the floor again as it was saved, if the design is still the one it was laid from.
+func _resume() -> void:
+	var progress: Dictionary = job.get("progress", {})
+	if progress.is_empty() or str(progress.get("design", "")) != _design_key():
+		return
+	floor_view.restore(progress)
+
+
+func _design_key() -> String:
+	return str(JSON.stringify(design.to_dict()).hash())
+
+
+## Leaving a floor half done keeps the job, the stone already paid for and the tiles laid, for later.
 func _pause() -> void:
 	if _paused:
 		return
 	_paused = Ui.panel(Nav.ui, "PagePanel")
 	var col := Ui.vbox(_paused, 4)
 	Ui.window_head(col, _paused, "Leave this floor?", _unpause)
-	Ui.label(col, "The job stays on your table, and the stone you've paid for is kept. You'll start this floor again when you come back.", "", 200)
+	Ui.label(col, "The job stays on your table with the stone you've paid for, and the floor waits just as you left it.", "", 200)
 	var row := Ui.hbox(col, 4)
 	Ui.button(row, "Keep working", _unpause, "brush", true)
 	Ui.button(row, "Back to the workshop" if not job.get("free", false) else "Back to the title", func() -> void:

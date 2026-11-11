@@ -318,6 +318,42 @@ func prelay(tiles: PackedInt32Array) -> void:
 		_rub_chalk(layout.pos[i], layout.size[i] * 0.75)
 
 
+## What has been done to the floor so far, for the save: the tiles laid in order, the stones mended, the phase, and how
+## far the grout, polish and digging have gone.
+func snapshot() -> Dictionary:
+	var mended := {}
+	for i in repaired:
+		mended[str(i)] = repaired[i]
+	return {"order": Array(order), "repaired": mended, "phase": int(phase), "covered": _covered.duplicate(), "size": _state.size(),
+		"state": Marshalls.raw_to_base64(_state.compress(FileAccess.COMPRESSION_DEFLATE))}
+
+
+## Puts the floor back as a snapshot left it, every tile already down.
+func restore(snap: Dictionary) -> void:
+	var mended: Dictionary = snap.get("repaired", {})
+	for k in mended:
+		var i := int(k)
+		if missing.has(i):
+			repaired[i] = int(mended[k])
+			_packed[i] = repaired[i] * 1000 + fmod(_packed[i], 1000.0)
+	var tiles := PackedInt32Array()
+	for i in snap.get("order", []):
+		if int(i) >= 0 and int(i) < layout.tile_count():
+			tiles.append(int(i))
+	prelay(tiles)
+	var raw := Marshalls.base64_to_raw(str(snap.get("state", "")))
+	if not raw.is_empty() and int(snap.get("size", -1)) == _state.size():
+		_state = raw.decompress(_state.size(), FileAccess.COMPRESSION_DEFLATE)
+		var covered: Array = snap.get("covered", [0, 0, 0])
+		_covered = [int(covered[0]), int(covered[1]), int(covered[2])]
+		_state_dirty = true
+	phase = int(snap.get("phase", phase)) as Phase
+	_done = phase != Phase.LAY
+	if phase == Phase.DONE:
+		show_finished()
+	phase_changed.emit(phase)
+
+
 ## How many gaps of an old floor are still without a stone.
 func gaps_left() -> int:
 	return missing.size() - repaired.size()

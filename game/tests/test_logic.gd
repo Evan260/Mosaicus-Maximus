@@ -1558,3 +1558,40 @@ func test_background_sound_quietens_behind_other_windows() -> void:
 	Settings.background_sound = was
 	Settings.master = loud
 	Settings.apply()
+
+
+func test_a_save_is_checked_before_it_replaces_the_last() -> void:
+	game.new_game("Safe write")
+	game.state["coins"] = 11
+	check(saves.save(3), "a save is written")
+	check(not FileAccess.file_exists(saves.path_for(3) + ".tmp"), "and its temporary file is moved into place")
+	game.state["coins"] = 12
+	saves.save(3)
+	check(FileAccess.file_exists(saves.path_for(3) + ".bak1"), "the save before it becomes the newest backup")
+	game.new_game("Other")
+	check(saves.load_slot(3) and int(game.state["coins"]) == 12, "the newest save loads")
+	saves.delete(3)
+	check(not FileAccess.file_exists(saves.path_for(3) + ".bak1") and saves.slots()[2].is_empty(), "deleting a workshop takes its backups too")
+
+
+func test_a_floor_half_laid_comes_back_as_it_was() -> void:
+	var design := Samples.make("sea")
+	var layout := MosaicLayout.new()
+	Composer.lay_out(design, layout)
+	var a := FloorView.new()
+	add_child(a)
+	a.setup(layout)
+	var half := PackedInt32Array()
+	for i in layout.tile_count() / 2:
+		half.append(i)
+	a.prelay(half)
+	a.paint(Vector2.ZERO, Vector2.ZERO, 10.0)
+	var snap: Dictionary = JSON.parse_string(JSON.stringify(a.snapshot()))
+	var b := FloorView.new()
+	add_child(b)
+	b.setup(layout)
+	b.restore(snap)
+	check(b.laid == a.laid and b.order == a.order, "the tiles laid come back in their order (%d of %d)" % [b.laid, a.laid])
+	check(b.phase == a.phase, "and the floor is at the same step")
+	a.free()
+	b.free()

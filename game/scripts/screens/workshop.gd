@@ -396,7 +396,7 @@ func _open_table() -> void:
 			Ui.button(row, "End the day", func() -> void: Nav.go("day_end"), "sun", true)
 		_layout.call_deferred()
 		return
-	if job.get("kind", "") == "restoration":
+	if job.get("kind", "") == "restoration" or job.has("progress"):
 		Nav.go("floor", {"job": job})
 	else:
 		Nav.go("design_table", {"job": job})
