@@ -1,6 +1,10 @@
 class_name PageTurn
 extends Control
-## A leaf of an open book turning over its spine, drawn as one triangle mesh over the new spread already laid out beneath.
+## A leaf of an open book turning over its spine, laid over the book once the new spread is already drawn underneath.
+## The page lifts from its outer edge, swings over the gutter with the new page printed on its back, and settles flat
+## on the other side, its free edge leading as it rises and trailing as it falls. Until the leaf covers it, the page it
+## lands on still shows what was there. The whole leaf is one triangle mesh drawn in a single call, so the turn stays
+## smooth however finely it is divided.
 
 signal landed
 
@@ -29,15 +33,16 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	z_index = 20
 	var tween := create_tween()
-	tween.tween_method(func(p: float) -> void:
+	tween.tween_method(func(p: float):
 		progress = p
 		queue_redraw(), 0.0, 1.0, TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.finished.connect(func() -> void:
+	tween.finished.connect(func():
 		landed.emit()
 		queue_free())
 
 
-## Pictures laid-out pages on their paper in one frame, `scale` window pixels to the book's pixel: {page, paper, at, size, theme}.
+## Takes pictures of laid-out pages, each with its paper behind it, all in one rendered frame, `scale` window pixels to
+## the book's pixel so the turning leaf is as sharp as the book. Each shot is {page, paper, at, size, theme}.
 static func capture(owner: Node, shots: Array, scale: int) -> Array:
 	var ports := []
 	for shot in shots:
@@ -72,7 +77,8 @@ static func capture(owner: Node, shots: Array, scale: int) -> Array:
 	return out
 
 
-## The leaf at a moment of the turn: per column from the fold out, its x, its height towards the viewer, and its angle (0 to PI).
+## The leaf's outline at a moment of the turn: for each of its columns from the fold out, the x it is drawn at, how
+## near the viewer it has risen, and the angle it lies at, 0 flat on its own side and PI flat on the other.
 func leaf(p: float) -> Array:
 	var w := right_page.size.x
 	var lift := sin(PI * p)
