@@ -27,7 +27,37 @@ static func button(parent: Node, text: String, action: Callable, icon_name: Stri
 		action.call())
 	if parent:
 		parent.add_child(b)
+	if icon_name != "" and text != "":
+		# Deferred, since callers set a list's left alignment after making the button.
+		centre_text.call_deferred(b)
 	return b
+
+
+## Centres a centred button's text on the whole button: Godot centres it beside the icon, so the right keeps the icon's room too.
+static func centre_text(b: Button) -> void:
+	if not is_instance_valid(b) or b.icon == null or b.text == "" or b.has_meta("centred"):
+		return
+	if b.alignment != HORIZONTAL_ALIGNMENT_CENTER or b.icon_alignment != HORIZONTAL_ALIGNMENT_LEFT:
+		return
+	var theme := UiTheme.build()
+	var gap := b.get_theme_constant("h_separation") if b.has_theme_constant_override("h_separation") else theme.get_constant("h_separation", "Button")
+	var room := b.icon.get_width() + gap
+	var types := [b.theme_type_variation, "Button"] if b.theme_type_variation != "" else ["Button"]
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		var box: StyleBox = null
+		if b.has_theme_stylebox_override(state):
+			box = b.get_theme_stylebox(state)
+		else:
+			for t in types:
+				if theme.has_stylebox(state, t):
+					box = theme.get_stylebox(state, t)
+					break
+		if box == null:
+			continue
+		var wider := box.duplicate() as StyleBox
+		wider.content_margin_right = box.get_margin(SIDE_RIGHT) + room
+		b.add_theme_stylebox_override(state, wider)
+	b.set_meta("centred", true)
 
 
 static func icon_button(parent: Node, icon_name: String, tip: String, action: Callable) -> Button:

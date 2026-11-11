@@ -1422,3 +1422,19 @@ func test_floor_walls_have_no_doorway() -> void:
 	var fv := FloorView.new()
 	check(not "door_visible" in fv, "the wall below a floor is plain, with no doorway drawn in it")
 	fv.free()
+
+
+func test_centred_button_text_ignores_its_icon() -> void:
+	var box := VBoxContainer.new()
+	box.theme = UiTheme.build()
+	add_child(box)
+	var done := Ui.button(box, "Done", func() -> void: pass, "tick", true)
+	var listed := Ui.button(box, "1. A chapter", func() -> void: pass, "lock")
+	listed.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	await get_tree().process_frame
+	var box_style := done.get_theme_stylebox("normal")
+	var gap := done.get_theme_constant("h_separation")
+	check(box_style.get_margin(SIDE_RIGHT) == box_style.get_margin(SIDE_LEFT) + done.icon.get_width() + gap, "a centred button keeps its icon's room on the right too, so the text sits in the middle")
+	check(done.get_theme_stylebox("hover").get_margin(SIDE_RIGHT) == box_style.get_margin(SIDE_RIGHT), "and keeps it when hovered")
+	check(not listed.has_theme_stylebox_override("normal"), "a left-aligned button keeps its icon as it is")
+	box.free()

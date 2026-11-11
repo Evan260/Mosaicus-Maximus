@@ -187,6 +187,8 @@ func _tray_button(icon: Texture2D, tip: String, action: Callable, text: String =
 	Ui.tip_on(b, tip)
 	b.pressed.connect(action)
 	_tray.add_child(b)
+	if text != "":
+		Ui.centre_text(b)
 	return b
 
 
