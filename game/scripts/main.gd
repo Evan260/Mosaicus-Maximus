@@ -9,6 +9,9 @@ func _ready() -> void:
 	if Dev.has("flow"):
 		add_child(load("res://tests/flow_bot.gd").new())
 		return
+	if Dev.has("bench"):
+		add_child(load("res://tests/bench.gd").new())
+		return
 	if Dev.has("trailer-shot"):
 		add_child(load("res://tools/trailer/shots.gd").new())
 		return
