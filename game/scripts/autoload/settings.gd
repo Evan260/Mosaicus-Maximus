@@ -1,6 +1,9 @@
 extends Node
 ## The player's settings, kept apart from the save slots so they apply to every workshop.
 
+## Sent whenever a setting is kept, so an open settings window shows the change, such as F11 pressed while it is open.
+signal changed
+
 const PATH := "user://settings.cfg"
 
 var master := 0.9
@@ -117,7 +120,14 @@ func _notification(what: int) -> void:
 		save()
 
 
-func save() -> void:
+## Changes one setting by name and keeps it.
+func set_value(key: String, value: Variant) -> void:
+	set(key, value)
+	save()
+
+
+## Keeps the settings; `announce` false keeps a dragged slider from rebuilding the window under the pointer.
+func save(announce: bool = true) -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("sound", "master", master)
 	cfg.set_value("sound", "music", music)
@@ -128,6 +138,8 @@ func save() -> void:
 	cfg.set_value("play", "hints", hints)
 	cfg.set_value("play", "language", language)
 	cfg.save(PATH)
+	if announce:
+		changed.emit()
 
 
 ## The interface size after `step`: Normal, Larger, Largest, Smaller, then Normal again.

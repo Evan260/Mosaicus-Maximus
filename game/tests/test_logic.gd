@@ -1521,3 +1521,23 @@ func test_escape_closes_the_top_window_first() -> void:
 	await get_tree().process_frame
 	title._menu.free()
 	title.free()
+
+
+func test_settings_fit_the_smallest_interface_in_every_language() -> void:
+	game.new_game("Settings")
+	for loc in TranslationServer.get_loaded_locales():
+		TranslationServer.set_locale(loc)
+		UiTheme.use_language()
+		var panel := SettingsPanel.open(Nav.ui, true)
+		for t in SettingsPanel.TABS:
+			panel._show(t, true)
+			await get_tree().process_frame
+			await get_tree().process_frame
+			var box := panel.get_theme_stylebox("panel")
+			var chrome: float = panel._head.get_combined_minimum_size().y + panel._tab_row.get_combined_minimum_size().y + 6.0 + box.get_minimum_size().y
+			check(chrome + SettingsPanel.TALLEST <= 262.0, "the settings window's %s tab is short enough for 480 by 270 in %s" % [t, loc])
+			check(panel.get_combined_minimum_size().x <= 472.0, "the settings window's %s tab is narrow enough for 480 by 270 in %s (%d)" % [t, loc, panel.get_combined_minimum_size().x])
+		panel.free()
+	SettingsPanel.tab = "Sound"
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()

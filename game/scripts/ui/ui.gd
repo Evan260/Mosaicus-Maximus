@@ -1,6 +1,11 @@
 class_name Ui
 ## Shorthand for building the interface in code with the game's theme.
 
+## The page of a window, the darker paper of a tab that is not open, and the line round tabs.
+const TAB_OPEN := Color8(240, 226, 192)
+const TAB_SHUT := Color8(214, 190, 146)
+const TAB_EDGE := Color8(160, 122, 84)
+
 
 static func label(parent: Node, text: String, variation: String = "", wrap_width: float = 0.0) -> Label:
 	var l := Label.new()
@@ -65,6 +70,69 @@ static func icon_button(parent: Node, icon_name: String, tip: String, action: Ca
 	tip_on(b, tip)
 	b.custom_minimum_size = Vector2(20, 20)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	return b
+
+
+## A line of a window naming a setting on the left, wrapped if long, with a short button for it on the right.
+static func setting(parent: Node, text: String, value: String, action: Callable, width: float = 270.0) -> Button:
+	var row := hbox(parent, 6)
+	var l := label(row, text, "", width - 76.0)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var b := button(row, value, action)
+	b.custom_minimum_size.x = 70
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return b
+
+
+## A setting that is on or off, shown as a button reading On or Off.
+static func on_off(parent: Node, text: String, on: bool, action: Callable, width: float = 270.0) -> Button:
+	return setting(parent, text, TranslationServer.translate("On") if on else TranslationServer.translate("Off"), action, width)
+
+
+## A row of paper tabs over a page, with a rule along its foot that the open tab stands on.
+static func tab_row(parent: Node) -> HBoxContainer:
+	var r := hbox(parent, 1)
+	r.draw.connect(func() -> void: r.draw_rect(Rect2(0, r.size.y - 1, r.size.x, 1), TAB_EDGE))
+	var indent := Control.new()
+	indent.custom_minimum_size = Vector2(3, 0)
+	r.add_child(indent)
+	return r
+
+
+## A paper tab in a `tab_row`: the open one is taller and the colour of the page, the others shorter and darker.
+static func tab_button(parent: Node, text: String, action: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.toggle_mode = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.size_flags_vertical = Control.SIZE_SHRINK_END
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		var open: bool = state.ends_with("pressed")
+		var box := StyleBoxFlat.new()
+		box.anti_aliasing = false
+		box.bg_color = TAB_OPEN if open else (TAB_SHUT.lightened(0.12) if state == "hover" else TAB_SHUT)
+		box.border_color = TAB_EDGE
+		box.border_width_left = 1
+		box.border_width_right = 1
+		box.border_width_top = 1
+		box.border_width_bottom = 0 if open else 1
+		box.corner_radius_top_left = 2
+		box.corner_radius_top_right = 2
+		box.content_margin_left = 6
+		box.content_margin_right = 6
+		box.content_margin_top = 4 if open else 2
+		box.content_margin_bottom = 3 if open else 2
+		b.add_theme_stylebox_override(state, box)
+	for c in ["font_color", "font_hover_color"]:
+		b.add_theme_color_override(c, UiTheme.MUTED)
+	for c in ["font_pressed_color", "font_hover_pressed_color"]:
+		b.add_theme_color_override(c, UiTheme.INK)
+	b.pressed.connect(func() -> void:
+		Audio.ui("page_turn", -10.0)
+		action.call())
+	parent.add_child(b)
 	return b
 
 
