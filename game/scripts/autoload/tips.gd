@@ -45,7 +45,7 @@ func _process(delta: float) -> void:
 	_wait += delta
 	if _wait < DELAY:
 		return
-	_show(str(owner.get_meta("tip")))
+	_show(tr(str(owner.get_meta("tip"))))
 
 
 func _tip_owner(c: Control) -> Control:
@@ -75,17 +75,27 @@ func _show(text: String) -> void:
 	_panel.position = pos.max(Vector2(2, 2)).floor()
 
 
-## Breaks a tip into lines by hand, since a wrapping label in a self-sizing panel measures itself before it has a width.
+## Breaks a tip into lines by hand, between letters where a language leaves no spaces, as a self-sizing panel can't.
 func _wrap(text: String) -> String:
 	var font := UiTheme.body_font()
+	var size := UiTheme.text_size()
 	var out := PackedStringArray()
 	var line := ""
 	for word in text.split(" "):
 		var next := word if line == "" else line + " " + word
-		if line != "" and font.get_string_size(next, HORIZONTAL_ALIGNMENT_LEFT, -1, UiTheme.TEXT).x > WRAP:
-			out.append(line)
-			line = word
-		else:
+		if font.get_string_size(next, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= WRAP:
 			line = next
+			continue
+		if line != "":
+			out.append(line)
+		line = ""
+		if font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= WRAP:
+			line = word
+			continue
+		for c in word:
+			if line != "" and font.get_string_size(line + c, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > WRAP:
+				out.append(line)
+				line = ""
+			line += c
 	out.append(line)
 	return "\n".join(out)

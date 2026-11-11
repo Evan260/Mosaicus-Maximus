@@ -21,6 +21,8 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(saves.dir))
 	for n in range(1, 4):
 		saves.delete(n)
+	# The checks read the game's English, whatever language the computer is in.
+	TranslationServer.set_locale("en")
 	for t in get_method_list():
 		if str(t["name"]).begins_with("test_"):
 			await call(t["name"])
@@ -772,7 +774,7 @@ func test_everyone_has_their_own_face() -> void:
 		var seen := {}
 		for j in game.state["board"]:
 			if j["kind"] == "commission" and j["client"] == "":
-				var name := str(j["client_name"]).get_slice(",", 0)
+				var name := Ui.text(j["client_name"]).get_slice(",", 0)
 				check(not seen.has(name), "%s is on the board only once (day %d)" % [name, day])
 				seen[name] = true
 	check(JobFactory.pronouns({"portrait": "gaia"})["he"] == "she" and JobFactory.pronouns({"portrait": "lucius"})["he"] == "he", "he or she by each person's own face")
@@ -1138,6 +1140,217 @@ func test_old_floors_keep_their_patterns_on_the_floor() -> void:
 					worst = float(shown) / maxf(1.0, full)
 					at = "%s seed %d, %s" % [room, seed, p["motif"]]
 	check(worst > 0.9, "every motif of an old floor lies on the floor, clear of a pool or an apse (worst %.2f, %s)" % [worst, at])
+
+
+# Translations ------------------------------------------------------------
+
+const SHEET := "res://translations/strings.csv"
+
+
+## The strings sheet as {english: {locale: text}}, or empty in an exported game, which keeps only the translations.
+func _sheet() -> Dictionary:
+	if not FileAccess.file_exists(SHEET):
+		return {}
+	var f := FileAccess.open(SHEET, FileAccess.READ)
+	var header := f.get_csv_line()
+	var rows := {}
+	while not f.eof_reached():
+		var line := f.get_csv_line()
+		if line.size() < header.size():
+			continue
+		var row := {}
+		for i in range(1, header.size()):
+			row[header[i]] = line[i]
+		rows[line[0]] = row
+	return rows
+
+
+## The format codes in a string, sorted: %s, %d, %.1f and %% as Godot reads them, and {name} parts.
+func _placeholders(s: String) -> Array:
+	var out := []
+	var i := 0
+	while i < s.length():
+		var c := s[i]
+		if c == "%":
+			var j := i + 1
+			while j < s.length() and s[j] in "-0123456789.":
+				j += 1
+			if j < s.length() and s[j] in "sdifxXcv%":
+				out.append(s.substr(i, j - i + 1))
+				i = j + 1
+				continue
+		elif c == "{":
+			var close := s.find("}", i)
+			if close > i and s.substr(i + 1, close - i - 1).is_valid_ascii_identifier():
+				out.append(s.substr(i, close - i + 1))
+				i = close + 1
+				continue
+		i += 1
+	out.sort()
+	return out
+
+
+## Every string literal passed to tr(), TranslationServer.translate() or Ui.say() in the game's scripts.
+func _keys_in_scripts() -> Dictionary:
+	var found := {}
+	var dirs := ["res://scripts"]
+	while not dirs.is_empty():
+		var dir: String = dirs.pop_back()
+		for sub in DirAccess.get_directories_at(dir):
+			dirs.append(dir.path_join(sub))
+		for file in DirAccess.get_files_at(dir):
+			if not file.ends_with(".gd"):
+				continue
+			var text := FileAccess.get_file_as_string(dir.path_join(file))
+			for call in ["tr(\"", "translate(\"", "say(\""]:
+				var at := text.find(call)
+				while at >= 0:
+					if call != "tr(\"" or at == 0 or not (text[at - 1].is_valid_identifier() or text[at - 1] == "."):
+						var key := _literal(text, at + call.length())
+						found[key] = "%s/%s" % [dir, file]
+					at = text.find(call, at + 1)
+	return found
+
+
+## The string literal that starts at `from`, just after its opening quote, with its escapes undone.
+func _literal(text: String, from: int) -> String:
+	var out := ""
+	var i := from
+	while i < text.length() and text[i] != "\"":
+		if text[i] == "\\" and i + 1 < text.length():
+			i += 1
+			out += {"n": "\n", "t": "\t"}.get(text[i], text[i])
+		else:
+			out += text[i]
+		i += 1
+	return out
+
+
+func test_every_string_in_the_code_is_in_the_sheet() -> void:
+	var sheet := _sheet()
+	if sheet.is_empty():
+		return
+	var missing := []
+	var keys := _keys_in_scripts()
+	for key in keys:
+		if not sheet.has(key):
+			missing.append("%s (%s)" % [key, keys[key]])
+	var built := []
+	for id in Data.motif_order:
+		built += [str(Data.motif(id)["name"]), Data.motif_lower(id), Data.motif_with_article(id), Brief.wish_key("must", id)]
+	for s in Stones.LIST:
+		built += [str(s["name"]), str(s["name"]).to_lower(), Brief.wish_key("want", s["id"]), Brief.wish_key("ban", s["id"])]
+	for t in Brief.TAG_WORDS:
+		built += [Brief.TAG_WORDS[t], Brief.wish_key("tag", t)]
+	for id in Data.rooms:
+		built += [str(Data.room(id)["name"]), str(Data.room(id)["name"]).to_lower()]
+	for id in Data.border_order:
+		built += [str(Data.borders[id]["name"]), str(Data.borders[id]["name"]).to_lower()]
+	for id in Data.upgrade_order:
+		built += [str(Data.upgrades[id]["name"]), str(Data.upgrades[id]["name"]).to_lower(), str(Data.upgrades[id]["text"])]
+	for t in Looks.TASTES:
+		built += [Looks.TASTES[t]["text"], Looks.TASTES[t]["likes"], Looks.TASTES[t]["also"]] + Looks.TASTE_SAID[t]
+	for q in Looks.QUALITIES:
+		built += [Looks.NAMES[q], Looks.ABOUT[q], Looks.PRAISE[q], Looks.COMPLAINTS[q]]
+	for c in Data.client_order:
+		var client := Data.client(c)
+		built += [str(client["name"]), str(client["trade"]), str(client["greeting"])]
+		for beat in client["arc"]:
+			built += [str(beat["line"]), str(beat["after"])]
+	for group in ["townsfolk", "collectors"]:
+		for p in Data.people[group]:
+			built.append(str(p["name"]))
+			if p.has("trade"):
+				built.append(str(p["trade"]))
+	for p in Data.people["finders"]:
+		built.append(str(p["who"]))
+	for line in Data.names["wants"] + Data.names["gossip"]:
+		built.append(str(line))
+	for ch in Data.chapters:
+		built += [str(ch["title"]), str(ch["text"])]
+	for a in Data.achievements:
+		built += [str(a["name"]), str(a["text"])]
+	for f in Data.festivals:
+		built += [str(f["name"]), str(f["text"])]
+	for key in built:
+		if not sheet.has(key):
+			missing.append(key)
+	check(missing.is_empty(), "every string the game shows is in the strings sheet (missing %s)" % ", ".join(missing.slice(0, 8)))
+
+
+func test_every_language_has_every_string() -> void:
+	var sheet := _sheet()
+	if sheet.is_empty():
+		return
+	var gaps := {}
+	for key in sheet:
+		for loc in sheet[key]:
+			if str(sheet[key][loc]).strip_edges() == "":
+				gaps[loc] = int(gaps.get(loc, 0)) + 1
+	check(gaps.is_empty(), "every language has every string (missing %s)" % str(gaps))
+	check((sheet.values()[0] as Dictionary).size() == 14, "the sheet has all 14 languages")
+
+
+func test_translations_keep_their_placeholders() -> void:
+	var sheet := _sheet()
+	var wrong := []
+	for key in sheet:
+		var want := _placeholders(key)
+		for loc in sheet[key]:
+			if _placeholders(str(sheet[key][loc])) != want:
+				wrong.append("%s in %s" % [key, loc])
+	check(wrong.is_empty(), "every translation keeps the English placeholders (%d wrong: %s)" % [wrong.size(), ", ".join(wrong.slice(0, 6))])
+
+
+func test_every_language_is_offered() -> void:
+	var have := TranslationServer.get_loaded_locales()
+	for loc in SettingsPanel.NATIVE_NAMES:
+		check(loc in have, "%s is loaded and offered in the settings" % loc)
+
+
+func test_fonts_have_every_letter() -> void:
+	var sheet := _sheet()
+	var missing := {}
+	for key in sheet:
+		for loc in sheet[key]:
+			var font := UiTheme.body_font(loc)
+			for c in str(sheet[key][loc]):
+				if c != "\n" and c != " " and not font.has_char(c.unicode_at(0)):
+					missing[loc] = str(missing.get(loc, "")) + c
+	for loc in SettingsPanel.NATIVE_NAMES:
+		for c in str(SettingsPanel.NATIVE_NAMES[loc]):
+			if c != " " and not UiTheme.body_font(loc).has_char(c.unicode_at(0)):
+				missing[loc] = str(missing.get(loc, "")) + c
+	check(missing.is_empty(), "every language's font draws all its letters (missing %s)" % str(missing))
+
+
+func test_kept_words_follow_the_language() -> void:
+	var rng := _seeded_rng(4)
+	game.new_game("Words")
+	var job := JobFactory.copy(game.state, rng)
+	var english := Ui.text(job["line"])
+	check(english.begins_with(Ui.text(Data.people["collectors"][0]["name"])) or english.contains("wants the famous floor"), "a copy's notice reads in English (%s)" % english)
+	TranslationServer.set_locale("de")
+	var german := Ui.text(job["line"])
+	check(german != english and not german.contains("%") and not german.contains("{"), "the same notice reads in German once German is chosen (%s)" % german)
+	check(Ui.coins_text(2) != "2 denarii" and Ui.coins_text(2).begins_with("2"), "money is counted in German too (%s)" % Ui.coins_text(2))
+	TranslationServer.set_locale("en")
+	check(Ui.text(job["line"]) == english, "and in English again")
+
+
+func test_every_script_compiles() -> void:
+	var broken := []
+	var dirs := ["res://scripts"]
+	while not dirs.is_empty():
+		var dir: String = dirs.pop_back()
+		for sub in DirAccess.get_directories_at(dir):
+			dirs.append(dir.path_join(sub))
+		for file in DirAccess.get_files_at(dir):
+			if file.ends_with(".gd"):
+				var script: Script = load(dir.path_join(file))
+				if script == null or not script.can_instantiate():
+					broken.append(file)
+	check(broken.is_empty(), "every script compiles (broken: %s)" % ", ".join(broken))
 
 
 func test_a_picture_smaller_than_the_window_fades_at_its_edges() -> void:

@@ -79,7 +79,7 @@ func _process(_delta: float) -> void:
 			_hint.text = "Pick the trowel from the tray below." if tool == "" else "Scrape the dirt away to find the old floor underneath."
 		FloorView.Phase.REPAIR:
 			var left := fv.gaps_left()
-			_title.text = "Fill the gaps" if left == 0 else "Fill the gaps: %d left" % left
+			_title.text = tr("Fill the gaps") if left == 0 else tr("Fill the gaps: %d left") % left
 			if fv.repairs_done():
 				_hint.text = "Every gap is filled. Check your stones, then press Done."
 			elif tool == "lift":
@@ -142,7 +142,7 @@ func _build_tray() -> void:
 			var order := fv.stones_used()
 			for k in order.size():
 				var st: int = order[k]
-				var b := _tray_button(MotifIcons.swatch(Stones.id_of(st), 12), "%s (%d)" % [Stones.LIST[st]["name"], k + 1] if k < 9 else str(Stones.LIST[st]["name"]), func() -> void: screen.select_stone(st))
+				var b := _tray_button(MotifIcons.swatch(Stones.id_of(st), 12), "%s (%d)" % [Stones.title(Stones.id_of(st)), k + 1] if k < 9 else Stones.title(Stones.id_of(st)), func() -> void: screen.select_stone(st))
 				b.custom_minimum_size = Vector2(34, 22)
 				_buttons[st] = b
 		FloorView.Phase.DIG:
@@ -154,7 +154,7 @@ func _build_tray() -> void:
 					ids.append(Stones.id_of(st))
 			for id in ids:
 				var st := Stones.index(id)
-				_buttons[st] = _tray_button(MotifIcons.swatch(id, 12), Stones.LIST[st]["name"], func() -> void: screen.select_repair_stone(st))
+				_buttons[st] = _tray_button(MotifIcons.swatch(id, 12), Stones.title(id), func() -> void: screen.select_repair_stone(st))
 			_buttons["lift"] = _tray_button(UiTheme.icon("chisel"), "Chisel: lift out a tile you set", func() -> void: screen.select_tool("lift"))
 			# These have no count beside them, so the picture sits in the middle of its square.
 			for key in _buttons:

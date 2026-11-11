@@ -15,7 +15,7 @@ func _build() -> void:
 	var have: Array = Game.state.get("achievements", [])
 	var col := Ui.vbox(self, 4)
 	Ui.label(col, "Achievements", "Heading").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var count := Ui.label(col, "%d of %d earned" % [have.size(), Achievements.all().size()], "MutedLabel")
+	var count := Ui.label(col, tr("%d of %d earned") % [have.size(), Achievements.all().size()], "MutedLabel")
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -31,8 +31,8 @@ func _build() -> void:
 		var icon := Ui.icon(row, "laurel" if earned else "lock")
 		icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		var text := Ui.vbox(row, 0)
-		Ui.label(text, str(a["name"]), "Heading" if earned else "MutedLabel")
-		Ui.label(text, str(a["text"]), "" if earned else "MutedLabel", 220)
+		Ui.label(text, tr(str(a["name"])), "Heading" if earned else "MutedLabel", 220)
+		Ui.label(text, tr(str(a["text"])), "" if earned else "MutedLabel", 220)
 	var done := Ui.button(col, "Done", func() -> void: queue_free(), "tick", true)
 	done.size_flags_horizontal = Control.SIZE_SHRINK_END
 	Nav.resized.connect(_place)

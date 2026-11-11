@@ -2,9 +2,9 @@
 	"wealth": {"a goldsmith": 1.4, "a perfumer": 1.25, "a wine seller": 1.2, "a shipwright": 1.15, "a fuller": 0.9, "a cobbler": 0.85, "a barber": 0.85},
 	"likes": {"a fishmonger": ["sea"], "a wine seller": ["wine"], "a cook": ["feast"], "a shipwright": ["trade", "sea"], "a schoolmaster": ["myth"], "a perfumer": ["garden"], "a goldsmith": ["myth"]},
 	"wants": [
-		"wants something cheerful for the {room}.", "has saved for years for a proper floor in the {room}.",
-		"says the old floor in the {room} has more holes than floor.", "wants to impress the neighbours.",
-		"is tired of an earth floor in the {room}.", "heard about your work from a friend."
+		"{name} wants something cheerful for the {room}.", "{name} has saved for years for a proper floor in the {room}.",
+		"{name} says the old floor in the {room} has more holes than floor.", "{name} wants to impress the neighbours.",
+		"{name} is tired of an earth floor in the {room}.", "{name} heard about your work from a friend."
 	],
 	"gossip": [
 		"They say the rival workshop on the hill used painted clay instead of marble. It washed off in the rain.",

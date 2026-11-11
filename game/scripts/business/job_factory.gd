@@ -37,7 +37,7 @@ static func board(state: Dictionary, rng: RandomNumberGenerator) -> Array:
 				job["brief"]["tags"].push_front(tag)
 				job["budget"] = int(job["budget"] * Data.num("festival.pay_scale", 1.25))
 				job["festival"] = fest["id"]
-				job["line"] = str(job["line"]) + " It's the %s, after all!" % fest["name"]
+				job["line"] = [job["line"], Ui.say("It's the %s, after all!", [fest["name"]])]
 	if int(state["day"]) % int(Data.num("contest.every", 7)) == 0:
 		var entry := contest(state, rng)
 		entry["id"] = "%d_contest" % int(state["day"])
@@ -57,7 +57,7 @@ static func board(state: Dictionary, rng: RandomNumberGenerator) -> Array:
 		if not affordable(jobs[k], state):
 			var fresh := restoration(state, rng, true)
 			for _try in 6:
-				if not jobs.any(func(j: Dictionary) -> bool: return j["client_name"] == fresh["client_name"] and j["room"] == fresh["room"]):
+				if not jobs.any(func(j: Dictionary) -> bool: return str(j["client_name"]) == str(fresh["client_name"]) and j["room"] == fresh["room"]):
 					break
 				fresh = restoration(state, rng, true)
 			jobs[k] = fresh
@@ -113,7 +113,7 @@ static func _named(id: String, state: Dictionary, rng: RandomNumberGenerator) ->
 		var d := RandomDesign.make(room, 4, rng)
 		job.merge({"client": id, "client_name": c["name"], "portrait": c.get("portrait", ""), "woman": str(c.get("portrait", "")) in WOMEN, "room": room, "design": d.to_dict(),
 			"severity": 0.3, "budget": int(_area(room) * 0.14), "arc_step": step, "line": beat.get("line", ""), "greeting": c.get("greeting", ""),
-			"text": "%s needs the floor under the forum restored." % c["name"]}, true)
+			"text": Ui.say("%s needs the floor under the forum restored.", [c["name"]])}, true)
 		return job
 	var brief := {"tags": beat.get("tags", []), "must": beat.get("must", []), "want_stones": beat.get("want_stones", []),
 		"ban_stones": (c.get("hates", []) as Array).duplicate(), "border": bool(beat.get("border", false)), "min_motifs": int(beat.get("min_motifs", 0))}
@@ -126,7 +126,7 @@ static func _named(id: String, state: Dictionary, rng: RandomNumberGenerator) ->
 	var budget := int(rng.randi_range(int(b[0]), int(b[1])) * clampf(area / 1600.0, 0.8, Data.num("budget.named_scale_max", 1.8)))
 	return {"kind": "commission", "client": id, "client_name": c["name"], "trade": c.get("trade", ""), "portrait": c.get("portrait", ""),
 		"room": room, "brief": brief, "budget": budget, "arc_step": step, "line": beat.get("line", c.get("greeting", "")), "taste": c.get("taste", []),
-		"greeting": c.get("greeting", ""), "text": "%s, %s, wants a new floor for the %s." % [c["name"], c.get("trade", ""), str(Data.room(room).get("name", room)).to_lower()]}
+		"greeting": c.get("greeting", ""), "text": Ui.say("%s, %s, wants a new floor for the %s.", [c["name"], c.get("trade", ""), str(Data.room(room).get("name", room)).to_lower()])}
 
 
 ## The room a client's story step is set in: the step's own, or the client's room for that step, the last for any after.
@@ -176,18 +176,19 @@ static func _townsfolk(state: Dictionary, rng: RandomNumberGenerator, small: boo
 	var wealth := float(names.get("wealth", {}).get(trade, 1.0))
 	var rate := Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter
 	var budget := int(_area(room) * rate * wealth * rng.randf_range(0.88, 1.15))
-	var want: String = str(names["wants"][rng.randi() % names["wants"].size()]).replace("{room}", str(Data.room(room).get("name", room)).to_lower())
+	var want := str(names["wants"][rng.randi() % names["wants"].size()])
 	if wall:
-		want = "wants a wall mosaic that glitters in the fountain niche."
+		want = "{name} wants a wall mosaic that glitters in the fountain niche."
+	var room_name := str(Data.room(room).get("name", room)).to_lower()
 	var taste := []
-	var line := "%s %s" % [first, want]
+	var line: Array = [Ui.say(want, {"name": first, "room": room_name})]
 	if rng.randf() < Data.num("board.townsfolk_taste", 0.7):
 		var t: String = Looks.TASTES.keys()[rng.randi() % Looks.TASTES.size()]
 		taste = [t]
-		line += " %s also %s." % [first, Looks.TASTES[t]["text"]]
-	return {"kind": "commission", "client": "", "client_name": "%s, %s" % [first, trade], "trade": trade, "portrait": Data.face(who), "woman": who["woman"],
+		line.append(Ui.say(Looks.TASTES[t]["also"], [first]))
+	return {"kind": "commission", "client": "", "client_name": Ui.say("%s, %s", [first, trade]), "trade": trade, "portrait": Data.face(who), "woman": who["woman"],
 		"room": room, "brief": brief, "budget": budget, "arc_step": -1, "line": line, "greeting": "", "taste": taste, "taste_said": true,
-		"text": "%s, %s, %s" % [first, trade, want]}
+		"text": Ui.say(want, {"name": Ui.say("%s, %s,", [first, trade]), "room": room_name})}
 
 
 ## A collector wants a famous floor copied from a rubbing, in a room small enough to copy in one go.
@@ -206,10 +207,10 @@ static func copy(state: Dictionary, rng: RandomNumberGenerator, used: Dictionary
 	var place: String = places[rng.randi() % places.size()]
 	var rate := Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter
 	var budget := int(_area(room) * rate * Data.num("budget.copy_scale", 1.3) * rng.randf_range(0.9, 1.1))
-	return {"kind": "copy", "client": "", "client_name": "%s, a collector" % first, "trade": "a collector", "portrait": Data.face(who), "woman": who["woman"],
+	return {"kind": "copy", "client": "", "client_name": Ui.say("%s, a collector", [first]), "trade": "a collector", "portrait": Data.face(who), "woman": who["woman"],
 		"room": room, "brief": {}, "target": target.to_dict(), "budget": budget, "arc_step": -1, "taste": [], "greeting": "",
-		"line": "%s wants the famous floor from %s copied, stone for stone. Here is a painted sketch of it." % [first, place],
-		"text": "%s wants a famous floor copied." % first}
+		"line": Ui.say("%s wants the famous floor from %s copied, stone for stone. Here is a painted sketch of it.", [first, place]),
+		"text": Ui.say("%s wants a famous floor copied.", [first])}
 
 
 ## The town's floor contest: no client and no brief, judged on looks alone against the rival workshop's entry.
@@ -223,8 +224,8 @@ static func contest(state: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 	var prize := int(Data.num("contest.prize", 100) + Data.num("contest.prize_per_chapter", 50) * chapter)
 	return {"kind": "contest", "client": "", "client_name": "The town's floor contest", "trade": "", "portrait": Data.face(Data.people.get("herald", {})), "woman": false,
 		"room": room, "brief": {}, "budget": prize, "arc_step": -1, "taste": [], "rival": rival, "greeting": "",
-		"line": "The aediles are holding the floor contest again. The judges look at nothing but how a floor looks, and the rival workshop has entered. The winner takes %s." % Ui.coins_text(prize),
-		"text": "The floor contest: the finest new floor wins %s." % Ui.coins_text(prize)}
+		"line": Ui.say("The aediles are holding the floor contest again. The judges look at nothing but how a floor looks, and the rival workshop has entered. The winner takes %s.", [Ui.coins(prize)]),
+		"text": Ui.say("The floor contest: the finest new floor wins %s.", [Ui.coins(prize)])}
 
 
 ## Swaps any stone or border the player can't use yet for the nearest one they can, so a copy can always be made.
@@ -272,8 +273,8 @@ static func restoration(state: Dictionary, rng: RandomNumberGenerator, small: bo
 	var budget := int(_area(room) * (Data.num("budget.per_tile", 0.038) + Data.num("budget.per_tile_per_chapter", 0.012) * chapter) * 0.9 * rng.randf_range(0.9, 1.1))
 	return {"kind": "restoration", "client": "", "client_name": who, "trade": "", "portrait": Data.face(finder), "woman": finder["woman"],
 		"room": room, "brief": {}, "budget": budget, "arc_step": -1, "design": design.to_dict(), "severity": rng.randf_range(0.18, 0.28 + 0.05 * chapter),
-		"line": "%s found an old floor under the dirt. Can you bring it back?" % who + (" Part of it looks like no pattern anyone in town has seen in years." if found != "" else ""),
-		"greeting": "", "discovery": found, "text": "%s found an old floor. Clean it and mend it." % who}
+		"line": [Ui.say("%s found an old floor under the dirt. Can you bring it back?", [who]), "Part of it looks like no pattern anyone in town has seen in years." if found != "" else ""],
+		"greeting": "", "discovery": found, "text": Ui.say("%s found an old floor. Clean it and mend it.", [who])}
 
 
 ## Puts an unowned pattern from up to a chapter ahead at the heart of an old floor; restoring it adds it to the book.

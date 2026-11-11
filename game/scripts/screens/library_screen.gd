@@ -49,7 +49,7 @@ func enter(args: Dictionary) -> void:
 	Ui.label(col, "Your library", "Heading").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var count := Ui.label(col, "", "MutedLabel")
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	count.text = "No floors kept yet" if _entries.is_empty() else "%d floor%s kept" % [_entries.size(), "" if _entries.size() == 1 else "s"]
+	count.text = tr("No floors kept yet") if _entries.is_empty() else tr("1 floor kept") if _entries.size() == 1 else tr("%d floors kept") % _entries.size()
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -140,9 +140,9 @@ func _fit_view() -> void:
 
 
 func _title_of(e: Dictionary) -> String:
-	var room := str(Data.room(str(e.get("room", ""))).get("name", "Floor"))
-	var who := str(e.get("client_name", ""))
-	return room if who == "" else "%s, for %s" % [room, who]
+	var room := Data.room_title(str(e.get("room", ""))) if Data.rooms.has(str(e.get("room", ""))) else tr("Floor")
+	var who := Ui.text(e.get("client_name", ""))
+	return room if who == "" else tr("%s, for %s") % [room, who]
 
 
 func _choose(e: Dictionary) -> void:
@@ -155,13 +155,13 @@ func _choose(e: Dictionary) -> void:
 	_title.text = _title_of(e)
 	var bits := []
 	if str(e.get("workshop", "")) != "":
-		bits.append("%s's workshop" % e["workshop"])
+		bits.append(tr("%s's workshop") % e["workshop"])
 	if int(e.get("day", 0)) > 0:
-		bits.append("day %d" % int(e["day"]))
-	bits.append("%d tiles" % int(e.get("tiles", 0)))
+		bits.append(tr("day %d") % int(e["day"]))
+	bits.append(tr("%d tiles") % int(e.get("tiles", 0)))
 	if int(e.get("stars", 0)) > 0:
-		bits.append("%d star%s" % [int(e["stars"]), "" if int(e["stars"]) == 1 else "s"])
-	var line := ", ".join(bits)
+		bits.append(tr("1 star") if int(e["stars"]) == 1 else tr("%d stars") % int(e["stars"]))
+	var line := tr(", ").join(bits)
 	_info.text = line[0].to_upper() + line.substr(1)
 	_note.text = ""
 	_after_build.clear()

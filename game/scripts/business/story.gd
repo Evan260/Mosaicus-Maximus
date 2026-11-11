@@ -25,8 +25,8 @@ static func morning(state: Dictionary) -> void:
 		var f := festival(state)
 		var tag := festival_tag(state, f) if not f.is_empty() else ""
 		if tag != "":
-			state["pending_events"].append({"kind": "festival", "title": "The %s" % f["name"],
-				"text": "%s Floors that show %s pay more today, and the finest wins the festival prize of %s." % [f["text"], Brief.TAG_WORDS.get(tag, tag), Ui.coins_text(festival_prize(state))]})
+			state["pending_events"].append({"kind": "festival", "title": Ui.say("The %s", [f["name"]]),
+				"text": [f["text"], Ui.say("Floors that show %s pay more today, and the finest wins the festival prize of %s.", [Brief.TAG_WORDS.get(tag, tag), Ui.coins(festival_prize(state))])]})
 		_ship(state, rng)
 		_dog_dig(state, rng)
 
@@ -57,19 +57,23 @@ static func _dog_dig(state: Dictionary, rng: RandomNumberGenerator) -> void:
 	var day := int(state["day"])
 	if day < 3 or day - int(state.get("dog_dig_day", -99)) < int(Data.num("dog.dig_gap", 4)) or rng.randf() > Data.num("dog.dig_chance", 0.2):
 		return
-	var dog := str((state.get("dog", {}) as Dictionary).get("name", "The dog"))
+	var dog := str((state.get("dog", {}) as Dictionary).get("name", ""))
 	var job := JobFactory.restoration(state, rng, true)
 	var neighbour: Dictionary = Data.people.get("neighbour", {})
 	job.merge({"id": "%d_dog" % day, "client_name": "Your neighbour", "dog": true, "portrait": Data.face(neighbour), "woman": bool(neighbour.get("woman", true)),
-		"line": "%s dug a hole in the yard next door, and at the bottom of it is an old floor. Your neighbour would like it brought back." % dog,
-		"text": "%s found an old floor next door." % dog}, true)
+		"line": Ui.say("%s dug a hole in the yard next door, and at the bottom of it is an old floor. Your neighbour would like it brought back.", [dog]) if dog != "" else "The dog dug a hole in the yard next door, and at the bottom of it is an old floor. Your neighbour would like it brought back.",
+		"text": Ui.say("%s found an old floor next door.", [dog]) if dog != "" else "The dog found an old floor next door."}, true)
 	state["board"].append(job)
 	state["dog_dig_day"] = day
 	var stats: Dictionary = state.get("stats", {})
 	stats["dog_digs"] = int(stats.get("dog_digs", 0)) + 1
 	state["stats"] = stats
-	state["pending_events"].append({"kind": "dog", "title": "%s found something" % dog,
-		"text": "%s came home covered in dirt. Next door, at the bottom of a fresh hole, is the corner of an old mosaic floor. It's on the job board." % dog})
+	if dog == "":
+		state["pending_events"].append({"kind": "dog", "title": "The dog found something",
+			"text": "The dog came home covered in dirt. Next door, at the bottom of a fresh hole, is the corner of an old mosaic floor. It's on the job board."})
+		return
+	state["pending_events"].append({"kind": "dog", "title": Ui.say("%s found something", [dog]),
+		"text": Ui.say("%s came home covered in dirt. Next door, at the bottom of a fresh hole, is the corner of an old mosaic floor. It's on the job board.", [dog])})
 
 
 ## A merchant ship, today only: a stone the town can't usually get, a chapter ahead, or once it has them all, a rare one for less.
@@ -90,9 +94,9 @@ static func _ship(state: Dictionary, rng: RandomNumberGenerator) -> void:
 	var ports := ["Alexandria", "Carthage", "Athens", "Antioch", "Massilia"]
 	var port: String = ports[rng.randi() % ports.size()]
 	state["ship"] = {"day": day, "stone": stone["id"], "port": port, "bargain": bargain}
-	var text := "A ship from %s has come in with %s. The stone merchant has it today only; buy a sack and it's yours to use from now on." % [port, str(stone["name"]).to_lower()]
+	var text := Ui.say("A ship from %s has come in with %s. The stone merchant has it today only; buy a sack and it's yours to use from now on.", [port, str(stone["name"]).to_lower()])
 	if bargain:
-		text = "A ship from %s has come in with %s. The stone merchant has a sack of it today, for less than the usual price." % [port, str(stone["name"]).to_lower()]
+		text = Ui.say("A ship from %s has come in with %s. The stone merchant has a sack of it today, for less than the usual price.", [port, str(stone["name"]).to_lower()])
 	state["pending_events"].append({"kind": "ship", "title": "A ship in the harbour", "text": text})
 
 
@@ -113,10 +117,11 @@ static func ship_offer(state: Dictionary) -> String:
 	if id == "":
 		return ""
 	var ship: Dictionary = state["ship"]
-	var name := str(Stones.LIST[Stones.index(id)]["name"])
+	var name := Stones.title(id)
+	var port := TranslationServer.translate(str(ship.get("port", "Alexandria")))
 	if bool(ship.get("bargain", false)):
-		return "%s, off the ship from %s. Today only: one sack, for less than the shelf price." % [name, ship.get("port", "abroad")]
-	return "%s, off the ship from %s. Today only: buy a sack and it's yours to use from now on." % [name, ship.get("port", "abroad")]
+		return TranslationServer.translate("%s, off the ship from %s. Today only: one sack, for less than the shelf price.") % [name, port]
+	return TranslationServer.translate("%s, off the ship from %s. Today only: buy a sack and it's yours to use from now on.") % [name, port]
 
 
 ## What the player knows of a job's client's taste: what townsfolk said, or what a named client showed before.
@@ -162,8 +167,8 @@ static func finish_job(state: Dictionary, job: Dictionary, result: Dictionary) -
 		if not f["id"] in won:
 			won.append(f["id"])
 		stats["festivals"] = won
-		events.append({"kind": "festival", "title": "The %s prize" % f["name"],
-			"text": "The judges of the %s walked the town all day, and they chose your floor. The prize of %s is yours." % [f["name"], Ui.coins_text(prize)]})
+		events.append({"kind": "festival", "title": Ui.say("The %s prize", [f["name"]]),
+			"text": Ui.say("The judges of the %s walked the town all day, and they chose your floor. The prize of %s is yours.", [f["name"], Ui.coins(prize)])})
 	var found: String = job.get("discovery", "")
 	if found != "" and not found in state["unlocked_motifs"]:
 		state["unlocked_motifs"].append(found)
@@ -180,7 +185,7 @@ static func finish_job(state: Dictionary, job: Dictionary, result: Dictionary) -
 		elif score < Data.num("reputation.unhappy_below", 0.45):
 			progress["away_until"] = int(state["day"]) + 5
 			state["rival"]["stolen"] = int(state["rival"].get("stolen", 0)) + 1
-			events.append({"kind": "unhappy", "client": id, "text": "%s will try the rival workshop for a while." % c.get("name", id)})
+			events.append({"kind": "unhappy", "client": id, "text": Ui.say("%s will try the rival workshop for a while.", [c.get("name", id)])})
 		state["clients"][id] = progress
 	state["jobs_today"] = int(state["jobs_today"]) + 1
 	state["active_job"] = {}
@@ -199,29 +204,29 @@ static func check_chapters(state: Dictionary) -> Array:
 	return events
 
 
-## What opening chapter n adds to the workshop, one line for each kind of thing.
+## What opening chapter n adds to the workshop, one line for each kind of thing, in the player's language.
 static func chapter_unlocks(n: int) -> Array:
 	var lines := []
-	var stones := Stones.LIST.filter(func(s: Dictionary) -> bool: return int(s["tier"]) == n).map(func(s: Dictionary) -> String: return str(s["name"]).to_lower())
+	var stones := Stones.LIST.filter(func(s: Dictionary) -> bool: return int(s["tier"]) == n).map(func(s: Dictionary) -> String: return Stones.lower(s["id"]))
 	if not stones.is_empty():
-		lines.append("Stone: " + _list(stones))
+		lines.append(TranslationServer.translate("Stone: %s") % _list(stones))
 	var motifs := Data.motif_order.filter(func(id: String) -> bool: return int(Data.motif(id).get("tier", 1)) == n)
 	if not motifs.is_empty():
-		lines.append("Patterns: " + _list(motifs.map(func(id: String) -> String: return Data.motif_name(id))))
+		lines.append(TranslationServer.translate("Patterns: %s") % _list(motifs.map(func(id: String) -> String: return Data.motif_name(id))))
 	var borders := Data.border_order.filter(func(id: String) -> bool: return int(Data.borders[id].get("tier", 1)) == n)
 	if not borders.is_empty():
-		lines.append("Borders: " + _list(borders.map(func(id: String) -> String: return str(Data.borders[id].get("name", id)).to_lower())))
+		lines.append(TranslationServer.translate("Borders: %s") % _list(borders.map(func(id: String) -> String: return Data.border_name(id))))
 	if n == 3:
-		lines.append("Small tiles, half the size, for faces and fine detail")
+		lines.append(TranslationServer.translate("Small tiles, half the size, for faces and fine detail"))
 	var rooms := Data.job_rooms().filter(func(id: String) -> bool: return int(Data.room(id).get("tier", 1)) == n)
 	if not rooms.is_empty():
-		lines.append("Rooms: " + _list(rooms.map(func(id: String) -> String: return str(Data.room(id).get("name", id)).to_lower())))
+		lines.append(TranslationServer.translate("Rooms: %s") % _list(rooms.map(func(id: String) -> String: return Data.room_name(id))))
 	var clients := Data.client_order.filter(func(id: String) -> bool: return int(Data.client(id).get("chapter", 1)) == n)
 	if not clients.is_empty():
-		lines.append("Clients: " + _list(clients.map(func(id: String) -> String: return str(Data.client(id)["name"]))))
+		lines.append(TranslationServer.translate("Clients: %s") % _list(clients.map(func(id: String) -> String: return TranslationServer.translate(str(Data.client(id)["name"])))))
 	var upgrades := Data.upgrade_order.filter(func(id: String) -> bool: return int(Data.upgrades[id].get("chapter", 1)) == n)
 	if not upgrades.is_empty() and n > 1:
-		lines.append("To buy: " + _list(upgrades.map(func(id: String) -> String: return str(Data.upgrades[id]["name"]).to_lower())))
+		lines.append(TranslationServer.translate("To buy: %s") % _list(upgrades.map(func(id: String) -> String: return TranslationServer.translate(str(Data.upgrades[id]["name"]).to_lower()))))
 	return lines
 
 
@@ -231,18 +236,17 @@ static func next_chapter_line(state: Dictionary, extra: int = 0, brief: bool = f
 	if next.is_empty():
 		return ""
 	var n := int(next["n"])
+	var title := TranslationServer.translate(str(next["title"]))
 	var short := int(next["reputation"]) - int(state["reputation"]) - extra
 	if short <= 0:
-		return "Enough for chapter %d!" % n if brief else "Enough reputation for chapter %d: %s!" % [n, next["title"]]
-	return "%d more reputation for chapter %d" % [short, n] if brief else "%d more reputation opens chapter %d: %s" % [short, n, next["title"]]
+		return TranslationServer.translate("Enough for chapter %d!") % n if brief else TranslationServer.translate("Enough reputation for chapter %d: %s!") % [n, title]
+	return TranslationServer.translate("%d more reputation for chapter %d") % [short, n] if brief else TranslationServer.translate("%d more reputation opens chapter %d: %s") % [short, n, title]
 
 
 static func _list(names: Array, most: int = 5) -> String:
 	if names.size() > most:
-		return ", ".join(names.slice(0, most - 1)) + " and %d more" % (names.size() - most + 1)
-	if names.size() == 1:
-		return str(names[0])
-	return ", ".join(names.slice(0, names.size() - 1)) + " and " + str(names[-1])
+		return String(TranslationServer.translate(", ")).join(names.slice(0, most - 1)) + TranslationServer.translate(" and %d more") % (names.size() - most + 1)
+	return Ui.list(names)
 
 
 ## Opens a chapter: its stones, motifs and borders join the workshop, each only once.

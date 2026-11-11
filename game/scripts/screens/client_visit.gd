@@ -38,17 +38,17 @@ func enter(args: Dictionary) -> void:
 	var row := Ui.hbox(_card, 8)
 	var left := Ui.vbox(row, 4)
 	left.add_child(JobBoard._portrait(job.get("portrait", ""), 64))
-	Ui.label(left, str(job.get("client_name", "")), "Heading", 90)
+	Ui.label(left, Ui.text(job.get("client_name", "")), "Heading", 90)
 	var room := Data.room(job.get("room", ""))
-	Ui.label(left, "%s, %d by %d tiles" % [room.get("name", ""), int(room.get("w", 0)), int(room.get("h", 0))], "MutedLabel", 90)
+	Ui.label(left, tr("%s, %d by %d tiles") % [Data.room_title(job.get("room", "")), int(room.get("w", 0)), int(room.get("h", 0))], "MutedLabel", 90)
 	var right := Ui.vbox(row, 4)
 	var bubble := Ui.panel(right, "CardPanel")
 	_speech = Ui.label(bubble, _opening_line(), "", 290)
-	var p := JobFactory.pronouns(job)
+	var she: bool = JobFactory.pronouns(job)["he"] == "she"
 	if kind == "commission":
 		var wishes := Brief.score(job.get("brief", {}), FloorDesign.new())["wishes"] as Array
 		if not wishes.is_empty():
-			Ui.label(right, "What %s wants" % p["he"], "Heading")
+			Ui.label(right, "What she wants" if she else "What he wants", "Heading", 290)
 		_wishes = ScrollContainer.new()
 		_wishes.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		right.add_child(_wishes)
@@ -58,7 +58,7 @@ func enter(args: Dictionary) -> void:
 			Ui.tip_on(Ui.label(list, "• " + str(w["text"]), "", 290), Brief.help(w, Game.state["unlocked_motifs"]))
 		var known := Story.known_taste(Game.state, job)
 		if not known.is_empty() and not bool(job.get("taste_said", false)):
-			Ui.label(list, "From your notebook: %s " % p["he"] + " and ".join(known.map(func(t: String) -> String: return Looks.TASTES[t]["text"])) + ".", "MutedLabel", 290)
+			Ui.label(list, (tr("From your notebook: she %s.") if she else tr("From your notebook: he %s.")) % Looks.tastes_words(known), "MutedLabel", 290)
 		_wishes.visible = list.get_child_count() > 0
 	elif kind == "copy":
 		var sketch := TextureRect.new()
@@ -67,16 +67,16 @@ func enter(args: Dictionary) -> void:
 		sketch.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		sketch.custom_minimum_size = Vector2(150, 76)
 		right.add_child(sketch)
-		Ui.label(right, "%s pays for likeness: the closer the copy, the more." % p["he"].capitalize(), "MutedLabel", 290)
+		Ui.label(right, "She pays for likeness: the closer the copy, the more." if she else "He pays for likeness: the closer the copy, the more.", "MutedLabel", 290)
 	var budget := int(job.get("budget", 0))
 	if kind == "contest":
-		Ui.label(right, "The prize is %s. You pay for your own stone." % Ui.coins_text(budget), "", 290)
+		Ui.label(right, tr("The prize is %s. You pay for your own stone.") % Ui.coins_text(budget), "", 290)
 		job["asked"] = 0
 		job["expected"] = 0.0
 		_shake = Ui.button(right, "Enter the contest", _take, "tick", true)
 		Ui.button(right, "Not this time", _decline, "cross")
 	elif restore:
-		Ui.label(right, "%s pays %s, and supplies the stone for any repairs." % [p["he"].capitalize(), Ui.coins_text(budget)], "", 230)
+		Ui.label(right, (tr("She pays %s, and supplies the stone for any repairs.") if she else tr("He pays %s, and supplies the stone for any repairs.")) % Ui.coins_text(budget), "", 230)
 		job["asked"] = budget
 		job["expected"] = 0.5
 		_shake = Ui.button(right, "Take the job", _take, "tick", true)
@@ -104,7 +104,7 @@ func enter(args: Dictionary) -> void:
 	_place.call_deferred()
 	Audio.ui("rustle", -8.0)
 	if str(job.get("kind", "commission")) in ["commission", "copy"]:
-		Guide.note("visit", "The client says what %s wants. Slide the coins to set your price: the more you ask, the more %s expects, and ask too much and %s'll haggle. Then shake on it." % [p["he"], p["he"], p["he"]], "bottom_right")
+		Guide.note("visit", "The client says what she wants. Slide the coins to set your price: the more you ask, the more she expects, and ask too much and she'll haggle. Then shake on it." if she else "The client says what he wants. Slide the coins to set your price: the more you ask, the more he expects, and ask too much and he'll haggle. Then shake on it.", "bottom_right")
 	else:
 		Guide.note("visit", "Read what's wanted here, then take the job or turn it down.", "bottom_right")
 
@@ -137,9 +137,9 @@ static func fit_list(card: Control, scroll: ScrollContainer, height: float) -> v
 
 
 func _opening_line() -> String:
-	var greeting: String = job.get("greeting", "")
+	var greeting := Ui.text(job.get("greeting", ""))
 	var step := int(job.get("arc_step", -1))
-	var line: String = job.get("line", "")
+	var line := Ui.text(job.get("line", ""))
 	if step == 0 and greeting != "":
 		return greeting + "\n\n" + line
 	return line
@@ -152,7 +152,7 @@ func _update_price() -> void:
 	var chance := _chance(asked)
 	var expected := Pricing.expectation(asked, budget)
 	if _offer > 0 and asked <= _offer:
-		_mood.text = "\"%s. That's what I said.\"" % Ui.coins_text(_offer)
+		_mood.text = tr("\"%s. That's what I said.\"") % Ui.coins_text(_offer)
 	elif chance > 0.85:
 		_mood.text = "\"That seems fair.\""
 	elif chance > 0.55:
@@ -161,13 +161,13 @@ func _update_price() -> void:
 		_mood.text = "\"That's a lot of money for a floor.\""
 	else:
 		_mood.text = "\"You must be joking.\""
-	var p := JobFactory.pronouns(job)
+	var she: bool = JobFactory.pronouns(job)["he"] == "she"
 	if expected > 0.75:
-		_expect.text = "At this price %s'll expect nearly every wish met." % p["he"]
+		_expect.text = "At this price she'll expect nearly every wish met." if she else "At this price he'll expect nearly every wish met."
 	elif expected > 0.55:
-		_expect.text = "At this price %s'll expect most of %s wishes." % [p["he"], p["his"]]
+		_expect.text = "At this price she'll expect most of her wishes." if she else "At this price he'll expect most of his wishes."
 	else:
-		_expect.text = "At this price %s'll be happy with a fair attempt." % p["he"]
+		_expect.text = "At this price she'll be happy with a fair attempt." if she else "At this price he'll be happy with a fair attempt."
 
 
 func _chance(asked: int) -> float:
@@ -192,13 +192,13 @@ func _shake_on_it() -> void:
 	_patience -= 1
 	if _patience > 0:
 		_offer = maxi(budget, int(round(lerpf(budget, asked, 0.35))))
-		_speech.text = "\"%s? No, no. I could go to %s, and that's generous.\"" % [Ui.coins_text(asked), Ui.coins_text(_offer)]
+		_speech.text = tr("\"%s? No, no. I could go to %s, and that's generous.\"") % [Ui.coins_text(asked), Ui.coins_text(_offer)]
 		_price.value = _offer
 		_update_price()
 		_place.call_deferred()
 		return
 	_done = true
-	_speech.text = "\"%s? That's twice now. I'll try the workshop up on the hill.\"" % Ui.coins_text(asked)
+	_speech.text = tr("\"%s? That's twice now. I'll try the workshop up on the hill.\"") % Ui.coins_text(asked)
 	Story.refuse(Game.state, job)
 	Saves.save()
 	for c in _buttons.get_children():

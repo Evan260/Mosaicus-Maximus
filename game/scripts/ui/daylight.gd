@@ -52,6 +52,12 @@ static func lamps_lit(hour: float) -> float:
 	return clampf(night(hour) * 3.0, 0.0, 1.0)
 
 
+## The part of the day in the player's language.
+static func part_name(part: String) -> String:
+	return {"morning": TranslationServer.translate("morning"), "afternoon": TranslationServer.translate("afternoon"),
+		"evening": TranslationServer.translate("evening")}.get(part, TranslationServer.translate("night"))
+
+
 static func part_of_day(hour: float) -> String:
 	if hour < 11.0:
 		return "morning"

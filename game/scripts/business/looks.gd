@@ -14,14 +14,15 @@ const ABOUT := {
 }
 const WEIGHTS := {"symmetry": 1.0, "centre": 1.0, "fill": 1.0, "colour": 0.8, "frame": 0.6}
 ## Each taste, what a client says about it, and which quality it makes count for more.
+## "likes" is what is liked, for the design table's "Likes ...", and "also" says it after a name, as the job board does.
 const TASTES := {
-	"mirrored": {"text": "loves a floor that mirrors itself", "quality": "symmetry"},
-	"big_centre": {"text": "wants one big centrepiece", "quality": "centre"},
-	"busy": {"text": "likes a floor full of pictures", "quality": "fill"},
-	"calm": {"text": "likes plenty of plain floor", "quality": "fill"},
-	"colourful": {"text": "loves lots of colour", "quality": "colour"},
-	"few_colours": {"text": "likes two or three colours, no more", "quality": "colour"},
-	"framed": {"text": "wants a strong border", "quality": "frame"},
+	"mirrored": {"text": "loves a floor that mirrors itself", "likes": "a floor that mirrors itself", "also": "%s also loves a floor that mirrors itself.", "quality": "symmetry"},
+	"big_centre": {"text": "wants one big centrepiece", "likes": "one big centrepiece", "also": "%s also wants one big centrepiece.", "quality": "centre"},
+	"busy": {"text": "likes a floor full of pictures", "likes": "a floor full of pictures", "also": "%s also likes a floor full of pictures.", "quality": "fill"},
+	"calm": {"text": "likes plenty of plain floor", "likes": "plenty of plain floor", "also": "%s also likes plenty of plain floor.", "quality": "fill"},
+	"colourful": {"text": "loves lots of colour", "likes": "lots of colour", "also": "%s also loves lots of colour.", "quality": "colour"},
+	"few_colours": {"text": "likes two or three colours, no more", "likes": "two or three colours, no more", "also": "%s also likes two or three colours, no more.", "quality": "colour"},
+	"framed": {"text": "wants a strong border", "likes": "a strong border", "also": "%s also wants a strong border.", "quality": "frame"},
 }
 const TASTE_WEIGHT := 2.5
 ## A quality at or above this gets a tick on the design table.
@@ -223,11 +224,11 @@ static func _counts(img: Image) -> Dictionary:
 static func _hints(q: Dictionary, crowded: bool, ground: int, taste: Array, counts: Dictionary) -> Dictionary:
 	var out := {}
 	if q["symmetry"] < GOOD:
-		out["symmetry"] = "Make both halves match: put each picture on a dotted line, or give it a twin on the other side with Pair."
+		out["symmetry"] = TranslationServer.translate("Make both halves match: put each picture on a dotted line, or give it a twin on the other side with Pair.")
 	if q["centre"] < GOOD:
-		out["centre"] = "Put one big pattern where the dotted lines cross, bigger than the rest."
+		out["centre"] = TranslationServer.translate("Put one big pattern where the dotted lines cross, bigger than the rest.")
 	if q["fill"] < GOOD:
-		out["fill"] = "Too crowded. Make things smaller, or take some away." if crowded else "Too much plain floor. Add more, or make them bigger."
+		out["fill"] = TranslationServer.translate("Too crowded. Make things smaller, or take some away." if crowded else "Too much plain floor. Add more, or make them bigger.")
 	if q["colour"] < GOOD:
 		var total := 0
 		for st in counts:
@@ -235,13 +236,13 @@ static func _hints(q: Dictionary, crowded: bool, ground: int, taste: Array, coun
 		var used := counts.keys().filter(func(st: int) -> bool: return st != ground and st != Stones.NO_TILE and counts[st] >= total * 0.01).size()
 		var ideal := ideal_colours(taste)
 		if used < ideal.x:
-			out["colour"] = "Add another colour: pick a part and give it a new stone."
+			out["colour"] = TranslationServer.translate("Add another colour: pick a part and give it a new stone.")
 		elif used > ideal.y:
-			out["colour"] = "Too many colours at once. Use fewer stones."
+			out["colour"] = TranslationServer.translate("Too many colours at once. Use fewer stones.")
 		else:
-			out["colour"] = "Some parts are hard to see. Pick stones that stand out from the ground."
+			out["colour"] = TranslationServer.translate("Some parts are hard to see. Pick stones that stand out from the ground.")
 	if q["frame"] < GOOD:
-		out["frame"] = "Add a border from the Borders page." if q["frame"] <= 0.3 else "Make the border bolder, in stones that stand out from the ground."
+		out["frame"] = TranslationServer.translate("Add a border from the Borders page." if q["frame"] <= 0.3 else "Make the border bolder, in stones that stand out from the ground.")
 	return out
 
 
@@ -285,8 +286,35 @@ const TASTE_SAID := {
 }
 
 
-## The complaint about a quality, telling a crowded floor from a bare one.
+## The complaint about a quality, telling a crowded floor from a bare one, in the player's language.
 static func complaint(looks: Dictionary, id: String) -> String:
 	if id == "fill" and bool(looks.get("crowded", false)):
-		return COMPLAINTS["crowded"]
-	return COMPLAINTS.get(id, "")
+		return TranslationServer.translate(COMPLAINTS["crowded"])
+	return TranslationServer.translate(COMPLAINTS.get(id, ""))
+
+
+static func praise(id: String) -> String:
+	return TranslationServer.translate(PRAISE.get(id, ""))
+
+
+## What the client says of their own taste, pleased or not, in the player's language.
+static func taste_said(t: String, pleased: bool) -> String:
+	return TranslationServer.translate(TASTE_SAID[t][0 if pleased else 1])
+
+
+## A taste as it follows a name or "he": "loves lots of colour".
+static func taste_words(t: String) -> String:
+	return TranslationServer.translate(TASTES[t]["text"])
+
+
+## Several tastes after a name or "he", in the player's language: "loves lots of colour and wants a strong border".
+static func tastes_words(tastes: Array) -> String:
+	return Ui.list(tastes.map(func(t: String) -> String: return taste_words(t)))
+
+
+static func quality_name(id: String) -> String:
+	return TranslationServer.translate(NAMES[id])
+
+
+static func quality_about(id: String) -> String:
+	return TranslationServer.translate(ABOUT[id])

@@ -27,7 +27,7 @@ func _build() -> void:
 	var start := mini(now + 1, Data.chapters.size())
 	for ch in Data.chapters:
 		var n := int(ch["n"])
-		var b := Ui.button(list, "%d. %s" % [n, ch["title"]], func() -> void: _show(n), "tick" if n < now else "laurel" if n == now else "lock")
+		var b := Ui.button(list, "%d. %s" % [n, tr(ch["title"])], func() -> void: _show(n), "tick" if n < now else "laurel" if n == now else "lock")
 		b.toggle_mode = true
 		b.button_group = group
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -50,18 +50,18 @@ func _show(n: int) -> void:
 	var st := Game.state
 	var now := int(st["chapter"])
 	var ch := Data.chapter(n)
-	Ui.label(_detail, "Chapter %d: %s" % [n, ch["title"]], "Heading")
+	Ui.label(_detail, tr("Chapter %d: %s") % [n, tr(ch["title"])], "Heading", DETAIL_WIDTH)
 	if n < now:
-		Ui.label(_detail, "Done. It brought:", "MutedLabel")
+		Ui.label(_detail, "Done. It brought:", "MutedLabel", DETAIL_WIDTH)
 	elif n == now:
-		Ui.label(_detail, "You are here. It brought:", "MutedLabel")
+		Ui.label(_detail, "You are here. It brought:", "MutedLabel", DETAIL_WIDTH)
 	elif n == now + 1:
 		var from := int(Data.chapter(now)["reputation"])
 		_detail.add_child(_progress(int(st["reputation"]) - from, int(ch["reputation"]) - from))
-		Ui.label(_detail, "Reputation %d of %d: %d more to go." % [int(st["reputation"]), int(ch["reputation"]), int(ch["reputation"]) - int(st["reputation"])], "", DETAIL_WIDTH)
-		Ui.label(_detail, "It brings:", "MutedLabel")
+		Ui.label(_detail, tr("Reputation %d of %d: %d more to go.") % [int(st["reputation"]), int(ch["reputation"]), int(ch["reputation"]) - int(st["reputation"])], "", DETAIL_WIDTH)
+		Ui.label(_detail, "It brings:", "MutedLabel", DETAIL_WIDTH)
 	else:
-		Ui.label(_detail, "Opens at %d reputation. It brings:" % int(ch["reputation"]), "MutedLabel", DETAIL_WIDTH)
+		Ui.label(_detail, tr("Opens at %d reputation. It brings:") % int(ch["reputation"]), "MutedLabel", DETAIL_WIDTH)
 	for line in Story.chapter_unlocks(n):
 		Ui.label(_detail, line, "", DETAIL_WIDTH)
 	_place.call_deferred()

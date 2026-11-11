@@ -3,7 +3,7 @@ extends Node
 ## Opened with {job} for a commission, {free: true} for free design, or {design, job} to carry on with a design.
 ## Clicking any part of the plan picks it for colouring; a picked motif can be dragged, and resized by its corners.
 
-const PART_NAMES := ["Band", "Pattern", "Second colour", "Trim"]
+const PART_NAMES := ["Border: band", "Border: pattern", "Border: second colour", "Border: trim"]
 ## How far the pointer moves, in interface pixels, before a press on the plan becomes a drag.
 const DRAG_START := 3.0
 
@@ -229,7 +229,7 @@ func _build() -> void:
 	for id in _stones_allowed():
 		var b := Button.new()
 		b.icon = MotifIcons.swatch(id, 10)
-		Ui.tip_on(b, "%s, %s for a sack of 100 tiles" % [Stones.LIST[Stones.index(id)]["name"], Ui.coins_text(Game.sack_price(id))])
+		Ui.tip_on(b, tr("%s, %s for a sack of 100 tiles") % [Stones.title(id), Ui.coins_text(Game.sack_price(id))])
 		b.custom_minimum_size = Vector2(15, 15)
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.add_theme_stylebox_override("normal", UiTheme.panel("slot", 3, 1))
@@ -270,7 +270,7 @@ func _build() -> void:
 		var ids := Data.rooms.keys()
 		for i in ids.size():
 			var r := Data.room(ids[i])
-			rooms.add_item("%s, %d by %d" % [r["name"], int(r["w"]), int(r["h"])], i)
+			rooms.add_item(tr("%s, %d by %d") % [Data.room_title(ids[i]), int(r["w"]), int(r["h"])], i)
 			if ids[i] == design.room:
 				rooms.select(i)
 		rooms.item_selected.connect(func(i: int) -> void:
@@ -355,7 +355,7 @@ func _fill_book() -> void:
 		_book_grid.columns = 1
 		_add_border_slot("", "No border")
 		for id in Data.border_order:
-			_add_border_slot(id, Data.borders[id]["name"])
+			_add_border_slot(id, Data.border_title(id))
 		return
 	_book_grid.columns = 4
 	if tab == "pictures" and _panels_open():
@@ -376,9 +376,9 @@ func _fill_book() -> void:
 		slot.add_theme_stylebox_override("pressed", UiTheme.panel("slot", 3, 2))
 		slot.add_theme_stylebox_override("disabled", UiTheme.panel("slot", 3, 2))
 		var open := free or Game.has_motif(id)
-		var shows := (m.get("tags", []) as Array).filter(func(t: String) -> bool: return Brief.TAG_WORDS.has(t)).map(func(t: String) -> String: return Brief.TAG_WORDS[t])
-		var about := ("%s. Shows %s." % [m["name"], ", ".join(shows)]) if not shows.is_empty() else "%s." % m["name"]
-		Ui.tip_on(slot, about + (" Drag it onto the floor, or click to add it." if open else " Unlocks in chapter %d, or dig one up." % int(m.get("tier", 1))))
+		var shows := (m.get("tags", []) as Array).filter(func(t: String) -> bool: return Brief.TAG_WORDS.has(t)).map(func(t: String) -> String: return Brief.tag_words(t))
+		var about := (tr("%s. Shows %s.") % [Data.motif_title(id), tr(", ").join(shows)]) if not shows.is_empty() else tr("%s.") % Data.motif_title(id)
+		Ui.tip_on(slot, Ui.text([about, "Drag it onto the floor, or click to add it." if open else Ui.say("Unlocks in chapter %d, or dig one up.", [int(m.get("tier", 1))])]))
 		if not open:
 			slot.disabled = true
 			slot.modulate = Color(1, 1, 1, 0.35)
@@ -407,7 +407,9 @@ func _add_panel_slot(panel: Dictionary) -> void:
 	slot.add_theme_stylebox_override("pressed", UiTheme.panel("chip_on", 3, 2))
 	slot.add_theme_stylebox_override("disabled", UiTheme.panel("slot", 3, 2))
 	var used := design.placements.any(func(p: Dictionary) -> bool: return str(p.get("panel", "")) == str(panel["id"]))
-	Ui.tip_on(slot, "Your %s panel, %d stars. Click to set it into this floor: it comes laid already, and the client pays extra for it." % [Data.motif_name(panel["motif"]), int(panel.get("stars", 0))] if not used else "This panel is already in the floor.")
+	var stars := int(panel.get("stars", 0))
+	var about := (tr("Your %s panel, 1 star. Click to set it into this floor: it comes laid already, and the client pays extra for it.") % Data.motif_name(panel["motif"])) if stars == 1 else tr("Your %s panel, %d stars. Click to set it into this floor: it comes laid already, and the client pays extra for it.") % [Data.motif_name(panel["motif"]), stars]
+	Ui.tip_on(slot, about if not used else tr("This panel is already in the floor."))
 	slot.disabled = used
 	if not used:
 		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -448,7 +450,7 @@ func _add_border_slot(id: String, name: String) -> void:
 		var open := free or Game.has_border(id)
 		if not open:
 			b.disabled = true
-			Ui.tip_on(b, "%s: unlocks in chapter %d" % [name, int(Data.borders[id].get("tier", 1))])
+			Ui.tip_on(b, tr("%s: unlocks in chapter %d") % [name, int(Data.borders[id].get("tier", 1))])
 	b.toggle_mode = true
 	b.button_pressed = str(design.border.get("id", "")) == id
 	b.pressed.connect(func() -> void:
@@ -514,7 +516,7 @@ func _recost(exact := false) -> void:
 	for k in _counts:
 		tiles += int(_counts[k])
 	if free:
-		_cost_label.text = "%d tiles\nFree design: no cost" % tiles
+		_cost_label.text = tr("%d tiles\nFree design: no cost") % tiles
 		_warn_label.text = ""
 		_start.disabled = false
 		return
@@ -524,14 +526,17 @@ func _recost(exact := false) -> void:
 	var buy := Game.shortfall_cost(need) if not short.is_empty() else 0
 	Ui.tip_on(_warn_label, "")
 	if short.is_empty():
-		_cost_label.text = "All the stone is in stock.\nYou have %s." % Ui.coins_text(Game.coins())
+		_cost_label.text = tr("All the stone is in stock.\nYou have %s.") % Ui.coins_text(Game.coins())
 	else:
-		var names := short.keys().map(func(id: String) -> String: return str(Stones.LIST[Stones.index(id)]["name"]).to_lower())
-		_cost_label.text = "Short of %s.\nYou have %s." % [names[0] if names.size() == 1 else "%d stones" % names.size(), Ui.coins_text(Game.coins())]
-	Ui.tip_on(_cost_label, "About %d tiles, laid from your stock. " % tiles + ("Short of: " + ", ".join(short.keys().map(func(id: String) -> String: return "%d %s" % [short[id], str(Stones.LIST[Stones.index(id)]["name"]).to_lower()])) + "." if not short.is_empty() else ""))
+		var names := short.keys().map(func(id: String) -> String: return Stones.lower(id))
+		_cost_label.text = tr("Short of %s.\nYou have %s.") % [names[0] if names.size() == 1 else tr("%d stones") % names.size(), Ui.coins_text(Game.coins())]
+	var counted := tr("About %d tiles, laid from your stock.") % tiles
+	if not short.is_empty():
+		counted += Ui.sentence_gap() + tr("Short of: %s.") % tr(", ").join(short.keys().map(func(id: String) -> String: return "%d %s" % [short[id], Stones.lower(id)]))
+	Ui.tip_on(_cost_label, counted)
 	var unsold := Game.not_sold(need)
 	_buy_button.visible = not short.is_empty() and unsold.is_empty()
-	_buy_button.text = "Buy it: %s" % Ui.coins_text(buy)
+	_buy_button.text = tr("Buy it: %s") % Ui.coins_text(buy)
 	_buy_button.disabled = buy > Game.coins()
 	Ui.tip_on(_buy_button, "Buys whole sacks of 100 of every stone you're short of. What's left over stays in stock.")
 	_warn_label.text = ""
@@ -541,13 +546,13 @@ func _recost(exact := false) -> void:
 		_warn_label.text = "Put a picture on the panel first."
 		return
 	if not unsold.is_empty():
-		_warn_label.text = "%s isn't sold here yet." % Stones.LIST[Stones.index(unsold[0])]["name"]
+		_warn_label.text = tr("%s isn't sold here yet.") % Stones.title(unsold[0])
 	elif _start.disabled and buy <= Game.coins():
 		_warn_label.text = "Buy the stone first."
 	elif _start.disabled:
 		var swap := Pricing.cheaper_swap(_counts, _stones_allowed())
 		_warn_label.text = "Not enough denarii."
-		Ui.tip_on(_warn_label, "" if swap.is_empty() else "%s instead of %s would save %s." % [Stones.LIST[Stones.index(swap["to"])]["name"], Stones.LIST[Stones.index(swap["from"])]["name"].to_lower(), Ui.coins_text(int(swap["saving"]))])
+		Ui.tip_on(_warn_label, "" if swap.is_empty() else tr("%s instead of %s would save %s.") % [Stones.title(swap["to"]), Stones.lower(swap["from"]), Ui.coins_text(int(swap["saving"]))])
 
 
 ## The brief card: what the client asked for, what you know of their taste, and the stars the floor would earn now.
@@ -562,7 +567,7 @@ func _refresh_brief() -> void:
 		Ui.label(_brief_box, "Design anything you like. Nobody pays, and nobody minds.", "", 112)
 	elif kind == "contest":
 		Ui.label(_brief_box, "The floor contest", "Heading")
-		Ui.label(_brief_box, "Judged on looks alone. The rival's entries earn about %d stars." % Looks.stars(float(job.get("rival", 0.6))), "", 112)
+		Ui.label(_brief_box, tr("Judged on looks alone. The rival's entries earn about %d stars.") % Looks.stars(float(job.get("rival", 0.6))), "", 112)
 	elif kind == "panel":
 		Ui.label(_brief_box, "A picture panel", "Heading")
 		Ui.label(_brief_box, "Lay a picture at the bench. Sell it to a collector, or set it into a client's floor later.", "", 112)
@@ -583,16 +588,16 @@ func _refresh_brief() -> void:
 			_plan.peek = null
 			_plan.queue_redraw())
 		_brief_box.add_child(sketch)
-		Ui.label(_brief_box, "Likeness: %d%%" % int(round(float(verdict.get("likeness", 0.0)) * 100.0)))
+		Ui.label(_brief_box, tr("Likeness: %d%%") % int(round(float(verdict.get("likeness", 0.0)) * 100.0)), "", 112)
 	else:
 		var who := Data.client(job.get("client", ""))
-		Ui.label(_brief_box, str(job.get("client_name", who.get("name", "The client"))), "Heading", 112)
-		var about := str(Data.room(job.get("room", "")).get("name", ""))
+		Ui.label(_brief_box, Ui.text(job.get("client_name", who.get("name", "The client"))), "Heading", 112)
+		var about := tr("%s.") % Data.room_title(job.get("room", ""))
 		if not taste.is_empty():
-			about += ". Likes " + " and ".join(taste.map(func(t: String) -> String: return Looks.TASTES[t]["text"].trim_prefix("loves ").trim_prefix("likes ").trim_prefix("wants ")))
+			about = tr("%s. Likes %s.") % [Data.room_title(job.get("room", "")), Ui.list(taste.map(func(t: String) -> String: return tr(Looks.TASTES[t]["likes"])))]
 		elif str(job.get("client", "")) != "":
-			about += ". Taste not known yet"
-		Ui.label(_brief_box, about + ".", "MutedLabel", 112)
+			about = tr("%s. Taste not known yet.") % Data.room_title(job.get("room", ""))
+		Ui.label(_brief_box, about, "MutedLabel", 112)
 		for w in verdict["wishes"]:
 			var row := Ui.hbox(_brief_box, 2)
 			Ui.icon(row, "tick" if w["met"] else "cross")
@@ -620,12 +625,12 @@ func _stars_row(verdict: Dictionary) -> void:
 		var line := Ui.hbox(checklist, 3)
 		var mark := Ui.icon(line, "tick_small" if good else "cross_small")
 		mark.custom_minimum_size = Vector2(10, 11)
-		Ui.label(line, Looks.NAMES[id], "" if good else "MutedLabel")
-		Ui.tip_on(line, Looks.ABOUT[id])
+		Ui.label(line, Looks.quality_name(id), "" if good else "MutedLabel", 100)
+		Ui.tip_on(line, Looks.quality_about(id))
 		if hints.has(id) and (worst == "" or float(looks["qualities"][id]) < float(looks["qualities"][worst])):
 			worst = id
 	if worst != "":
-		Ui.label(_brief_box, "Next: " + hints[worst], "", 112)
+		Ui.label(_brief_box, tr("Next: %s") % hints[worst], "", 112)
 	elif int(verdict["stars"]) < 5:
 		Ui.label(_brief_box, "Next: meet every wish, and make each of these stronger still.", "", 112)
 
@@ -644,20 +649,20 @@ func _refresh_chips() -> void:
 		if _is_panel(selected):
 			Ui.label(_chips, "From the bench, laid already", "MutedLabel")
 		for r in ([] if _is_panel(selected) else MotifLibrary.roles_of(p["motif"])):
-			_chip(str(r), MotifIcons.part(p["motif"], 18, r, p["stones"], p.get("outline", "")), _stone_of(selected, str(r)), "Part %d" % r)
+			_chip(str(r), MotifIcons.part(p["motif"], 18, r, p["stones"], p.get("outline", "")), _stone_of(selected, str(r)), tr("Part %d") % r)
 		if p.get("outline", "") != "" and not _is_panel(selected):
-			_chip("outline", MotifIcons.part(p["motif"], 18, 7, p["stones"], p["outline"]), p["outline"], "Outline")
+			_chip("outline", MotifIcons.part(p["motif"], 18, 7, p["stones"], p["outline"]), p["outline"], tr("Outline"))
 		if role == "" or not role in _chip_buttons:
 			role = _chip_buttons.keys()[0] if not _chip_buttons.is_empty() else ""
 	else:
-		_chip("ground", MotifIcons.floor_part(design, "ground", 18), design.ground, "Ground")
+		_chip("ground", MotifIcons.floor_part(design, "ground", 18), design.ground, tr("Ground"))
 		if str(design.border.get("id", "")) != "":
 			var parts := Composer.part_map(design, 2)
 			for k in mini(4, (design.border["stones"] as Array).size()):
 				# A stripe this kind of border never draws has nothing to colour, so it gets no chip.
 				if not parts.has(Composer.PART_BORDER + k):
 					continue
-				_chip("border%d" % k, MotifIcons.floor_part(design, "border%d" % k, 18), design.border["stones"][k], "Border: " + PART_NAMES[k].to_lower())
+				_chip("border%d" % k, MotifIcons.floor_part(design, "border%d" % k, 18), design.border["stones"][k], tr(PART_NAMES[k]))
 		if not role in _chip_buttons:
 			role = "ground"
 	for k in _chip_buttons:
@@ -682,7 +687,7 @@ func _chip(key: String, icon: Texture2D, stone_id: String, name: String) -> void
 	b.add_theme_stylebox_override("pressed", UiTheme.panel("chip_on", 3, 2))
 	b.add_theme_stylebox_override("hover_pressed", UiTheme.panel("chip_on", 3, 2))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	Ui.tip_on(b, "%s: %s" % [name, Stones.LIST[Stones.index(stone_id)]["name"]])
+	Ui.tip_on(b, tr("%s: %s") % [name, Stones.title(stone_id)])
 	b.pressed.connect(func() -> void:
 		Audio.ui("click", -10.0)
 		role = key

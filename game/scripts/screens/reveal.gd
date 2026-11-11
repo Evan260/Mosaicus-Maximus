@@ -137,16 +137,16 @@ func _build_card() -> void:
 		var top := Ui.hbox(col, 6)
 		top.add_child(JobBoard._portrait(job.get("portrait", ""), 40))
 		var who := Ui.vbox(top, 2)
-		Ui.label(who, "The judges" if kind == "contest" else str(job.get("client_name", "")), "Heading", 110)
+		Ui.label(who, tr("The judges") if kind == "contest" else Ui.text(job.get("client_name", "")), "Heading", 110)
 		_star_row(who, int(_verdict["stars"]))
 	else:
 		Ui.label(col, "Your picture panel" if kind == "panel" else "Your floor", "Heading")
 		_star_row(col, int(_verdict["stars"]))
 	Ui.label(col, _reaction(), "", _wrap)
 	if kind == "contest":
-		Ui.label(col, "Your floor: %d stars. The rival's: %d stars." % [int(_verdict["stars"]), Looks.stars(float(job.get("rival", 0.6)))], "MutedLabel", _wrap)
+		Ui.label(col, tr("Your floor: %d stars. The rival's: %d stars.") % [int(_verdict["stars"]), Looks.stars(float(job.get("rival", 0.6)))], "MutedLabel", _wrap)
 	elif kind == "copy":
-		Ui.label(col, "Likeness: %d%%" % int(round(float(_verdict.get("likeness", 0.0)) * 100.0)), "MutedLabel")
+		Ui.label(col, tr("Likeness: %d%%") % int(round(float(_verdict.get("likeness", 0.0)) * 100.0)), "MutedLabel", _wrap)
 	_wishes = ScrollContainer.new()
 	_wishes.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	col.add_child(_wishes)
@@ -159,28 +159,28 @@ func _build_card() -> void:
 	if _first_taste:
 		var r := Ui.hbox(list, 2)
 		Ui.icon(r, "book")
-		Ui.label(r, "Noted: %s." % " and ".join((Data.client(job["client"])["taste"] as Array).map(func(t: String) -> String: return Looks.TASTES[t]["text"])), "MutedLabel", _wrap - 20)
+		Ui.label(r, tr("Noted: %s.") % Looks.tastes_words(Data.client(job["client"])["taste"]), "MutedLabel", _wrap - 20)
 	_wishes.visible = list.get_child_count() > 0
 	var found := str(job.get("discovery", ""))
 	if found != "" and not found in Game.state["unlocked_motifs"]:
 		var r := Ui.hbox(col, 3)
 		Ui.texture(r, MotifIcons.motif(found, 16))
-		Ui.label(r, "New in your pattern book: %s" % Data.motif_with_article(found), "", _wrap - 50)
+		Ui.label(r, tr("New in your pattern book: %s") % Data.motif_a(found), "", _wrap - 50)
 	if kind == "panel":
-		Ui.label(col, "Your picture panel is ready. A collector would pay about %s for it at the workbench, or you can set it into a client's floor from the Pictures page of the pattern book." % Ui.coins_text(Story.panel_value(Game.state, int(_verdict["stars"]))), "", _wrap)
+		Ui.label(col, tr("Your picture panel is ready. A collector would pay about %s for it at the workbench, or you can set it into a client's floor from the Pictures page of the pattern book.") % Ui.coins_text(Story.panel_value(Game.state, int(_verdict["stars"]))), "", _wrap)
 	if _panel_bonus > 0:
 		var r := Ui.hbox(col, 3)
 		Ui.icon(r, "star")
-		Ui.label(r, "Your picture panel: +%s" % Ui.coins_text(_panel_bonus), "", _wrap - 20)
+		Ui.label(r, tr("Your picture panel: +%s") % Ui.coins_text(_panel_bonus), "", _wrap - 20)
 	if not free:
 		var pay := Ui.hbox(col, 4)
 		Ui.icon(pay, "coin")
-		Ui.label(pay, ("Prize %s" % Ui.coins_text(_paid) if _won else "No prize") if kind == "contest" else "Paid %s" % Ui.coins_text(_paid))
+		Ui.label(pay, (tr("Prize %s") % Ui.coins_text(_paid) if _won else tr("No prize")) if kind == "contest" else tr("Paid %s") % Ui.coins_text(_paid))
 		Ui.icon(pay, "laurel")
-		Ui.label(pay, ("+%d reputation" % _rep) if _rep >= 0 else "%d reputation" % _rep)
+		Ui.label(pay, (tr("+%d reputation") % _rep) if _rep >= 0 else tr("%d reputation") % _rep)
 		var ahead := Story.next_chapter_line(Game.state, _rep, true)
 		if ahead != "":
-			Ui.label(col, ahead, "MutedLabel")
+			Ui.label(col, ahead, "MutedLabel", _wrap)
 		if _paid > 0:
 			_coin_shower()
 	# Beside a room the card is narrower, so its two buttons share a row.
@@ -218,11 +218,11 @@ func _reaction() -> String:
 	var kind := str(job.get("kind", "commission"))
 	var looks: Dictionary = _verdict.get("looks", {})
 	if job.get("free", false) or kind == "panel":
-		return "Laid, grouted and polished. " + (str(Looks.PRAISE[looks["best"]]) if not looks.is_empty() else "")
+		return Ui.text(["Laid, grouted and polished.", Looks.praise(looks["best"]) if not looks.is_empty() else ""])
 	if kind == "contest":
 		if _won:
-			return "\"The prize goes to your workshop! %s\" The rival's foreman storms off." % Looks.PRAISE[looks["best"]]
-		return "\"The rival's floor wins this time. %s\"" % Looks.complaint(looks, looks["worst"])
+			return tr("\"The prize goes to your workshop! %s\" The rival's foreman storms off.") % Looks.praise(looks["best"])
+		return tr("\"The rival's floor wins this time. %s\"") % Looks.complaint(looks, looks["worst"])
 	if kind == "copy":
 		var like := float(_verdict.get("likeness", 0.0))
 		if like >= 0.85:
@@ -233,28 +233,28 @@ func _reaction() -> String:
 	var expected := float(job.get("expected", 0.5))
 	var step := int(job.get("arc_step", -1))
 	var c := Data.client(job.get("client", ""))
-	var said := ""
+	var said := []
 	if _score >= expected:
 		if step >= 0 and not c.is_empty() and step < (c.get("arc", []) as Array).size():
-			said = str(c["arc"][step].get("after", "Wonderful."))
+			said.append(str(c["arc"][step].get("after", "Wonderful.")))
 		elif int(_verdict["stars"]) >= 5:
 			var happy := ["It's beautiful. I'll tell everyone.", "Better than I imagined. Here, with a little extra.", "The neighbours will be so jealous."]
-			said = happy[hash(job.get("id", "")) % happy.size()]
+			said.append(happy[hash(job.get("id", "")) % happy.size()])
 		else:
-			said = "Yes. That's what I wanted."
+			said.append("Yes. That's what I wanted.")
 		if not looks.is_empty():
-			said += " " + (str(Looks.PRAISE[looks["best"]]) if int(_verdict["stars"]) >= 4 else Looks.complaint(looks, looks["worst"]))
+			said.append(Looks.praise(looks["best"]) if int(_verdict["stars"]) >= 4 else Looks.complaint(looks, looks["worst"]))
 	elif _score >= Data.num("reputation.unhappy_below", 0.45):
-		said = "It's... fine. It isn't quite what I hoped for, so I won't pay the full price."
+		said.append("It's... fine. It isn't quite what I hoped for, so I won't pay the full price.")
 		if not looks.is_empty():
-			said += " " + Looks.complaint(looks, looks["worst"])
+			said.append(Looks.complaint(looks, looks["worst"]))
 	else:
-		said = "This isn't what I asked for at all. I'll pay for the stone and your time, and no more."
+		said.append("This isn't what I asked for at all. I'll pay for the stone and your time, and no more.")
 	if _first_taste and not looks.is_empty():
 		var t: String = c["taste"][0]
 		var pleased := float(looks["qualities"][Looks.TASTES[t]["quality"]]) >= 0.7
-		said += " " + str(Looks.TASTE_SAID[t][0 if pleased else 1])
-	return "\"%s\"" % said
+		said.append(Looks.taste_said(t, pleased))
+	return tr("\"%s\"") % Ui.text(said)
 
 
 func _coin_shower() -> void:
@@ -278,7 +278,7 @@ func _keep_it() -> void:
 	var picture: Image = await Library.photograph(_layout, self, _stones)
 	var info := {"room": design.room, "tiles": _layout.tile_count(), "stars": int(_verdict["stars"])}
 	if not job.get("free", false):
-		info["client_name"] = str(job.get("client_name", ""))
+		info["client_name"] = job.get("client_name", "")
 		info["workshop"] = str(Game.state.get("name", ""))
 		info["day"] = int(Game.state.get("day", 0))
 	info["stones"] = _stones
@@ -312,7 +312,7 @@ func _finish() -> void:
 		Nav.go("title")
 		return
 	if _paid > 0:
-		Game.earn(_paid, "Floor for " + str(job.get("client_name", "")))
+		Game.earn(_paid, "Floor for " + Ui.text(job.get("client_name", "")))
 	var events := Story.finish_job(Game.state, job, {"score": _score, "paid": _paid, "reputation": _rep, "design": design.to_dict(), "tiles": _layout.tile_count(),
 		"won": _won, "likeness": float(_verdict.get("likeness", 0.0)), "stones": _stones})
 	for e in events:

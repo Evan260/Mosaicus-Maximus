@@ -22,18 +22,18 @@ static func score(brief: Dictionary, design: FloorDesign, shown: Array = []) -> 
 		for t in Data.motif(p["motif"]).get("tags", []):
 			tags[t] = true
 	for t in brief.get("tags", []):
-		wishes.append({"text": "Shows " + TAG_WORDS.get(t, t), "met": tags.has(t), "kind": "tag", "value": t})
+		wishes.append({"text": TranslationServer.translate(wish_key("tag", t)), "met": tags.has(t), "kind": "tag", "value": t})
 	for m in brief.get("must", []):
-		wishes.append({"text": "Has " + Data.motif_with_article(m), "met": motifs.has(m), "kind": "must", "value": m})
+		wishes.append({"text": TranslationServer.translate(wish_key("must", m)), "met": motifs.has(m), "kind": "must", "value": m})
 	for s in brief.get("want_stones", []):
-		wishes.append({"text": "Uses " + str(Stones.LIST[Stones.index(s)]["name"]).to_lower(), "met": s in stones, "kind": "want", "value": s})
+		wishes.append({"text": TranslationServer.translate(wish_key("want", s)), "met": s in stones, "kind": "want", "value": s})
 	for s in brief.get("ban_stones", []):
-		wishes.append({"text": "No " + str(Stones.LIST[Stones.index(s)]["name"]).to_lower(), "met": not s in stones, "kind": "ban", "value": s})
+		wishes.append({"text": TranslationServer.translate(wish_key("ban", s)), "met": not s in stones, "kind": "ban", "value": s})
 	if bool(brief.get("border", false)):
-		wishes.append({"text": "A border round the edge", "met": str(design.border.get("id", "")) != "", "kind": "border"})
+		wishes.append({"text": TranslationServer.translate("A border round the edge"), "met": str(design.border.get("id", "")) != "", "kind": "border"})
 	var need := int(brief.get("min_motifs", 0))
 	if need > 0:
-		wishes.append({"text": "At least %d pictures or patterns" % need, "met": design.placements.size() >= need, "kind": "count", "value": need})
+		wishes.append({"text": TranslationServer.translate("At least %d pictures or patterns") % need, "met": design.placements.size() >= need, "kind": "count", "value": need})
 	if wishes.is_empty():
 		return {"wishes": [], "score": 1.0}
 	var met := 0
@@ -41,6 +41,25 @@ static func score(brief: Dictionary, design: FloorDesign, shown: Array = []) -> 
 		if w["met"]:
 			met += 1
 	return {"wishes": wishes, "score": float(met) / wishes.size()}
+
+
+## A wish in English, the key of its translation: a whole phrase, since other languages change the words round a name.
+static func wish_key(kind: String, value: String) -> String:
+	match kind:
+		"tag":
+			return "Shows " + TAG_WORDS.get(value, value)
+		"must":
+			return "Has " + Data.motif_with_article(value)
+		"want":
+			return "Uses " + str(Stones.LIST[Stones.index(value)]["name"]).to_lower()
+		"ban":
+			return "No " + str(Stones.LIST[Stones.index(value)]["name"]).to_lower()
+	return value
+
+
+## A theme's words in the player's language: "something from the sea".
+static func tag_words(tag: String) -> String:
+	return TranslationServer.translate(TAG_WORDS.get(tag, tag))
 
 
 ## How to meet a wish, for its tooltip: for a theme, which patterns in the book show it.
@@ -52,20 +71,23 @@ static func help(wish: Dictionary, unlocked: Array) -> String:
 			var later := []
 			for id in Data.motif_order:
 				if tag in Data.motif(id).get("tags", []):
-					(have if id in unlocked else later).append(str(Data.motif(id)["name"]))
-			var text := "In your pattern book: %s." % ", ".join(have) if not have.is_empty() else "Nothing in your pattern book shows this yet."
-			return text + (" Later: %s." % ", ".join(later) if not later.is_empty() else "")
+					(have if id in unlocked else later).append(Data.motif_title(id))
+			var comma := String(TranslationServer.translate(", "))
+			var text: String = TranslationServer.translate("In your pattern book: %s.") % comma.join(have) if not have.is_empty() else TranslationServer.translate("Nothing in your pattern book shows this yet.")
+			return text + (Ui.sentence_gap() + TranslationServer.translate("Later: %s.") % comma.join(later) if not later.is_empty() else "")
 		"must":
-			var m := Data.motif(str(wish["value"]))
-			return "Find the %s on the %s page of the pattern book." % [str(m.get("name", "")).to_lower(), "Pictures" if m.get("kind", "") == "picture" else "Patterns"]
+			var id := str(wish["value"])
+			if Data.motif(id).get("kind", "") == "picture":
+				return TranslationServer.translate("Find the %s on the Pictures page of the pattern book.") % Data.motif_name(id)
+			return TranslationServer.translate("Find the %s on the Patterns page of the pattern book.") % Data.motif_name(id)
 		"want":
-			return "Give any part of the floor this stone: pick a part, then the stone."
+			return TranslationServer.translate("Give any part of the floor this stone: pick a part, then the stone.")
 		"ban":
-			return "Don't let this stone show anywhere, borders and outlines included."
+			return TranslationServer.translate("Don't let this stone show anywhere, borders and outlines included.")
 		"border":
-			return "Pick one on the Borders page of the pattern book."
+			return TranslationServer.translate("Pick one on the Borders page of the pattern book.")
 		"count":
-			return "Put at least %d pictures or patterns on the floor." % int(wish["value"])
+			return TranslationServer.translate("Put at least %d pictures or patterns on the floor.") % int(wish["value"])
 	return ""
 
 

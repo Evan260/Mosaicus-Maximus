@@ -44,7 +44,7 @@ func enter(_args: Dictionary) -> void:
 		var open := int(d["chapter"]) <= chapter
 		var tag := Ui.panel(_map, "TipPanel")
 		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var name_label := Ui.label(tag, str(d["name"]) if open else "%s (chapter %d)" % [d["name"], d["chapter"]], "LightLabel")
+		var name_label := Ui.label(tag, tr(str(d["name"])) if open else tr("%s (chapter %d)") % [tr(str(d["name"])), d["chapter"]], "LightLabel")
 		if not open:
 			name_label.add_theme_color_override("font_color", Color8(170, 150, 130))
 		tag.reset_size()
@@ -54,7 +54,7 @@ func enter(_args: Dictionary) -> void:
 		var room := Dev.get_arg("room", "study")
 		floors.append({"room": room, "design": Samples.moved(Samples.make("villa"), room).to_dict(), "client": "septimus",
 			"client_name": "Old Septimus", "day": 3, "score": 0.9, "paid": 87, "stars": 5})
-		_show_floor.call_deferred(floors[-1], "Old Septimus's study, day 3")
+		_show_floor.call_deferred(floors[-1], tr("%s's %s, day %d") % [tr("Old Septimus"), Data.room_name(room), 3])
 	for i in floors.size():
 		_marker(floors[i], i)
 	_rival()
@@ -116,9 +116,9 @@ func _marker(f: Dictionary, i: int) -> void:
 	b.flat = true
 	b.position = (at - Vector2(8, 8)).floor()
 	b.size = Vector2(16, 16)
-	var who: String = f.get("client_name", "")
-	var room := str(Data.room(f.get("room", "")).get("name", "")).to_lower()
-	var tip := "%s's %s, day %d" % [who, room, int(f.get("day", 1))] if who != "" else "A %s, day %d" % [room, int(f.get("day", 1))]
+	var who := Ui.text(f.get("client_name", ""))
+	var room := Data.room_name(f.get("room", ""))
+	var tip := tr("%s's %s, day %d") % [who, room, int(f.get("day", 1))] if who != "" else tr("A %s, day %d") % [room, int(f.get("day", 1))]
 	b.mouse_entered.connect(func() -> void:
 		_tip_label.text = tip
 		_tip.visible = true
@@ -134,8 +134,7 @@ func _rival() -> void:
 	var tag := Ui.panel(_map, "TipPanel")
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var rep := int(Game.state["rival"].get("reputation", 0))
-	Ui.label(tag, "The rival workshop
-reputation %d" % rep, "LightLabel")
+	Ui.label(tag, tr("The rival workshop\nreputation %d") % rep, "LightLabel")
 	tag.reset_size()
 	tag.position = (at - Vector2(tag.size.x * 0.5, 18)).floor()
 
@@ -149,12 +148,12 @@ func _show_floor(f: Dictionary, title: String) -> void:
 		return
 	_view = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_view, 4)
-	Ui.label(col, title, "Heading")
+	Ui.label(col, title, "Heading", 220)
 	var d := FloorDesign.from_dict(f.get("design", {}))
 	var px := clampi(int(220.0 / maxf(d.w, d.h * 1.5)), 2, 5)
 	var img := Composer.picture(d, px)
 	Ui.texture(col, ImageTexture.create_from_image(img))
-	Ui.label(col, "Paid %s. %s" % [Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)], "MutedLabel")
+	Ui.label(col, Ui.text([tr("Paid %s.") % Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)]), "MutedLabel", 220)
 	Ui.button(col, "Close", func() -> void:
 		_view.queue_free()
 		_view = null, "tick")
@@ -171,12 +170,10 @@ func _owner_line(f: Dictionary) -> String:
 	var known := {"portrait": portrait}
 	if f.has("woman"):
 		known["woman"] = f["woman"]
-	var who := "The owners" if portrait == "" else str(JobFactory.pronouns(known)["he"]).capitalize()
-	var verb := "love" if portrait == "" else "loves"
+	var who := "owners" if portrait == "" else str(JobFactory.pronouns(known)["he"])
 	if float(f.get("score", 0)) < 0.8:
-		verb = "like" if portrait == "" else "likes"
-		return "%s %s it well enough." % [who, verb]
-	return "%s %s it." % [who, verb]
+		return tr({"owners": "The owners like it well enough.", "he": "He likes it well enough.", "she": "She likes it well enough."}[who])
+	return tr({"owners": "The owners love it.", "he": "He loves it.", "she": "She loves it."}[who])
 
 
 ## Lays the floor out away from the main thread, then shows it in its room.
@@ -218,7 +215,7 @@ func _process(_delta: float) -> void:
 	var stars := Ui.hbox(col, 1)
 	for k in 5:
 		Ui.icon(stars, "star").modulate = Color(1, 1, 1, 1.0 if k < int(f.get("stars", Looks.stars(float(f.get("score", 0))))) else 0.2)
-	Ui.label(col, "Paid %s. %s" % [Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)], "", 150)
+	Ui.label(col, Ui.text([tr("Paid %s.") % Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)]), "", 150)
 	Ui.button(col, "Back to the map", func() -> void:
 		_visit.queue_free()
 		_visit = null, "arrow_l", true)

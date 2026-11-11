@@ -48,6 +48,15 @@ static func nearest(id: String, allowed: Array) -> String:
 	return best
 
 
+## A stone's name as a title, and inside a sentence, in the player's language.
+static func title(id: String) -> String:
+	return TranslationServer.translate(str(LIST[index(id)]["name"]))
+
+
+static func lower(id: String) -> String:
+	return TranslationServer.translate(str(LIST[index(id)]["name"]).to_lower())
+
+
 static func index(id: String) -> int:
 	if _by_id.is_empty():
 		for i in LIST.size():

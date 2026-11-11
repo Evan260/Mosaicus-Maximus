@@ -65,19 +65,51 @@ func motif(id: String) -> Dictionary:
 	return motifs.get(id, {})
 
 
-## A motif's name inside a sentence: lower case, unless it keeps its capitals, like Medusa.
+## A motif's name as a title, in the player's language.
+func motif_title(id: String) -> String:
+	return tr(str(motif(id).get("name", id)))
+
+
+## A motif's name inside a sentence, in the player's language.
 func motif_name(id: String) -> String:
+	return tr(motif_lower(id))
+
+
+## A motif's English name inside a sentence, the key of its translation: lower case, unless it keeps its capitals.
+func motif_lower(id: String) -> String:
 	var m := motif(id)
 	return str(m.get("lower", str(m.get("name", id)).to_lower()))
 
 
-## A motif's name with "a" or "an" in front, or as it is said when it takes neither, like "loaves".
+## A motif's English name with "a" or "an" in front, or as it is said when it takes neither, like "loaves".
 func motif_with_article(id: String) -> String:
 	var m := motif(id)
 	if m.has("a"):
 		return str(m["a"])
-	var name := motif_name(id)
+	var name := motif_lower(id)
 	return ("an " if name.left(1) in ["a", "e", "i", "o", "u"] else "a ") + name
+
+
+## A motif's name with its article, in the player's language: "a dolphin".
+func motif_a(id: String) -> String:
+	return tr(motif_with_article(id))
+
+
+## A room's name as a title, and inside a sentence, in the player's language.
+func room_title(id: String) -> String:
+	return tr(str(room(id).get("name", id)))
+
+
+func room_name(id: String) -> String:
+	return tr(str(room(id).get("name", id)).to_lower())
+
+
+func border_title(id: String) -> String:
+	return tr(str(borders.get(id, {}).get("name", id)))
+
+
+func border_name(id: String) -> String:
+	return tr(str(borders.get(id, {}).get("name", id)).to_lower())
 
 
 ## The rooms clients can ask for: every room but the bench's square for picture panels, and without walls when asked.

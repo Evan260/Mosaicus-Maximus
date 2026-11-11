@@ -46,7 +46,7 @@ var _end_day: Button
 var _t := 0.0
 var _leaving := false
 var _sold_at := -1000
-var _stone_scroll: ScrollContainer
+var _list_scroll: ScrollContainer
 
 
 func enter(_args: Dictionary) -> void:
@@ -91,7 +91,7 @@ func enter(_args: Dictionary) -> void:
 	_show_next_event()
 	match Dev.get_arg("panel"):
 		"settings":
-			_show_panel(SettingsPanel.open(_root, true))
+			open_settings()
 		"dog":
 			_show_panel(DogPanel.open(_root))
 		"upgrades":
@@ -124,6 +124,10 @@ func enter(_args: Dictionary) -> void:
 			Game.state["floors"].append({"score": 0.9})
 
 
+func open_settings() -> void:
+	_show_panel(SettingsPanel.open(_root, true))
+
+
 func _layout() -> void:
 	var s := Nav.ui_size()
 	_root.size = s
@@ -138,8 +142,8 @@ func _layout() -> void:
 		_popup.reset_size()
 		_popup.position = ((s - _popup.size) * 0.5).floor()
 	if is_instance_valid(_panel):
-		if is_instance_valid(_stone_scroll) and _panel.is_ancestor_of(_stone_scroll):
-			_fit_stones()
+		if is_instance_valid(_list_scroll) and _panel.is_ancestor_of(_list_scroll):
+			_fit_list()
 		_panel.reset_size()
 		_panel.position = ((s - _panel.size) * 0.5).floor()
 
@@ -203,7 +207,7 @@ func _room() -> void:
 	for id in _layers:
 		_follow_sun(_layers[id])
 	var bed: TextureRect = _layers["bed"]
-	var pet := Hotspot.make(Rect2(bed.position, bed.texture.get_size()), "Pet " + _dog_name(), _shape("bed"))
+	var pet := Hotspot.make(Rect2(bed.position, bed.texture.get_size()), tr("Pet %s") % tr(_dog_name()) if _dog_name() != "" else tr("Pet the dog"), _shape("bed"))
 	pet.light(bed, _shape("bed"), false)
 	pet.light(_dog, null, false)
 	pet.light(_layers["bed_front"], null, false)
@@ -248,7 +252,7 @@ func _process(delta: float) -> void:
 		g.night = night
 		g.lit = lit
 	var part := Daylight.part_of_day(hour)
-	var day := "Day %d, %s" % [int(Game.state["day"]), part]
+	var day := tr("Day %d, %s") % [int(Game.state["day"]), Daylight.part_name(part)]
 	if _day.text != day:
 		_day.text = day
 		_fit_bar()
@@ -311,7 +315,7 @@ func _use(what: String) -> void:
 
 
 func _dog_name() -> String:
-	return str((Game.state.get("dog", {}) as Dictionary).get("name", "the dog"))
+	return str((Game.state.get("dog", {}) as Dictionary).get("name", ""))
 
 
 func _build_bar() -> void:
@@ -327,7 +331,7 @@ func _build_bar() -> void:
 	row.add_child(spacer)
 	_jobs = Ui.label(row, "", "LightLabel")
 	_end_day = Ui.button(row, "End the day", func() -> void: Nav.go("day_end"), "sun")
-	Ui.icon_button(row, "gear", "Settings", func() -> void: _show_panel(SettingsPanel.open(_root, true)))
+	Ui.icon_button(row, "gear", "Settings", open_settings)
 	Ui.icon_button(row, "house", "Save and go back to the title", _save_and_quit)
 
 
@@ -346,7 +350,7 @@ func _fit_bar() -> void:
 func _chapter_text(short: bool) -> String:
 	var st := Game.state
 	var next := Data.chapter(int(st["chapter"]) + 1)
-	return ("Ch %d  %d" if short else "Chapter %d  %d") % [int(st["chapter"]), int(st["reputation"])] + ("" if next.is_empty() else "/%d" % int(next["reputation"]))
+	return (tr("Ch %d  %d") if short else tr("Chapter %d  %d")) % [int(st["chapter"]), int(st["reputation"])] + ("" if next.is_empty() else "/%d" % int(next["reputation"]))
 
 
 func _refresh() -> void:
@@ -355,9 +359,13 @@ func _refresh() -> void:
 	Ui.tip_on(_coins, "Your purse. Money is counted in denarii, the Roman silver coin.")
 	var ch := Data.chapter(int(st["chapter"]))
 	var next := Data.chapter(int(st["chapter"]) + 1)
-	Ui.tip_on(_rep, "Chapter %d: %s. Reputation %d" % [int(st["chapter"]), ch.get("title", ""), int(st["reputation"])] + ("" if next.is_empty() else " of the %d that opens chapter %d" % [int(next["reputation"]), int(next["n"])]) + ". Click to see every chapter.")
+	var title := tr(str(ch.get("title", "")))
+	if next.is_empty():
+		Ui.tip_on(_rep, tr("Chapter %d: %s. Reputation %d. Click to see every chapter.") % [int(st["chapter"]), title, int(st["reputation"])])
+	else:
+		Ui.tip_on(_rep, tr("Chapter %d: %s. Reputation %d of the %d that opens chapter %d. Click to see every chapter.") % [int(st["chapter"]), title, int(st["reputation"]), int(next["reputation"]), int(next["n"])])
 	var left := Story.jobs_left(st)
-	_jobs.text = "%d job%s left" % [left, "" if left == 1 else "s"]
+	_jobs.text = tr("1 job left") if left == 1 else tr("%d jobs left") % left
 	_fit_bar()
 
 
@@ -447,16 +455,18 @@ func _show_next_event() -> void:
 	var sides := Ui.hbox(_popup, 10)
 	var col := Ui.vbox(sides, 5)
 	var news: bool = e.get("kind", "") == "chapter" and int(e.get("n", 1)) > 1
+	var body := Ui.text(e.get("text", ""))
+	var width := Ui.wrap_width(body, 200.0 if news else 240.0, 7, floorf((Nav.ui_size().x - 40.0) * (0.5 if news else 1.0)))
 	if e.get("kind", "") == "chapter":
-		Ui.label(col, "Chapter %d" % int(e.get("n", 1)), "MutedLabel").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		var t := Ui.label(col, str(e.get("title", "")), "Heading")
-		t.add_theme_font_size_override("font_size", 16)
+		Ui.label(col, tr("Chapter %d") % int(e.get("n", 1)), "MutedLabel").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var t := Ui.label(col, Ui.text(e.get("title", "")), "Heading", width)
+		t.add_theme_font_size_override("font_size", UiTheme.heading_size(true))
 		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	else:
-		Ui.label(col, str(e.get("title", Data.client(e.get("client", "")).get("name", "News"))), "Heading")
-	Ui.label(col, str(e.get("text", "")), "", 200 if news else 240)
+		Ui.label(col, Ui.text(e.get("title", Data.client(e.get("client", "")).get("name", "News"))), "Heading", width)
+	Ui.label(col, body, "", width)
 	if e.get("kind", "") == "chapter":
-		_chapter_news(sides, col, int(e.get("n", 1)))
+		_chapter_news(sides, col, int(e.get("n", 1)), width)
 	var ok := Ui.button(col, "Carry on", func() -> void:
 		if _popup != popup:
 			return
@@ -485,7 +495,7 @@ func _guide() -> void:
 
 
 ## Beside a chapter's letter, what it adds to the workshop, and under it how far off the next one is.
-func _chapter_news(sides: HBoxContainer, col: VBoxContainer, n: int) -> void:
+func _chapter_news(sides: HBoxContainer, col: VBoxContainer, n: int, width: float) -> void:
 	if n > 1:
 		var list := Ui.vbox(sides, 2)
 		Ui.label(list, "New in the workshop:", "Heading")
@@ -494,12 +504,10 @@ func _chapter_news(sides: HBoxContainer, col: VBoxContainer, n: int) -> void:
 			Ui.icon(r, "tick_small").size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 			Ui.label(r, line, "", 220)
 	var next := Story.next_chapter_line(Game.state)
-	if n == 1:
-		next = "Finish floors to earn reputation, and better floors earn more. " + next + "."
-	elif next != "":
-		next += "."
 	if next != "":
-		Ui.label(col, next + " The Chapter button at the top shows what each chapter brings.", "MutedLabel", 200 if n > 1 else 240)
+		var lines := ["Finish floors to earn reputation, and better floors earn more."] if n == 1 else []
+		lines += [tr("%s.") % next, "The Chapter button at the top shows what each chapter brings."]
+		Ui.label(col, Ui.text(lines), "MutedLabel", width)
 
 
 func _close_panel() -> void:
@@ -530,27 +538,26 @@ func _open_merchant() -> void:
 	var head := Ui.hbox(col, 4)
 	Ui.label(head, "The stone merchant", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	Ui.button(head, "Done", _close_panel, "tick")
-	Ui.label(col, "Prices are for a sack of 100 tiles, and a floor is laid only from stone in stock.", "MutedLabel")
-	_stone_scroll = ScrollContainer.new()
-	_stone_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	col.add_child(_stone_scroll)
+	var labels := [Ui.label(col, "Prices are for a sack of 100 tiles, and a floor is laid only from stone in stock.", "MutedLabel", 300)]
+	_list_scroll = ScrollContainer.new()
+	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	col.add_child(_list_scroll)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 1)
-	_stone_scroll.add_child(grid)
+	_list_scroll.add_child(grid)
 	for id in Game.state["unlocked_stones"]:
 		var cell := Ui.hbox(grid, 4)
 		Ui.texture(cell, MotifIcons.swatch(id, 10))
-		Ui.label(cell, str(Stones.LIST[Stones.index(id)]["name"])).custom_minimum_size.x = 74
-		var have := Ui.label(cell, "%d in stock" % Game.stock(id), "MutedLabel")
-		have.custom_minimum_size.x = 56
+		labels.append(Ui.label(cell, Stones.title(id), "", 74))
+		var have := Ui.label(cell, tr("%d in stock") % Game.stock(id), "MutedLabel", 56)
 		var sid: String = id
 		var price := Game.sack_price(sid)
 		Ui.button(cell, Ui.coins_text(price), func() -> void:
 			if Game.buy_sack(sid):
 				Audio.ui("coins")
-				have.text = "%d in stock" % Game.stock(sid)
+				have.text = tr("%d in stock") % Game.stock(sid)
 			else:
 				Audio.ui("nope"), "sack")
 	var cargo := Story.ship_stone(Game.state)
@@ -560,26 +567,27 @@ func _open_merchant() -> void:
 		Ui.texture(row, MotifIcons.swatch(cargo, 12))
 		var text := Ui.vbox(row, 0)
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		Ui.label(text, Story.ship_offer(Game.state), "", 270)
-		Ui.button(row, "Buy a sack: %s" % Ui.coins_text(Game.ship_sack_price()), func() -> void:
+		labels.append(Ui.label(text, Story.ship_offer(Game.state), "", 270))
+		Ui.button(row, tr("Buy a sack: %s") % Ui.coins_text(Game.ship_sack_price()), func() -> void:
 			if Game.buy_from_ship():
 				Audio.ui("coins")
 				Saves.save()
 				_open_merchant()
 			else:
 				Audio.ui("nope"), "sack", true)
+	Ui.narrow_to_fit(_panel, labels, Nav.ui_size().x - 8.0)
 	_layout.call_deferred()
 
 
-## Two stones to a row, and with every stone in a late chapter and a ship in, the rows scroll so the card fits.
-func _fit_stones() -> void:
-	var grid := _stone_scroll.get_child(0) as GridContainer
-	_stone_scroll.custom_minimum_size.y = 0.0
+## A list two to a row, the stones or the upgrades: when the rows don't all fit, they scroll so the card does.
+func _fit_list() -> void:
+	var grid := _list_scroll.get_child(0) as GridContainer
+	_list_scroll.custom_minimum_size.y = 0.0
 	var spare := Nav.ui_size().y - 8.0 - _panel.get_combined_minimum_size().y
 	var full := grid.get_combined_minimum_size().y
 	var gap := float(grid.get_theme_constant("v_separation"))
 	var row := (full + gap) / maxf(ceilf(grid.get_child_count() / float(grid.columns)), 1.0)
-	_stone_scroll.custom_minimum_size.y = minf(full, maxf(floorf((spare + gap) / row), 1.0) * row - gap)
+	_list_scroll.custom_minimum_size.y = minf(full, maxf(floorf((spare + gap) / row), 1.0) * row - gap)
 
 
 ## The workbench: a picture panel to lay today, the panels made so far for collectors to buy, and the upgrades.
@@ -614,11 +622,12 @@ func _open_bench() -> void:
 		for panel in panels:
 			var row := Ui.hbox(list, 4)
 			Ui.texture(row, MotifIcons.motif(panel["motif"], 18, panel.get("stones", {})))
-			var name := Ui.label(row, "%s, %d stars" % [str(Data.motif(panel["motif"]).get("name", "A picture")), int(panel.get("stars", 0))])
+			var stars := int(panel.get("stars", 0))
+			var name := Ui.label(row, (tr("%s, 1 star") % Data.motif_title(panel["motif"])) if stars == 1 else tr("%s, %d stars") % [Data.motif_title(panel["motif"]), stars], "", 150)
 			name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			var value := Story.panel_value(Game.state, int(panel.get("stars", 0)))
 			var sold: Dictionary = panel
-			var sell := Ui.button(row, "Sell: %s" % Ui.coins_text(value), func() -> void: _sell_panel(sold, value), "coin")
+			var sell := Ui.button(row, tr("Sell: %s") % Ui.coins_text(value), func() -> void: _sell_panel(sold, value), "coin")
 			var set_in := (FloorDesign.from_dict(busy.get("design", {})).placements if busy.has("design") else []).any(func(p: Dictionary) -> bool: return str(p.get("panel", "")) == str(panel["id"]))
 			if set_in:
 				sell.disabled = true
@@ -665,12 +674,16 @@ func _open_upgrades() -> void:
 	var head := Ui.hbox(col, 4)
 	Ui.label(head, "Improve the workshop", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	Ui.button(head, "Done", _close_panel, "tick")
-	# Two to a row, so every upgrade fits on the screen at once.
+	# Two to a row, scrolling only when a long language needs more lines than the screen has.
+	_list_scroll = ScrollContainer.new()
+	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	col.add_child(_list_scroll)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 3)
-	col.add_child(grid)
+	_list_scroll.add_child(grid)
+	var labels := []
 	for id in Data.upgrade_order:
 		var u: Dictionary = Data.upgrades[id]
 		if int(u.get("chapter", 1)) > int(Game.state["chapter"]):
@@ -683,13 +696,14 @@ func _open_upgrades() -> void:
 		var row := Ui.hbox(card, 4)
 		var text := Ui.vbox(row, 0)
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		Ui.label(text, str(u["name"]) + ("  (%d of %d)" % [owned, limit] if limit > 1 else ""), "", 172)
-		Ui.label(text, str(u.get("text", "")), "MutedLabel", 172)
+		labels.append(Ui.label(text, tr(str(u["name"])) + (tr("  (%d of %d)") % [owned, limit] if limit > 1 else ""), "", 172))
+		labels.append(Ui.label(text, tr(str(u.get("text", ""))), "MutedLabel", 172))
 		var uid: String = id
 		var cost := int(u.get("cost", 0))
 		var b := Ui.button(row, "Owned" if owned >= limit else Ui.coins_text(cost), func() -> void: _buy(uid, cost))
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.disabled = owned >= limit or cost > Game.coins()
+	Ui.narrow_to_fit(_panel, labels, Nav.ui_size().x - 8.0)
 	_layout.call_deferred()
 
 

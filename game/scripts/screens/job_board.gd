@@ -13,22 +13,20 @@ func enter(_args: Dictionary) -> void:
 	var col := Ui.vbox(_root, 5)
 	var head := Ui.hbox(col, 6)
 	var fest := Story.festival(Game.state)
-	Ui.label(head, "Notices for day %d" % int(Game.state["day"]) + ("" if fest.is_empty() else ": the %s" % fest["name"]), "LightHeading")
+	Ui.label(head, tr("Notices for day %d") % int(Game.state["day"]) if fest.is_empty() else tr("Notices for day %d: the %s") % [int(Game.state["day"]), tr(fest["name"])], "LightHeading")
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(spacer)
 	var left := Story.jobs_left(Game.state)
 	var busy: Dictionary = Game.state["active_job"]
 	if not busy.is_empty():
-		_closed(col, "A floor is waiting", ("Your picture panel is still on the bench. Finish it, or give it up at the workbench, before taking a job." if busy.get("kind", "") == "panel" else "%s's floor is still on your table. Finish it before taking another job." % busy.get("client_name", "The last client")),
+		_closed(col, "A floor is waiting", ("Your picture panel is still on the bench. Finish it, or give it up at the workbench, before taking a job." if busy.get("kind", "") == "panel" else tr("%s's floor is still on your table. Finish it before taking another job.") % Ui.text(busy.get("client_name", "The last client"))),
 			"Carry on with it", func() -> void: Nav.go("floor" if busy.get("kind", "") == "restoration" else "design_table", {"job": busy}), "brush")
 	elif left <= 0:
-		var why := "You can take one job a day." if int(Game.state["apprentices"]) == 0 else "You and your apprentice have taken every job you can manage today."
-		if int(Game.state["apprentices"]) == 0:
-			why += " An apprentice, from the workbench, lets you take two."
-		_closed(col, "That's today's work done", why + " New notices go up in the morning.", "End the day", func() -> void: Nav.go("day_end"), "sun")
+		var why := ["You can take one job a day.", "An apprentice, from the workbench, lets you take two."] if int(Game.state["apprentices"]) == 0 else ["You and your apprentice have taken every job you can manage today."]
+		_closed(col, "That's today's work done", Ui.text(why + ["New notices go up in the morning."]), "End the day", func() -> void: Nav.go("day_end"), "sun")
 	else:
-		Ui.label(head, "You can take %d more today" % left, "LightLabel")
+		Ui.label(head, tr("You can take %d more today") % left, "LightLabel")
 		var scroll := ScrollContainer.new()
 		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -82,14 +80,15 @@ func _notice(job: Dictionary) -> Control:
 	var portrait := _portrait(job.get("portrait", ""), 32)
 	top.add_child(portrait)
 	var who := Ui.vbox(top, 0)
-	Ui.label(who, str(job.get("client_name", "")), "", 98).add_theme_font_size_override("font_size", 10)
+	Ui.label(who, Ui.text(job.get("client_name", "")), "", 98)
 	var room := Data.room(job.get("room", ""))
-	Ui.label(who, "%s, %d by %d" % [room.get("name", ""), int(room.get("w", 0)), int(room.get("h", 0))], "MutedLabel")
+	Ui.label(who, tr("%s, %d by %d") % [Data.room_title(job.get("room", "")), int(room.get("w", 0)), int(room.get("h", 0))], "MutedLabel", 98)
 	var kind := str(job.get("kind", "commission"))
 	if bool(job.get("dog", false)):
 		var r := Ui.hbox(col, 2)
 		Ui.icon(r, "paw")
-		Ui.label(r, "Found by %s" % str((Game.state.get("dog", {}) as Dictionary).get("name", "your dog")), "", 110)
+		var dog := str((Game.state.get("dog", {}) as Dictionary).get("name", ""))
+		Ui.label(r, tr("Found by %s") % tr(dog) if dog != "" else tr("Found by your dog"), "", 110)
 	if str(job.get("festival", "")) != "":
 		var r := Ui.hbox(col, 2)
 		Ui.icon(r, "laurel")
@@ -113,11 +112,11 @@ func _notice(job: Dictionary) -> Control:
 		for w in wishes.slice(0, 2):
 			Ui.label(col, "• " + str(w["text"]), "", 140)
 		if wishes.size() > 2:
-			Ui.label(col, "and %d more wish%s" % [wishes.size() - 2, "" if wishes.size() == 3 else "es"], "MutedLabel")
+			Ui.label(col, tr("and 1 more wish") if wishes.size() == 3 else tr("and %d more wishes") % (wishes.size() - 2), "MutedLabel", 140)
 	var pay := Ui.hbox(col, 2)
 	Ui.icon(pay, "coin")
-	Ui.label(pay, ("Prize %s" if kind == "contest" else "About %s") % Ui.coins_text(int(job.get("budget", 0))))
-	Ui.button(col, "See " + JobFactory.pronouns(job)["him"], func() -> void: Nav.go("client_visit", {"job": job}), "", true)
+	Ui.label(pay, (tr("Prize %s") if kind == "contest" else tr("About %s")) % Ui.coins_text(int(job.get("budget", 0))))
+	Ui.button(col, "See her" if JobFactory.pronouns(job)["he"] == "she" else "See him", func() -> void: Nav.go("client_visit", {"job": job}), "", true)
 	return card
 
 
@@ -156,11 +155,11 @@ func _open_notebook() -> void:
 		var row := Ui.hbox(list, 6)
 		row.add_child(_portrait(c.get("portrait", ""), 28))
 		var text := Ui.vbox(row, 0)
-		Ui.label(text, str(c["name"]))
+		Ui.label(text, tr(str(c["name"])))
 		var taste: Array = c.get("taste", [])
-		Ui.label(text, ("Taste: " + " and ".join(taste.map(func(t: String) -> String: return Looks.TASTES[t]["text"]))) if bool(progress.get("taste_known", false)) else "Taste: not known yet", "MutedLabel", 250)
+		Ui.label(text, (tr("Taste: %s") % Looks.tastes_words(taste)) if bool(progress.get("taste_known", false)) else tr("Taste: not known yet"), "MutedLabel", 250)
 		var arc: Array = c.get("arc", [])
-		Ui.label(text, "Their story: %d of %d floors" % [mini(int(progress.get("step", 0)), arc.size()), arc.size()], "MutedLabel")
+		Ui.label(text, tr("Their story: %d of %d floors") % [mini(int(progress.get("step", 0)), arc.size()), arc.size()], "MutedLabel", 250)
 	if met == 0:
 		Ui.label(list, "You haven't laid a floor for any of the town's regulars yet. Their names go here once you have.", "", 280)
 	Ui.button(col, "Close", func() -> void:

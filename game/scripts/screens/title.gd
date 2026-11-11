@@ -25,11 +25,15 @@ func enter(_args: Dictionary) -> void:
 		"new":
 			_show_new()
 		"settings":
-			SettingsPanel.open(Nav.ui)
+			open_settings()
 		"forget":
 			var kept := Saves.slots()
 			if not kept[0].is_empty():
 				_confirm_forget(1, kept[0])
+
+
+func open_settings() -> void:
+	SettingsPanel.open(Nav.ui)
 
 
 func _process(delta: float) -> void:
@@ -76,6 +80,8 @@ func _swap_menu() -> VBoxContainer:
 func _show_menu() -> void:
 	var col := _swap_menu()
 	var title := Ui.label(col, "Mosaicus Maximus", "Heading")
+	# The game's name is Latin in every language, so it keeps Silkscreen's capitals.
+	title.add_theme_font_override("font", UiTheme.title_font("en"))
 	title.add_theme_font_size_override("font_size", 16)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	Ui.label(col, "A town of floors, waiting to be laid", "MutedLabel").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -94,7 +100,7 @@ func _show_menu() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	Ui.button(row, "Free design", func() -> void: Nav.go("design_table", {"free": true}), "brush")
 	Ui.button(row, "Library", func() -> void: Nav.go("library", {"back": "title"}), "book")
-	Ui.button(row, "Settings", func() -> void: SettingsPanel.open(Nav.ui), "gear")
+	Ui.button(row, "Settings", open_settings, "gear")
 	Ui.button(row, "Quit", func() -> void: get_tree().quit())
 
 
@@ -104,7 +110,7 @@ func _slot_row(parent: Node, slot: int, s: Dictionary) -> void:
 	var b := Button.new()
 	b.theme_type_variation = "MainButton"
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.text = "%s\nDay %d, chapter %d, %d floor%s laid" % [s["name"], s["day"], s["chapter"], s["floors"], "" if int(s["floors"]) == 1 else "s"]
+	b.text = (tr("%s\nDay %d, chapter %d, 1 floor laid") % [s["name"], s["day"], s["chapter"]]) if int(s["floors"]) == 1 else tr("%s\nDay %d, chapter %d, %d floors laid") % [s["name"], s["day"], s["chapter"], s["floors"]]
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.custom_minimum_size.y = 30
 	b.add_theme_constant_override("line_spacing", 1)
@@ -124,14 +130,17 @@ func _confirm_forget(slot: int, s: Dictionary) -> void:
 	var title := Ui.label(col, "Forget this workshop?", "Heading")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var floors := int(s["floors"])
-	Ui.label(col, "%s's workshop, on day %d with %d floor%s laid, will be gone for good. Type \"delete\" to forget it." % [s["name"], s["day"], floors, "" if floors == 1 else "s"], "", 226).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var word := tr("delete")
+	var gone_text := tr("%s's workshop, on day %d with 1 floor laid, will be gone for good. Type \"%s\" to forget it.") % [s["name"], s["day"], word] if floors == 1 else tr("%s's workshop, on day %d with %d floors laid, will be gone for good. Type \"%s\" to forget it.") % [s["name"], s["day"], floors, word]
+	Ui.label(col, gone_text, "", 226).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var field := LineEdit.new()
-	field.placeholder_text = "delete"
+	field.placeholder_text = word
 	field.max_length = 20
 	col.add_child(field)
 	var row := Ui.hbox(col, 4)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	var typed := func() -> bool: return field.text.strip_edges().to_lower() == "delete"
+	# The English word works in every language, for a player whose keyboard can't type the translated one.
+	var typed := func() -> bool: return field.text.strip_edges().to_lower() in ["delete", word.to_lower()]
 	var forget := func() -> void:
 		if not typed.call():
 			return
