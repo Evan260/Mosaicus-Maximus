@@ -51,6 +51,7 @@ func _build(text: String, corner: String, target: Variant) -> void:
 		queue_free())
 	skip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	Ui.button(row, "Got it", func() -> void: queue_free(), "tick", true)
+	Ui.closes_with(self)
 	if _follows or _target_rect.has_area():
 		_arrow = TextureRect.new()
 		_arrow.texture = UiTheme.icon("arrow_r")

@@ -67,11 +67,9 @@ func _build(room: Vector2) -> void:
 		_book.add_child(view)
 		_pages.append(view)
 	var side := Ui.vbox(row, 0)
+	Ui.close_button(side, self).size_flags_horizontal = Control.SIZE_SHRINK_END
 	_marks = Ui.vbox(side, 1)
 	_marks.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var done := Ui.icon_button(side, "tick", "Done", func() -> void: queue_free())
-	done.theme_type_variation = "MainButton"
-	done.custom_minimum_size = Vector2(24, 22)
 	_fill()
 	Nav.resized.connect(_place)
 	_place.call_deferred()

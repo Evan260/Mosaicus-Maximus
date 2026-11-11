@@ -10,6 +10,8 @@ var _t := 0.0
 var _name_edit: LineEdit
 var _chooser: DogChooser
 var _begun := false
+## Which page the menu shows: "menu", "new" or "delete".
+var _page := "menu"
 
 
 func enter(_args: Dictionary) -> void:
@@ -78,6 +80,7 @@ func _swap_menu() -> VBoxContainer:
 
 
 func _show_menu() -> void:
+	_page = "menu"
 	var col := _swap_menu()
 	var title := Ui.label(col, "Mosaicus Maximus", "Heading")
 	# The game's name is Latin in every language, so it keeps Silkscreen's capitals.
@@ -126,6 +129,7 @@ func _slot_row(parent: Node, slot: int, s: Dictionary) -> void:
 ## Forgetting a workshop can't be undone, so the word "delete" has to be typed before it goes.
 func _confirm_forget(slot: int, s: Dictionary) -> void:
 	Audio.ui("click")
+	_page = "delete"
 	var col := _swap_menu()
 	var title := Ui.label(col, "Forget this workshop?", "Heading")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -157,6 +161,7 @@ func _confirm_forget(slot: int, s: Dictionary) -> void:
 
 ## Starting a workshop: your name and your dog.
 func _show_new() -> void:
+	_page = "new"
 	var col := _swap_menu()
 	var title := Ui.label(col, "A new workshop", "Heading")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -178,6 +183,14 @@ func _show_new() -> void:
 	var go := Ui.button(buttons, "Open the workshop", _begin, "house", true)
 	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_edit.grab_focus.call_deferred()
+
+
+## Escape steps back from a new workshop or a deletion to the menu, and never quits from the title.
+func go_back() -> bool:
+	if _page == "menu":
+		return false
+	_show_menu()
+	return true
 
 
 func _begin() -> void:

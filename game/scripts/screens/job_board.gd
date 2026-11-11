@@ -140,7 +140,7 @@ func _open_notebook() -> void:
 		_book.queue_free()
 	_book = Ui.panel(Nav.ui, "PagePanel")
 	var col := Ui.vbox(_book, 4)
-	Ui.label(col, "Your notebook", "Heading")
+	Ui.window_head(col, _book, "Your notebook", _close_notebook)
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(300, 170)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -163,8 +163,17 @@ func _open_notebook() -> void:
 		Ui.label(text, tr("Their story: %d of %d floors") % [mini(int(progress.get("step", 0)), arc.size()), arc.size()], "MutedLabel", 250)
 	if met == 0:
 		Ui.label(list, "You haven't laid a floor for any of the town's regulars yet. Their names go here once you have.", "", 280)
-	Ui.button(col, "Close", func() -> void:
-		_book.queue_free()
-		_book = null, "tick").size_flags_horizontal = Control.SIZE_SHRINK_END
 	_book.reset_size()
 	_book.position = ((Nav.ui_size() - _book.size) * 0.5).floor()
+
+
+func _close_notebook() -> void:
+	if _book:
+		_book.queue_free()
+	_book = null
+
+
+## Escape with nothing open goes back to the workshop.
+func go_back() -> bool:
+	Nav.go("workshop")
+	return true

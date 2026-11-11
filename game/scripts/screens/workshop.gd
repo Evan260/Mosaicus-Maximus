@@ -380,13 +380,12 @@ func _open_table() -> void:
 		_close_panel()
 		_panel = Ui.panel(_root, "PagePanel")
 		var col := Ui.vbox(_panel, 4)
-		Ui.label(col, "Nothing on the table yet", "Heading")
+		Ui.window_head(col, _panel, "Nothing on the table yet", _close_panel)
 		Ui.label(col, "Take a job from the job board, and its floor plan will be waiting here." if Story.jobs_left(Game.state) > 0 else "That's today's work done. End the day, and new notices go up on the board in the morning.", "", 220)
 		if Story.can_make_panel(Game.state):
 			Ui.label(col, "Or lay a small picture panel at the workbench, under the window.", "MutedLabel", 220)
 		var row := Ui.hbox(col, 4)
 		row.alignment = BoxContainer.ALIGNMENT_END
-		Ui.button(row, "Close", _close_panel, "cross")
 		if Story.can_make_panel(Game.state):
 			Ui.button(row, "To the workbench", _open_bench, "hammer")
 		if Story.jobs_left(Game.state) > 0:
@@ -472,13 +471,15 @@ func _show_next_event() -> void:
 	Ui.label(col, body, "", width)
 	if e.get("kind", "") == "chapter":
 		_chapter_news(sides, col, int(e.get("n", 1)), width)
-	var ok := Ui.button(col, "Carry on", func() -> void:
+	var carry_on := func() -> void:
 		if _popup != popup:
 			return
 		pending.erase(e)
 		_popup.queue_free()
 		_popup = null
-		_show_next_event(), "tick", true)
+		_show_next_event()
+	var ok := Ui.button(col, "Carry on", carry_on, "tick", true)
+	Ui.closes_with(_popup, carry_on)
 	ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	Audio.ui("page_turn", -6.0)
 	_layout.call_deferred()
@@ -540,9 +541,7 @@ func _open_merchant() -> void:
 	_close_panel()
 	_panel = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_panel, 3)
-	var head := Ui.hbox(col, 4)
-	Ui.label(head, "The stone merchant", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	Ui.button(head, "Done", _close_panel, "tick")
+	Ui.window_head(col, _panel, "The stone merchant", _close_panel)
 	var labels := [Ui.label(col, "Prices are for a sack of 100 tiles, and a floor is laid only from stone in stock.", "MutedLabel", 300)]
 	_list_scroll = ScrollContainer.new()
 	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -600,9 +599,7 @@ func _open_bench() -> void:
 	_close_panel()
 	_panel = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_panel, 4)
-	var head := Ui.hbox(col, 4)
-	Ui.label(head, "The workbench", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	Ui.button(head, "Done", _close_panel, "tick")
+	Ui.window_head(col, _panel, "The workbench", _close_panel)
 	Ui.label(col, "Lay a small picture panel here, one a day. A collector will buy it, or you can set it into a client's floor, where it comes laid already and the client pays extra.", "MutedLabel", 270)
 	var busy: Dictionary = Game.state["active_job"]
 	if busy.get("kind", "") == "panel":
@@ -676,9 +673,7 @@ func _open_upgrades() -> void:
 	_close_panel()
 	_panel = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_panel, 3)
-	var head := Ui.hbox(col, 4)
-	Ui.label(head, "Improve the workshop", "Heading").size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	Ui.button(head, "Done", _close_panel, "tick")
+	Ui.window_head(col, _panel, "Improve the workshop", _close_panel)
 	# Two to a row, scrolling only when a long language needs more lines than the screen has.
 	_list_scroll = ScrollContainer.new()
 	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

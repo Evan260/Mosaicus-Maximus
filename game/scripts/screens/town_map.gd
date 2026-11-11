@@ -173,15 +173,12 @@ func _show_floor(f: Dictionary, title: String) -> void:
 		return
 	_view = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_view, 4)
-	Ui.label(col, title, "Heading", 220)
+	Ui.window_head(col, _view, title, _close_view, 200)
 	var d := FloorDesign.from_dict(f.get("design", {}))
 	var px := clampi(int(220.0 / maxf(d.w, d.h * 1.5)), 2, 5)
 	var img := Composer.picture(d, px)
 	Ui.texture(col, ImageTexture.create_from_image(img))
 	Ui.label(col, Ui.text([tr("Paid %s.") % Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)]), "MutedLabel", 220)
-	Ui.button(col, "Close", func() -> void:
-		_view.queue_free()
-		_view = null, "tick")
 	_view.reset_size()
 	_view.position = ((Nav.ui_size() - _view.size) * 0.5).floor()
 	Audio.ui("page_turn", -8.0)
@@ -247,10 +244,28 @@ func _process(_delta: float) -> void:
 	for k in 5:
 		Ui.icon(stars, "star").modulate = Color(1, 1, 1, 1.0 if k < int(f.get("stars", Looks.stars(float(f.get("score", 0))))) else 0.2)
 	Ui.label(col, Ui.text([tr("Paid %s.") % Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)]), "", 150)
-	Ui.button(col, "Back to the map", func() -> void:
-		_visit.queue_free()
-		_visit = null
-		_marks.visible = true
-		_back.visible = true, "arrow_l", true)
+	Ui.button(col, "Back to the map", _leave_visit, "arrow_l", true)
+	Ui.closes_with(_visit, _leave_visit)
 	card.reset_size()
 	card.position = Vector2(6, floorf((s.y - card.size.y) * 0.5))
+
+
+func _close_view() -> void:
+	if _view:
+		_view.queue_free()
+	_view = null
+
+
+func _leave_visit() -> void:
+	if not is_instance_valid(_visit):
+		return
+	_visit.queue_free()
+	_visit = null
+	_marks.visible = true
+	_back.visible = true
+
+
+## Escape with nothing open goes back to the workshop.
+func go_back() -> bool:
+	Nav.go("workshop")
+	return true

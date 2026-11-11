@@ -68,6 +68,30 @@ static func icon_button(parent: Node, icon_name: String, tip: String, action: Ca
 	return b
 
 
+## A small X for a window's top right corner. Escape and the pad's B do the same, through `closes_with`.
+static func close_button(parent: Node, window: Control, action: Callable = Callable()) -> Button:
+	var close := closes_with(window, action)
+	var b := icon_button(parent, "cross_small", "Close", close)
+	b.custom_minimum_size = Vector2(16, 16)
+	b.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	return b
+
+
+## Marks a control as a window that Escape and the pad's B close with `action`, or by freeing it; returns that action.
+static func closes_with(window: Control, action: Callable = Callable()) -> Callable:
+	var close := action if action.is_valid() else window.queue_free
+	window.set_meta("close", close)
+	return close
+
+
+## A window's top line: its heading, and the X that closes it in the corner.
+static func window_head(parent: Node, window: Control, title: String, action: Callable = Callable(), wrap_width: float = 0.0) -> HBoxContainer:
+	var head := hbox(parent, 4)
+	label(head, title, "Heading", wrap_width).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	close_button(head, window, action)
+	return head
+
+
 ## Gives a control a tooltip, shown at the interface's scale by the Tips layer.
 static func tip_on(c: Control, text: String) -> Control:
 	c.set_meta("tip", text)

@@ -149,8 +149,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			_last = p
 	elif event is InputEventKey and event.pressed and not event.echo:
 		match (event as InputEventKey).keycode:
-			KEY_ESCAPE:
-				_pause()
 			KEY_C:
 				floor_view.chalk_visible = not floor_view.chalk_visible
 			KEY_BRACKETLEFT:
@@ -167,17 +165,22 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 ## Leaving a floor half done keeps the job, and the stone already paid for, for later.
+## Escape asks whether to leave the floor.
+func go_back() -> bool:
+	if floor_view != null:
+		_pause()
+	return true
+
+
 func _pause() -> void:
 	if _paused:
 		return
 	_paused = Ui.panel(Nav.ui, "PagePanel")
 	var col := Ui.vbox(_paused, 4)
-	Ui.label(col, "Leave this floor?", "Heading")
+	Ui.window_head(col, _paused, "Leave this floor?", _unpause)
 	Ui.label(col, "The job stays on your table, and the stone you've paid for is kept. You'll start this floor again when you come back.", "", 200)
 	var row := Ui.hbox(col, 4)
-	Ui.button(row, "Keep working", func() -> void:
-		_paused.queue_free()
-		_paused = null, "brush", true)
+	Ui.button(row, "Keep working", _unpause, "brush", true)
 	Ui.button(row, "Back to the workshop" if not job.get("free", false) else "Back to the title", func() -> void:
 		if job.get("free", false):
 			Nav.go("title")
@@ -186,6 +189,12 @@ func _pause() -> void:
 			Nav.go("workshop"), "arrow_l")
 	_paused.reset_size()
 	_paused.position = ((Nav.ui_size() - _paused.size) * 0.5).floor()
+
+
+func _unpause() -> void:
+	if _paused:
+		_paused.queue_free()
+	_paused = null
 
 
 func select_tool(name: String) -> void:

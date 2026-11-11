@@ -204,3 +204,24 @@ func _fit() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
 		Settings.toggle_fullscreen()
+
+
+## Escape, which the pad's B sends too, closes the topmost window, or else steps back out of the screen, even while typing.
+func _input(event: InputEvent) -> void:
+	if not (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE) or _busy:
+		return
+	if close_top() or (current and current.has_method("go_back") and current.go_back()):
+		get_viewport().set_input_as_handled()
+
+
+## Closes the window drawn on top, the last in the interface marked by `Ui.closes_with`; false when none is open.
+func close_top() -> bool:
+	var top: Control = null
+	for c in ui.find_children("*", "Control", true, false):
+		if c.has_meta("close") and c.is_visible_in_tree() and not c.is_queued_for_deletion():
+			top = c
+	if top == null:
+		return false
+	Audio.ui("click")
+	(top.get_meta("close") as Callable).call()
+	return true

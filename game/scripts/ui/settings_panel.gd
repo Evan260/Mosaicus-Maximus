@@ -48,9 +48,10 @@ func _build(in_game: bool) -> void:
 		Ui.button(col, "Achievements", func() -> void:
 			queue_free()
 			AchievementsPanel.open(get_parent()), "laurel")
-	Ui.button(col, "Done", func() -> void: queue_free(), "tick", true)
 	var languages := _languages(sides)
 	_own_music(languages if languages else col)
+	var corner := Ui.vbox(sides, 0)
+	Ui.close_button(corner, self)
 	Nav.resized.connect(_place)
 	_place.call_deferred()
 

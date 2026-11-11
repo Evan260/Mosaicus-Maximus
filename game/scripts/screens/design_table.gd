@@ -148,8 +148,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			_resize(1)
 		KEY_MINUS, KEY_KP_SUBTRACT:
 			_resize(-1)
-		KEY_ESCAPE:
-			_select(-1)
 
 
 func _build() -> void:
@@ -1195,6 +1193,15 @@ func _start_laying() -> void:
 		Game.state["active_job"] = job
 		Saves.save()
 	Nav.go("floor", {"design": design, "job": job if not free else {"free": true}})
+
+
+## Escape lets go of the picked pattern, or with none picked leaves the table, keeping the design.
+func go_back() -> bool:
+	if selected >= 0:
+		_select(-1)
+	else:
+		_back()
+	return true
 
 
 func _back() -> void:

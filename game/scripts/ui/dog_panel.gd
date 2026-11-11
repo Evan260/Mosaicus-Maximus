@@ -13,11 +13,10 @@ static func open(parent: Control) -> DogPanel:
 
 func _build() -> void:
 	var col := Ui.vbox(self, 4)
-	Ui.label(col, "Your dog", "Heading").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	Ui.window_head(col, self, "Your dog")
 	var chooser := DogChooser.make(Game.state.get("dog", {}))
 	col.add_child(chooser)
 	var row := Ui.hbox(col, 4)
-	Ui.button(row, "Cancel", func() -> void: queue_free(), "cross")
 	var ok := Ui.button(row, "That's my dog", func() -> void:
 		Game.state["dog"] = chooser.chosen()
 		Saves.save()

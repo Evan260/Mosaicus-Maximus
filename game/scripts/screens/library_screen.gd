@@ -297,6 +297,12 @@ func _remove_it() -> void:
 	Nav.go("library", {"back": _back_to})
 
 
+## Escape leaves the library for wherever it was opened from.
+func go_back() -> bool:
+	_leave()
+	return true
+
+
 func _leave() -> void:
 	if _leaving:
 		return

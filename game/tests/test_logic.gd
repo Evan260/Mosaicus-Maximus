@@ -1479,3 +1479,20 @@ func test_chapters_book_fits_every_spread() -> void:
 		holder.free()
 	TranslationServer.set_locale("en")
 	UiTheme.use_language()
+
+
+func test_escape_closes_the_top_window_first() -> void:
+	game.new_game("Escape")
+	var under := DogPanel.open(Nav.ui)
+	var over := SettingsPanel.open(Nav.ui)
+	check(Nav.close_top() and over.is_queued_for_deletion() and not under.is_queued_for_deletion(), "Escape closes the window on top first")
+	check(Nav.close_top() and under.is_queued_for_deletion(), "and then the one under it")
+	await get_tree().process_frame
+	check(not Nav.close_top(), "with no window open there is nothing to close")
+	var title: Node = load("res://scripts/screens/title.gd").new()
+	title._show_new()
+	check(title.go_back() and title._page == "menu", "Escape on a new workshop steps back to the title's menu")
+	check(not title.go_back(), "and on the menu it never quits the game")
+	await get_tree().process_frame
+	title._menu.free()
+	title.free()
