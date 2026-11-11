@@ -14,6 +14,12 @@ const COLUMNS := 40
 const CURL := 0.5
 ## How much nearer the viewer a lifted leaf comes, as a share of its height for each page width it rises.
 const NEAR := 0.06
+## The offscreen pictures keep ten bits a colour, and the leaf drops the last two so its colours are exact eight-bit ones.
+const SHADER := """shader_type canvas_item;
+varying vec4 tint;
+void vertex() { tint = COLOR; }
+void fragment() { COLOR = floor(round(texture(TEXTURE, UV) * 1023.0) / 4.0) / 255.0 * tint; }
+"""
 
 ## 1 turns the right page over to the left, -1 the left page over to the right.
 var direction := 1
@@ -32,6 +38,10 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	z_index = 20
+	var shader := Shader.new()
+	shader.code = SHADER
+	material = ShaderMaterial.new()
+	material.shader = shader
 	var tween := create_tween()
 	tween.tween_method(func(p: float):
 		progress = p
@@ -41,10 +51,12 @@ func _ready() -> void:
 		queue_free())
 
 
-## Takes pictures of laid-out pages, each with its paper behind it, all in one rendered frame, `scale` window pixels to
-## the book's pixel so the turning leaf is as sharp as the book. Each shot is {page, paper, at, size, theme}.
-static func capture(owner: Node, shots: Array, scale: int) -> Array:
-	var ports := []
+## Pictures laid-out pages, each with its paper behind it, `scale` window pixels to the book's pixel so the turning
+## leaf is as sharp as the book. Each shot is {page, paper, at, size, theme}. Each page is moved into its picture, so a
+## page that stays in the book is given as a copy. Each picture is drawn offscreen once, in the frame it is taken, and is
+## freed with the leaf.
+func capture(shots: Array, scale: int) -> Array:
+	var out := []
 	for shot in shots:
 		var size: Vector2 = shot["size"]
 		var port := SubViewport.new()
@@ -52,7 +64,7 @@ static func capture(owner: Node, shots: Array, scale: int) -> Array:
 		port.transparent_bg = false
 		port.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 		port.render_target_update_mode = SubViewport.UPDATE_ONCE
-		owner.add_child(port)
+		add_child(port)
 		var root := Control.new()
 		root.size = size
 		root.scale = Vector2.ONE * scale
@@ -64,16 +76,12 @@ static func capture(owner: Node, shots: Array, scale: int) -> Array:
 		paper.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		paper.size = size
 		root.add_child(paper)
-		var page := (shot["page"] as Control).duplicate() as Control
+		var page: Control = shot["page"]
+		if page.get_parent():
+			page.get_parent().remove_child(page)
 		page.position = shot["at"]
 		root.add_child(page)
-		ports.append(port)
-	await RenderingServer.frame_post_draw
-	var out := []
-	for port in ports:
-		out.append(ImageTexture.create_from_image(port.get_texture().get_image()) if is_instance_valid(port) else null)
-		if is_instance_valid(port):
-			port.queue_free()
+		out.append(port.get_texture())
 	return out
 
 

@@ -145,6 +145,7 @@ func _sample(label: String, warm: float) -> void:
 		"frames": _frames.size(),
 		"avg_ms": _mean(_frames),
 		"worst1_ms": _mean(worst),
+		"slowest_ms": sorted[-1] if not sorted.is_empty() else 0.0,
 		"process_ms": _mean(_proc),
 		"gpu_ms": _mean(_gpu),
 		"draw_calls": _mean(_draws),
@@ -182,11 +183,11 @@ func _write() -> void:
 		"%s, window %dx%d, %s s a scene, %s, screen %d Hz" % [Time.get_datetime_string_from_system(), size.x, size.y, seconds,
 			RenderingServer.get_video_adapter_name(), DisplayServer.screen_get_refresh_rate()], "",
 		"Slowest process ms is Godot's TIME_PROCESS, the slowest frame's script and engine work in each second, averaged.", "",
-		"| Scene | Frames | Avg ms | 1% worst ms | Slowest process ms | GPU ms | Draw calls | Canvas items | Objects | Nodes | Orphans | Resources | Static MB | Texture MB | Video MB |",
-		"|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+		"| Scene | Frames | Avg ms | 1% worst ms | Slowest frame ms | Slowest process ms | GPU ms | Draw calls | Canvas items | Objects | Nodes | Orphans | Resources | Static MB | Texture MB | Video MB |",
+		"|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
 	for r in _rows:
-		lines.append("| %s | %d | %.2f | %.2f | %.2f | %.2f | %.0f | %d | %d | %d | %d | %d | %.1f | %.1f | %.1f |" % [r["scene"], r["frames"],
-			r["avg_ms"], r["worst1_ms"], r["process_ms"], r["gpu_ms"], r["draw_calls"], r["canvas_items"], r["objects"], r["nodes"],
+		lines.append("| %s | %d | %.2f | %.2f | %.2f | %.2f | %.2f | %.0f | %d | %d | %d | %d | %d | %.1f | %.1f | %.1f |" % [r["scene"], r["frames"],
+			r["avg_ms"], r["worst1_ms"], r["slowest_ms"], r["process_ms"], r["gpu_ms"], r["draw_calls"], r["canvas_items"], r["objects"], r["nodes"],
 			r["orphans"], r["resources"], r["static_mb"], r["texture_mb"], r["video_mb"]])
 	var f := FileAccess.open(out, FileAccess.WRITE)
 	f.store_string("\n".join(lines) + "\n")

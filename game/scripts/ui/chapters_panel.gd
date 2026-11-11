@@ -62,13 +62,6 @@ func _build(room: Vector2) -> void:
 	_book.custom_minimum_size = Vector2(STACK * 2 + page_size.x * 2 + SPINE, page_size.y + STACK)
 	_book.draw.connect(_draw_book)
 	row.add_child(_book)
-	for side in 2:
-		var view := ScrollContainer.new()
-		view.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		view.position = Vector2(_page_x(side) + (OUTER if side == 0 else INNER), TOP)
-		view.size = Vector2(_text_width() + 4, page_size.y - TOP - 6)
-		_book.add_child(view)
-		_pages.append(view)
 	var side := Ui.vbox(row, 0)
 	Ui.close_button(side, self).size_flags_horizontal = Control.SIZE_SHRINK_END
 	_marks = Ui.vbox(side, 1)
@@ -93,10 +86,19 @@ func _text_width() -> float:
 
 ## Lays out the open chapter's spread and the bookmarks beside it.
 func _fill() -> void:
+	# A page turn takes the pages it pictures out of the book, so only those still in it are freed here.
 	for view in _pages:
-		for c in view.get_children():
-			view.remove_child(c)
-			c.queue_free()
+		if view.get_parent() == _book:
+			_book.remove_child(view)
+			view.queue_free()
+	_pages.clear()
+	for side in 2:
+		var view := ScrollContainer.new()
+		view.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		view.position = Vector2(_page_x(side) + (OUTER if side == 0 else INNER), TOP)
+		view.size = Vector2(_text_width() + 4, page_size.y - TOP - 6)
+		_book.add_child(view)
+		_pages.append(view)
 	for c in _marks.get_children():
 		_marks.remove_child(c)
 		c.queue_free()
@@ -323,17 +325,12 @@ func turn_to(n: int) -> void:
 		_fill()
 		return
 	_turning = true
-	var book := _book
 	var direction := 1 if _place_in_book(n) > _place_in_book(chapter) else -1
-	var shots := await PageTurn.capture(self, [_shot(1 if direction > 0 else 0), _shot(0 if direction > 0 else 1)], Nav.scale_factor())
-	# The book may have been closed while its pages were pictured, and is then left closed.
-	if not is_instance_valid(book) or not book.is_inside_tree():
-		_turning = false
-		return
+	var turn := PageTurn.new()
+	var shots := turn.capture([_shot(1 if direction > 0 else 0), _shot(0 if direction > 0 else 1)], Nav.scale_factor())
 	Audio.play("page_turn")
 	chapter = n
 	_fill()
-	var turn := PageTurn.new()
 	turn.direction = direction
 	turn.left_page = Rect2(_page_x(0), 0, page_size.x, page_size.y)
 	turn.right_page = Rect2(_page_x(1), 0, page_size.x, page_size.y)
@@ -342,11 +339,17 @@ func turn_to(n: int) -> void:
 	turn.gutter = _draw_spine
 	turn.size = _book.size
 	turn.landed.connect(_landed)
-	turn.tree_exiting.connect(func() -> void: _turning = false)
+	# A leaf that landed has already passed the turning on to the next one, so only a leaf cut short clears it.
+	turn.tree_exiting.connect(func() -> void:
+		if turn.progress < 1.0:
+			_turning = false)
 	_book.add_child(turn)
-	var backs := await PageTurn.capture(self, [_shot(0 if direction > 0 else 1)], Nav.scale_factor())
+	# The new page is pictured a frame later, long before the leaf shows its back, so no one frame does all the work.
+	await get_tree().process_frame
 	if is_instance_valid(turn):
-		turn.back = backs[0]
+		var back := _shot(0 if direction > 0 else 1)
+		back["page"] = back["page"].duplicate()
+		turn.back = turn.capture([back], Nav.scale_factor())[0]
 
 
 ## Where a spread lies in the book: the achievements come after the last chapter.

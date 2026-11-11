@@ -57,3 +57,61 @@ func _settle() -> void:
 		await get_tree().process_frame
 	for k in 3:
 		await get_tree().process_frame
+
+
+func test_turning_pages_leaves_nothing_behind() -> void:
+	Game.new_game("Memory")
+	Game.state["story_seen"].append("intro")
+	Game.state["guide_off"] = true
+	var motion := Settings.reduced_motion
+	Settings.reduced_motion = false
+	Nav.go("workshop")
+	await _settle()
+	var book := _open_book()
+	# The first two rounds fill the caches every later round reuses: fonts, pictures and the book's paper.
+	for k in 2:
+		book = await _turns(book)
+	var objects := Performance.get_monitor(Performance.OBJECT_COUNT)
+	var nodes := Performance.get_monitor(Performance.OBJECT_NODE_COUNT)
+	var orphans := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+	var resources := Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)
+	for k in 2:
+		book = await _turns(book)
+	check(Nav.ui.find_children("*", "SubViewport", true, false).is_empty(), "every page's picture is freed once its leaf lands or is cut short")
+	check(Performance.get_monitor(Performance.OBJECT_NODE_COUNT) <= nodes, "turning more pages leaves no extra nodes (%d before, %d after)" % [nodes, Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
+	check(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) <= orphans, "and no nodes outside the tree (%d before, %d after)" % [orphans, Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)])
+	check(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT) <= resources, "and no extra resources (%d before, %d after)" % [resources, Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)])
+	check(Performance.get_monitor(Performance.OBJECT_COUNT) <= objects, "and no extra objects (%d before, %d after)" % [objects, Performance.get_monitor(Performance.OBJECT_COUNT)])
+	Nav.close_top()
+	Settings.reduced_motion = motion
+	Nav.go("title")
+	await _settle()
+
+
+func _open_book() -> ChaptersPanel:
+	var book := ChaptersPanel.open(Nav.current._root)
+	Nav.current._show_panel(book)
+	return book
+
+
+## Three chapters turned to and back, then two turns cut short by closing the book, one before its new page is
+## pictured. Returns the book opened again after them.
+func _turns(book: ChaptersPanel) -> ChaptersPanel:
+	for n in [2, 3, 1]:
+		book.turn_to(n)
+		await _landed(book)
+	for wait in [0, 3]:
+		book.turn_to(2)
+		for i in wait:
+			await get_tree().process_frame
+		Nav.close_top()
+		await _settle()
+		book = _open_book()
+		await get_tree().process_frame
+	return book
+
+
+func _landed(book: ChaptersPanel) -> void:
+	while book._turning:
+		await get_tree().process_frame
+	await _settle()
