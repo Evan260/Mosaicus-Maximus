@@ -46,6 +46,13 @@ var _materials: Array[ShaderMaterial] = []
 var _chalk: Sprite2D
 var _rings: Node2D
 var _guide: ShaderMaterial
+var _guide_sprite: Sprite2D
+var _active_node: MultiMeshInstance2D
+## When the last tile in the air has landed and its dust has settled, after which the flying batch draws nothing.
+var _active_until := -INF
+## The grout film and polish sheen, which draw nothing until the floor is wiped, and the dirt, which draws nothing once dug.
+var _finish_sprites: Array[Sprite2D] = []
+var _dirt: Sprite2D
 var _chalk_img: Image
 var _chalk_fresh: Image
 var _chalk_tex: ImageTexture
@@ -76,40 +83,136 @@ var _stone_placed := {}
 var _rng := RandomNumberGenerator.new()
 
 
+## A floor's mortar bed, chalk sketch and tile data, worked out without the scene tree so a worker thread can make it.
+class Prepared extends RefCounted:
+	var bed: Image
+	var chalk: Image
+	var labels: Image
+	var state := PackedByteArray()
+	var floor_cells := PackedByteArray()
+	var floor_total := 1
+	var packed := PackedFloat32Array()
+	var xf: Array[Transform2D] = []
+	var buffer := PackedFloat32Array()
+	var stone_total := {}
+	var patch_tiles := {}
+	var rng_state := 0
+
+
+static var _idle_buffer := PackedFloat32Array()
+
+
+## Works out what setup needs on the thread that built the layout, so setting the floor up later is quick.
+static func prepare(l: MosaicLayout) -> void:
+	l.prepared = _prepare(l)
+
+
 func setup(l: MosaicLayout) -> void:
 	layout = l
+	var prep: Prepared = l.prepared if l.prepared is Prepared else _prepare(l)
 	_rng.seed = 11
-	_add_mortar()
+	_rng.state = prep.rng_state
+	_add_mortar(prep)
 	_quad = _quad_mesh()
 	var n := layout.tile_count()
 	_start.resize(n)
 	_start.fill(UNSET)
 	_shimmer.resize(n)
 	_shimmer.fill(-100.0)
-	_packed.resize(n)
-	_xf.resize(n)
+	_packed = prep.packed
+	_xf = prep.xf
+	_stone_total = prep.stone_total.duplicate()
+	_patch_tiles = prep.patch_tiles
 	_landed_mm = _make_batch(n, 0)
+	_landed_mm.buffer = prep.buffer
 	_active_mm = _make_batch(ACTIVE_CAP, 1)
+	_active_mm.buffer = _idle()
+	_active_node = get_child(get_child_count() - 1)
+	_active_node.visible = false
 	_add_finish_layers()
-	for i in n:
-		_packed[i] = layout.stone[i] * 1000 + floorf(_rng.randf() * 999.0)
-		var s := layout.size[i] * QUAD * WORLD
-		_xf[i] = Transform2D(layout.angle[i], Vector2(s, s), 0.0, layout.pos[i] * WORLD)
-		_landed_mm.set_instance_transform_2d(i, _xf[i])
-		_landed_mm.set_instance_custom_data(i, Color(UNSET, _packed[i], -100.0, layout.angle[i]))
-		_stone_total[layout.stone[i]] = _stone_total.get(layout.stone[i], 0) + 1
-		var p := layout.patch[i]
-		if not _patch_tiles.has(p):
-			_patch_tiles[p] = []
-		_patch_tiles[p].append(i)
-	for j in ACTIVE_CAP:
-		_active_mm.set_instance_transform_2d(j, Transform2D())
-		_active_mm.set_instance_custom_data(j, Color(UNSET, 0.0, -100.0, 0.0))
 	_reset_patches()
 	if walls_visible:
 		var walls := Node2D.new()
 		walls.draw.connect(_draw_walls.bind(walls))
 		add_child(walls)
+
+
+## The mortar bed, the chalk sketch and every tile's look and place, in the order the floor's random numbers are drawn.
+static func _prepare(l: MosaicLayout) -> Prepared:
+	var p := Prepared.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var w := l.w
+	var h := l.h
+	p.bed = Image.create(w, h, false, Image.FORMAT_RGB8)
+	p.chalk = Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var noise := SoftNoise.field(w, h, 12.0, rng)
+	for y in h:
+		for x in w:
+			var n := noise[y * w + x] * 0.05 + (rng.randf() - 0.5) * 0.05
+			var i := y * w + x
+			var s := l.labels[i]
+			if s == Stones.NO_TILE:
+				p.bed.set_pixel(x, y, Color(0.8 + n * 0.4, 0.74 + n * 0.4, 0.63 + n * 0.4))
+				continue
+			p.bed.set_pixel(x, y, Color(0.6 + n, 0.565 + n, 0.51 + n))
+			if (x < w - 1 and l.labels[i + 1] != s) or (y < h - 1 and l.labels[i + w] != s):
+				p.chalk.set_pixel(x, y, Color(0.7, 0.3, 0.22, 0.5))
+	var sw := int(ceil(float(w) / STATE_DIV))
+	var sh := int(ceil(float(h) / STATE_DIV))
+	p.state.resize(sw * sh * 3)
+	for i in sw * sh:
+		p.state[i * 3 + 2] = 255
+	p.floor_cells.resize(sw * sh)
+	p.floor_cells.fill(0)
+	for i in w * h:
+		if l.labels[i] != Stones.NO_TILE:
+			p.floor_cells[(i / w) / STATE_DIV * sw + (i % w) / STATE_DIV] = 1
+	p.floor_total = maxi(1, p.floor_cells.count(1))
+	var labels := PackedByteArray()
+	labels.resize(w * h)
+	for i in w * h:
+		labels[i] = l.labels[i]
+	p.labels = Image.create_from_data(w, h, false, Image.FORMAT_R8, labels)
+	var n := l.tile_count()
+	p.packed.resize(n)
+	p.xf.resize(n)
+	p.buffer.resize(n * 12)
+	for i in n:
+		p.packed[i] = l.stone[i] * 1000 + floorf(rng.randf() * 999.0)
+		var size := l.size[i] * QUAD * WORLD
+		var t := Transform2D(l.angle[i], Vector2(size, size), 0.0, l.pos[i] * WORLD)
+		p.xf[i] = t
+		var b := i * 12
+		p.buffer[b] = t.x.x
+		p.buffer[b + 1] = t.y.x
+		p.buffer[b + 3] = t.origin.x
+		p.buffer[b + 4] = t.x.y
+		p.buffer[b + 5] = t.y.y
+		p.buffer[b + 7] = t.origin.y
+		p.buffer[b + 8] = UNSET
+		p.buffer[b + 9] = p.packed[i]
+		p.buffer[b + 10] = -100.0
+		p.buffer[b + 11] = l.angle[i]
+		p.stone_total[l.stone[i]] = p.stone_total.get(l.stone[i], 0) + 1
+		var patch := l.patch[i]
+		if not p.patch_tiles.has(patch):
+			p.patch_tiles[patch] = []
+		p.patch_tiles[patch].append(i)
+	p.rng_state = rng.state
+	return p
+
+
+## The flying batch with nothing in the air: every instance unset, so it draws nothing.
+static func _idle() -> PackedFloat32Array:
+	if _idle_buffer.is_empty():
+		_idle_buffer.resize(ACTIVE_CAP * 12)
+		for j in ACTIVE_CAP:
+			_idle_buffer[j * 12] = 1.0
+			_idle_buffer[j * 12 + 5] = 1.0
+			_idle_buffer[j * 12 + 8] = UNSET
+			_idle_buffer[j * 12 + 10] = -100.0
+	return _idle_buffer
 
 
 func size_world() -> Vector2:
@@ -175,6 +278,7 @@ func shine(delay: float, seconds: float) -> void:
 
 ## Grouts and polishes the whole floor at once, as a time-lapse's last moment.
 func wash(seconds: float) -> void:
+	_show_wiped(true)
 	var tw := create_tween()
 	tw.tween_method(func(v: float) -> void:
 		_state.fill(int(v))
@@ -222,6 +326,7 @@ func setup_restoration(holes: PackedInt32Array) -> void:
 	_chalk.visible = false
 	phase = Phase.DIG
 	var dirt := Sprite2D.new()
+	_dirt = dirt
 	dirt.texture = _state_tex
 	dirt.centered = false
 	dirt.scale = Vector2(WORLD, WORLD) * STATE_DIV
@@ -349,6 +454,9 @@ func restore(snap: Dictionary) -> void:
 		_state_dirty = true
 	phase = int(snap.get("phase", phase)) as Phase
 	_done = phase != Phase.LAY
+	_show_wiped(phase in [Phase.GROUT, Phase.POLISH, Phase.DONE])
+	if _dirt and phase != Phase.DIG:
+		_dirt.visible = false
 	if phase == Phase.DONE:
 		show_finished()
 	phase_changed.emit(phase)
@@ -431,6 +539,7 @@ func show_finished() -> void:
 	_state.fill(255)
 	_covered = [_floor_total, _floor_total, _floor_total]
 	_state_dirty = true
+	_show_wiped(true)
 	_chalk.visible = false
 	phase = Phase.DONE
 
@@ -448,6 +557,7 @@ func reset() -> void:
 	_state.fill(0)
 	_covered = [0, 0, 0]
 	_state_dirty = true
+	_show_wiped(false)
 	phase = Phase.LAY
 	phase_changed.emit(phase)
 	_chalk_img.copy_from(_chalk_fresh)
@@ -459,6 +569,8 @@ func reset() -> void:
 
 func _process(delta: float) -> void:
 	now += delta
+	if _active_node.visible and now > _active_until:
+		_active_node.visible = false
 	for m in _materials:
 		m.set_shader_parameter("now", now)
 	for m in _finish_mats:
@@ -493,6 +605,8 @@ func _schedule(i: int, t: float) -> void:
 	_active_mm.set_instance_transform_2d(_active_next, _xf[i])
 	_active_mm.set_instance_custom_data(_active_next, cd)
 	_active_next = (_active_next + 1) % ACTIVE_CAP
+	_active_until = maxf(_active_until, t + ACTIVE_LIFE)
+	_active_node.visible = true
 	_flying.append(i)
 
 
@@ -588,32 +702,10 @@ func _quad_mesh() -> ArrayMesh:
 
 
 ## The bare mortar bed, with the design sketched on it in red chalk the way Roman craftsmen marked out a floor.
-func _add_mortar() -> void:
-	var w := layout.w
-	var h := layout.h
-	var bed := Image.create(w, h, false, Image.FORMAT_RGB8)
-	var chalk := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	var noise := SoftNoise.field(w, h, 12.0, _rng)
-	for y in h:
-		for x in w:
-			var n := noise[y * w + x] * 0.05 + (_rng.randf() - 0.5) * 0.05
-			var i := y * w + x
-			var s := layout.labels[i]
-			if s == Stones.NO_TILE:
-				bed.set_pixel(x, y, Color(0.8 + n * 0.4, 0.74 + n * 0.4, 0.63 + n * 0.4))
-				continue
-			bed.set_pixel(x, y, Color(0.6 + n, 0.565 + n, 0.51 + n))
-			if (x < w - 1 and layout.labels[i + 1] != s) or (y < h - 1 and layout.labels[i + w] != s):
-				chalk.set_pixel(x, y, Color(0.7, 0.3, 0.22, 0.5))
-	_state.resize(_state_w() * _state_h() * 3)
-	for i in _state_w() * _state_h():
-		_state[i * 3 + 2] = 255
-	_floor_cells.resize(_state_w() * _state_h())
-	_floor_cells.fill(0)
-	for i in w * h:
-		if layout.labels[i] != Stones.NO_TILE:
-			_floor_cells[(i / w) / STATE_DIV * _state_w() + (i % w) / STATE_DIV] = 1
-	_floor_total = maxi(1, _floor_cells.count(1))
+func _add_mortar(prep: Prepared) -> void:
+	_state = prep.state
+	_floor_cells = prep.floor_cells
+	_floor_total = prep.floor_total
 	_state_img = Image.create_from_data(_state_w(), _state_h(), false, Image.FORMAT_RGB8, _state)
 	_state_tex = ImageTexture.create_from_image(_state_img)
 	var bed_sprite := Sprite2D.new()
@@ -621,25 +713,23 @@ func _add_mortar() -> void:
 	mortar.shader = load("res://shaders/mortar.gdshader")
 	mortar.set_shader_parameter("state", _state_tex)
 	bed_sprite.material = mortar
-	bed_sprite.texture = ImageTexture.create_from_image(bed)
+	bed_sprite.texture = ImageTexture.create_from_image(prep.bed)
 	bed_sprite.centered = false
 	bed_sprite.scale = Vector2(WORLD, WORLD)
 	add_child(bed_sprite)
-	_chalk_img = chalk
-	_chalk_fresh = chalk.duplicate()
-	_chalk_tex = ImageTexture.create_from_image(chalk)
+	_chalk_img = prep.chalk.duplicate()
+	_chalk_fresh = prep.chalk
+	_chalk_tex = ImageTexture.create_from_image(_chalk_img)
 	_chalk = Sprite2D.new()
 	_chalk.texture = _chalk_tex
 	_chalk.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_chalk.centered = false
 	_chalk.scale = Vector2(WORLD, WORLD)
 	add_child(_chalk)
-	var labels := PackedByteArray()
-	labels.resize(w * h)
-	for i in w * h:
-		labels[i] = layout.labels[i]
 	var guide := Sprite2D.new()
-	guide.texture = ImageTexture.create_from_image(Image.create_from_data(w, h, false, Image.FORMAT_R8, labels))
+	_guide_sprite = guide
+	guide.visible = false
+	guide.texture = ImageTexture.create_from_image(prep.labels)
 	guide.centered = false
 	guide.scale = Vector2(WORLD, WORLD)
 	_guide = ShaderMaterial.new()
@@ -652,6 +742,7 @@ func _add_mortar() -> void:
 ## Lights up the places a stone goes, or nothing with -1.
 func guide(stone: int) -> void:
 	_guide.set_shader_parameter("chosen", float(stone))
+	_guide_sprite.visible = stone >= 0
 	if stone >= 0:
 		_guide.set_shader_parameter("tint", Stones.LIST[stone]["tile"])
 
@@ -662,6 +753,8 @@ func paint(from: Vector2, to: Vector2, radius: float, ch: int = 0) -> float:
 		ch = 2
 	elif phase != Phase.GROUT or ch > 1:
 		return 0.0
+	else:
+		_show_wiped(true)
 	var sw := _state_w()
 	var sh := _state_h()
 	var a := from / (WORLD * STATE_DIV)
@@ -738,15 +831,23 @@ func _finish_channel(ch: int) -> void:
 	_covered[ch] = _floor_total
 	_state_dirty = true
 	if ch == 2:
+		if _dirt:
+			_dirt.visible = false
 		phase = Phase.REPAIR if not missing.is_empty() else Phase.GROUT
 		phase_changed.emit(phase)
 		return
+	_show_wiped(true)
 	if _covered[0] < _floor_total or _covered[1] < _floor_total:
 		return
 	phase = Phase.DONE
 	if phase == Phase.DONE:
 		_shimmer_tiles(range(layout.tile_count()), 0.1, 1.2)
 	phase_changed.emit(phase)
+
+
+func _show_wiped(on: bool) -> void:
+	for s in _finish_sprites:
+		s.visible = on
 
 
 func _add_finish_layers() -> void:
@@ -760,7 +861,9 @@ func _add_finish_layers() -> void:
 		mat.shader = load(path)
 		mat.set_shader_parameter("size_px", Vector2(layout.w, layout.h))
 		s.material = mat
+		s.visible = false
 		_finish_mats.append(mat)
+		_finish_sprites.append(s)
 		add_child(s)
 
 

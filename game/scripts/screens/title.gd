@@ -21,7 +21,9 @@ func enter(_args: Dictionary) -> void:
 	var design := RandomDesign.make(["dining_room", "villa_dining", "atrium", "changing_room"][rng.randi() % 4], 3 + rng.randi() % 2, rng)
 	var layout := MosaicLayout.new()
 	_layout = layout
-	_task = WorkerThreadPool.add_task(func() -> void: layout.build(Composer.compose(design, 6), 6, Composer.fine_mask(design, 6)))
+	_task = WorkerThreadPool.add_task(func() -> void:
+		layout.build(Composer.compose(design, 6), 6, Composer.fine_mask(design, 6))
+		FloorView.prepare(layout))
 	_version = Ui.label(Nav.ui, "v" + str(ProjectSettings.get_setting("application/config/version", "")), "LightLabel")
 	_version.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_version.modulate.a = 0.7

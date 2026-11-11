@@ -22,6 +22,8 @@ var angle := PackedFloat32Array()
 var size := PackedFloat32Array()
 var stone := PackedInt32Array()
 var patch := PackedInt32Array()
+## What FloorView.setup needs, made ahead on the worker thread with FloorView.prepare.
+var prepared: RefCounted
 
 var _cols := 0
 var _rows := 0

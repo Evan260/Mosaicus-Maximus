@@ -209,7 +209,9 @@ func _with_layout(next: String) -> void:
 	var layout := MosaicLayout.new()
 	_layout = layout
 	_layout_for = str(_chosen["id"])
-	_task = WorkerThreadPool.add_task(func() -> void: layout.build(Composer.compose(design, 6), 6, Composer.fine_mask(design, 6)))
+	_task = WorkerThreadPool.add_task(func() -> void:
+		layout.build(Composer.compose(design, 6), 6, Composer.fine_mask(design, 6))
+		FloorView.prepare(layout))
 
 
 func _watch_it() -> void:

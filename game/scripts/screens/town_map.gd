@@ -219,7 +219,9 @@ func _start_visit(f: Dictionary, title: String) -> void:
 	var d := FloorDesign.from_dict(f.get("design", {}))
 	var layout := MosaicLayout.new()
 	_pending = {"floor": f, "title": title, "layout": layout, "wait": wait}
-	_task = WorkerThreadPool.add_task(func() -> void: layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6)))
+	_task = WorkerThreadPool.add_task(func() -> void:
+		layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6))
+		FloorView.prepare(layout))
 	Audio.play("page_turn", -8.0)
 
 

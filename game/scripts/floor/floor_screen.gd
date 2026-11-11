@@ -54,6 +54,7 @@ func enter(args: Dictionary) -> void:
 	_layout = layout
 	_task = WorkerThreadPool.add_task(func() -> void:
 		Composer.lay_out(d, layout)
+		FloorView.prepare(layout)
 		_made = Composer.panel_mask(d, TILE_PX))
 
 

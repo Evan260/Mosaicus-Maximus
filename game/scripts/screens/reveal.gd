@@ -60,7 +60,9 @@ func enter(args: Dictionary) -> void:
 		var d := design
 		var layout := MosaicLayout.new()
 		_layout = layout
-		_task = WorkerThreadPool.add_task(func() -> void: layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6)))
+		_task = WorkerThreadPool.add_task(func() -> void:
+			layout.build(Composer.compose(d, 6), 6, Composer.fine_mask(d, 6))
+			FloorView.prepare(layout))
 	else:
 		_setup()
 

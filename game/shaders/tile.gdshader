@@ -45,6 +45,10 @@ void vertex() {
 }
 
 void fragment() {
+	// A settled tile and its shadow lie within 0.64 of its centre, so the rest of its quad is left before any work.
+	if (layer == 0 && max(abs(local.x), abs(local.y)) > 0.64) {
+		discard;
+	}
 	if (t_rel < 0.0) {
 		discard;
 	}
