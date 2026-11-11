@@ -160,5 +160,9 @@ func slots() -> Array:
 func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {}
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+	# A JSON object, rather than JSON.parse_string, reads a damaged file without an engine error.
+	var json := JSON.new()
+	if json.parse(FileAccess.get_file_as_string(path)) != OK:
+		return {}
+	var parsed: Variant = json.data
 	return parsed if parsed is Dictionary and parsed.has("version") else {}

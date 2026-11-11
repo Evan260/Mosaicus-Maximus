@@ -143,6 +143,8 @@ static func player_tracks() -> Array:
 
 ## Reads a music file from outside the game's own files; an unreadable file gives nothing and is skipped.
 static func _load_external(path: String) -> AudioStream:
+	if not _sounds_like_music(path):
+		return null
 	match path.get_extension().to_lower():
 		"ogg":
 			return AudioStreamOggVorbis.load_from_file(path)
@@ -151,6 +153,24 @@ static func _load_external(path: String) -> AudioStream:
 		"wav":
 			return AudioStreamWAV.load_from_file(path)
 	return null
+
+
+## Whether a file starts as its kind of music file does, so a misnamed one is skipped before the engine complains.
+static func _sounds_like_music(path: String) -> bool:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return false
+	var head := f.get_buffer(4)
+	if head.size() < 4:
+		return false
+	match path.get_extension().to_lower():
+		"ogg":
+			return head.get_string_from_ascii() == "OggS"
+		"wav":
+			return head.get_string_from_ascii() == "RIFF"
+		"mp3":
+			return head.slice(0, 3).get_string_from_ascii() == "ID3" or (head[0] == 0xFF and head[1] & 0xE0 == 0xE0)
+	return false
 
 
 ## Opens the player's music folder in the file explorer, making it first if need be.

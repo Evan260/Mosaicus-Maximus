@@ -4,7 +4,7 @@ extends Node
 
 func _ready() -> void:
 	if Dev.has("run-tests"):
-		add_child(load("res://tests/test_logic.gd").new())
+		add_child(load("res://tests/run_tests.gd").new())
 		return
 	if Dev.has("flow"):
 		add_child(load("res://tests/flow_bot.gd").new())

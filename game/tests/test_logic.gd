@@ -1,42 +1,9 @@
-extends Node
-## Headless checks of the game's rules: Godot --headless --path game -- --run-tests
+extends "res://tests/test_case.gd"
+## The game's rules, saves, layout and translations.
 
-var failures := 0
-var passed := 0
-var game: Node
-var saves: Node
-var data: Node
-
-
-func _ready() -> void:
-	_run.call_deferred()
-
-
-func _run() -> void:
-	game = Game
-	data = Data
-	saves = Saves
-	saves.dir = "user://test_saves"
-	saves.enabled = true
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(saves.dir))
-	for n in range(1, 4):
-		saves.delete(n)
-	# The checks read the game's English, whatever language the computer is in.
-	TranslationServer.set_locale("en")
-	for t in get_method_list():
-		if str(t["name"]).begins_with("test_"):
-			await call(t["name"])
-	print("%d passed" % passed)
-	print("FAILURES: %d" % failures if failures else "ALL TESTS PASSED")
-	get_tree().quit(1 if failures else 0)
-
-
-func check(ok: bool, what: String) -> void:
-	if ok:
-		passed += 1
-	else:
-		failures += 1
-		print("FAIL: " + what)
+var game: Node = Game
+var saves: Node = Saves
+var data: Node = Data
 
 
 func test_save_roundtrip() -> void:
