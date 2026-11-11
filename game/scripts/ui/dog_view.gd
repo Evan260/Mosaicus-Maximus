@@ -1,13 +1,21 @@
 class_name DogView
 extends TextureRect
 ## The workshop dog, drawn in the interface: it sleeps in its basket, gets up to be petted, wags, and lies down again.
-## Breeds and coats are the ones from Farmus Maximus; only the farm hound comes in several coats.
+## Breeds and coats are the ones from Farmus Maximus, each breed in several coats.
 
 signal stood_up
 
 const DIR := "res://assets/art/dogs/"
 const BREEDS := {"hound": "Farm hound", "molossian": "Mastiff", "sighthound": "Sighthound", "lapdog": "Lapdog", "sheepdog": "Sheepdog"}
 const COATS := {"golden": "Golden", "black": "Black", "chocolate": "Chocolate", "cream": "Cream", "grey": "Grey", "red": "Red"}
+## Every breed's coats; the first is the look its pictures are drawn in, and "natural" keeps that id for old saves.
+const BREED_COATS := {
+	"hound": COATS,
+	"molossian": {"natural": "Brown", "fawn": "Fawn", "grey": "Grey", "black": "Black"},
+	"sighthound": {"natural": "Fawn", "black": "Black and white", "grey": "Grey and white"},
+	"lapdog": {"natural": "White", "apricot": "Apricot", "grey": "Grey", "black": "Black"},
+	"sheepdog": {"natural": "Grey and white", "black": "Black and white", "brown": "Brown and white"},
+}
 const NAMES := ["Rufus", "Fido", "Lupa", "Ferox", "Celer", "Nox", "Bella", "Argos"]
 const WAG_TIME := 2.6
 ## Each animation: the folder, its frames in order, frames a second, and whether it loops.
@@ -42,7 +50,7 @@ static func make(dog: Dictionary, zoom_by: int = 1) -> DogView:
 
 
 static func coats_for(breed_id: String) -> Dictionary:
-	return COATS if breed_id == "hound" else {"natural": "Natural coat"}
+	return BREED_COATS.get(breed_id, COATS)
 
 
 func set_look(breed_id: String, coat_id: String) -> void:
@@ -123,9 +131,10 @@ func _load() -> void:
 		_frames[folder] = list
 
 
-## The picture in the chosen coat and size. Only the fur's warm browns change, so the collar, eyes and pale chest stay.
+## The picture in the chosen coat and size. Only the breed's own fur colours change, so the collar, eyes and markings stay.
 func _prepare(tex: Texture2D) -> Texture2D:
-	var recolour := breed == "hound" and not coat in ["", "golden", "natural"]
+	var coats := coats_for(breed)
+	var recolour: bool = breed in BREED_COATS and coats.has(coat) and coat != coats.keys()[0]
 	if not recolour and zoom == 1:
 		return tex
 	var img := tex.get_image()
@@ -134,16 +143,60 @@ func _prepare(tex: Texture2D) -> Texture2D:
 		for y in img.get_height():
 			for x in img.get_width():
 				var c := img.get_pixel(x, y)
-				if c.a == 0.0 or c.h < 0.02 or c.h > 0.16 or c.s < 0.3:
-					continue
-				img.set_pixel(x, y, _shift(c))
+				if c.a > 0.0:
+					img.set_pixel(x, y, pixel(breed, coat, c))
 	if zoom > 1:
 		img.resize(img.get_width() * zoom, img.get_height() * zoom, Image.INTERPOLATE_NEAREST)
 	return ImageTexture.create_from_image(img)
 
 
-func _shift(c: Color) -> Color:
-	match coat:
+## One pixel of a breed in one of its coats.
+static func pixel(breed_id: String, coat_id: String, c: Color) -> Color:
+	match breed_id:
+		"hound":
+			if c.h >= 0.02 and c.h <= 0.16 and c.s >= 0.3:
+				return _shift(c, coat_id)
+		"molossian":
+			if c.h < 0.04 or c.h > 0.12:
+				return c
+			# The low, dark pixels are the black mask and outline, which stay dark in every coat.
+			var body := c.s >= 0.27 and c.v >= 0.32
+			match coat_id:
+				"fawn":
+					if body: return Color.from_hsv(0.095, c.s * 0.95, minf(1.0, c.v * 1.4), c.a)
+				"grey":
+					return Color.from_hsv(0.6, 0.07 if body else 0.06, c.v * (0.92 if body else 1.0), c.a)
+				"black":
+					if body: return Color.from_hsv(0.07, 0.2, c.v * 0.42 + 0.05, c.a)
+		"sighthound":
+			# The olive tinge on its tail is part of the coat too.
+			if coat_id == "natural" or c.h < 0.02 or c.h > 0.2:
+				return c
+			if c.s >= 0.4 or (c.s >= 0.3 and c.v < 0.45):
+				return _shift(c, coat_id)
+			if c.v >= 0.6:
+				# Its pale muzzle, chest and feet turn white beside a dark coat.
+				return Color.from_hsv(0.1, c.s * 0.4, minf(1.0, c.v * 1.03), c.a)
+		"lapdog":
+			var fur := (c.h >= 0.05 and c.h <= 0.13 and c.s < 0.4) or (c.s < 0.05 and c.v > 0.95)
+			if not fur:
+				return c
+			match coat_id:
+				"apricot": return Color.from_hsv(0.075, minf(1.0, c.s * 1.6 + 0.2), c.v * 0.96, c.a)
+				"grey": return Color.from_hsv(0.6, 0.05, c.v * 0.75, c.a)
+				"black": return Color.from_hsv(0.62, 0.1, 0.07 + c.v * 0.3, c.a)
+		"sheepdog":
+			# Only the grey fur changes; its white coat stays white.
+			if c.h < 0.04 or c.h > 0.13 or c.s >= 0.2 or c.v > 0.66:
+				return c
+			match coat_id:
+				"black": return Color.from_hsv(0.62, 0.1, 0.06 + c.v * 0.38, c.a)
+				"brown": return Color.from_hsv(0.06, 0.5, c.v * 0.78, c.a)
+	return c
+
+
+static func _shift(c: Color, coat_id: String) -> Color:
+	match coat_id:
 		"black":
 			return Color.from_hsv(c.h, c.s * 0.25, c.v * 0.32 + 0.05, c.a)
 		"chocolate":
