@@ -1692,3 +1692,10 @@ func test_the_librarys_buttons_fit_the_smallest_interface_in_every_language() ->
 	Nav.go("title")
 	while Nav._busy:
 		await get_tree().process_frame
+
+
+func test_a_kept_picture_panel_is_named_once() -> void:
+	var screen: Node = load("res://scripts/screens/library_screen.gd").new()
+	var name: String = screen._title_of({"room": "panel", "client_name": "Your picture panel"})
+	check(name == Data.room_title("panel"), "a picture panel in the library is called just that, not a panel for itself (%s)" % name)
+	screen.free()

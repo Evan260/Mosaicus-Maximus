@@ -145,7 +145,7 @@ func _fit_view() -> void:
 
 func _title_of(e: Dictionary) -> String:
 	var room := Data.room_title(str(e.get("room", ""))) if Data.rooms.has(str(e.get("room", ""))) else tr("Floor")
-	var who := Ui.text(e.get("client_name", ""))
+	var who := Ui.text(e.get("client_name", "")) if str(e.get("room", "")) != "panel" else ""
 	return room if who == "" else tr("%s, for %s") % [room, who]
 
 
