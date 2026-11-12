@@ -56,15 +56,15 @@ Each achievement also needs two 64 by 64 icons in Steamworks: one for when it is
 
 ## 4. Steam Cloud
 
-Use Auto-Cloud; the game needs no code for it. Each workshop slot is saved as `workshop_1.json`, `workshop_2.json` and `workshop_3.json`, each with one backup (`workshop_1.json.bak` and so on). Add two root paths per platform, one for the saves and one for their backups:
+Use Auto-Cloud; the game needs no code for it. Each workshop slot is saved as `workshop_1.json`, `workshop_2.json` and `workshop_3.json`, each with three rotating backups (`workshop_1.json.bak1` to `.bak3`, and an older save's single `workshop_1.json.bak`). Add two root paths per platform, one for the saves and one for their backups:
 
 | Platform | Root | Subdirectory | Pattern |
 |---|---|---|---|
 | Windows | `WinAppDataRoaming` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json` |
-| Windows | `WinAppDataRoaming` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak` |
+| Windows | `WinAppDataRoaming` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak*` |
 | macOS | `MacAppSupport` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json` |
-| macOS | `MacAppSupport` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak` |
+| macOS | `MacAppSupport` | `Godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak*` |
 | Linux | `LinuxXdgDataHome` | `godot/app_userdata/Mosaicus Maximus` | `workshop_*.json` |
-| Linux | `LinuxXdgDataHome` | `godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak` |
+| Linux | `LinuxXdgDataHome` | `godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak*` |
 
-The library of kept floors (`library/`) and `settings.cfg` stay on each computer. If the save files are ever renamed, these patterns must change with them in `game/scripts/autoload/saves.gd`, or cloud saves quietly stop syncing.
+The patterns leave out `workshop_N.json.tmp`, which only exists while a save is being written. The library of kept floors (`library/`) and `settings.cfg` stay on each computer. If the save files are ever renamed, these patterns must change with them in `game/scripts/autoload/saves.gd`, or cloud saves quietly stop syncing.
