@@ -40,6 +40,8 @@ var _fitted := Vector2.ZERO
 var ui_scale_override := 0
 ## Worker tasks whose screen closed before they finished, each waited for once done, since a task never waited for is never freed.
 var _left_tasks: Array[int] = []
+## Set once the game starts quitting, so a screen change still fading stops instead of opening a new screen.
+var _closed := false
 
 
 func _ready() -> void:
@@ -132,13 +134,15 @@ func to_ui(screen: Vector2) -> Vector2:
 
 
 func go(screen: String, args: Dictionary = {}) -> void:
-	if _busy or not SCREENS.has(screen):
+	if _busy or _closed or not SCREENS.has(screen):
 		return
 	_busy = true
 	if current:
 		var out := create_tween()
 		out.tween_property(_fade, "color:a", 1.0, 0.14)
 		await out.finished
+		if _closed:
+			return
 		current.queue_free()
 		current = null
 	for c in world.get_children():
@@ -149,6 +153,8 @@ func go(screen: String, args: Dictionary = {}) -> void:
 		c.queue_free()
 	_forget_screen_listeners()
 	await get_tree().process_frame
+	if _closed:
+		return
 	var s: Node = load(SCREENS[screen]).new()
 	s.name = screen
 	add_child(s)
@@ -198,6 +204,7 @@ func leave_task(task: int) -> void:
 
 ## Closes the screen and waits for every worker task, as the game quits, since a task still running at exit crashes it.
 func close() -> void:
+	_closed = true
 	if current:
 		current.queue_free()
 		current = null

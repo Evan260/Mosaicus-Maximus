@@ -1578,6 +1578,7 @@ func test_quitting_from_a_floor_clears_every_layer() -> void:
 	while Nav._busy or Nav.current == null or Nav.current.floor_view == null:
 		await get_tree().process_frame
 	await Nav.close()
+	Nav._closed = false
 	for k in 3:
 		await get_tree().process_frame
 	check(Nav.world.get_child_count() == 0 and Nav.ui.get_child_count() == 0 and Nav.pictures.get_child_count() == 0, "closing for the quit takes the screen's floor and interface with it")
@@ -1598,6 +1599,7 @@ func test_quitting_while_a_floor_is_marked_out_is_safe() -> void:
 	var screen: Node = Nav.current
 	check(screen.floor_view == null and screen._task >= 0, "the floor is still being marked out")
 	await Nav.close()
+	Nav._closed = false
 	check(Nav._left_tasks.is_empty(), "the worker's floor is finished off before the quit")
 
 
@@ -1723,6 +1725,24 @@ func test_town_map_labels_stay_inside_the_window() -> void:
 	Settings.ui_scale_step = 0
 	get_window().size = was
 	Nav.refit()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
+func test_quitting_during_a_screen_change_opens_nothing_more() -> void:
+	game.new_game("Fade")
+	game.state["guide_off"] = true
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+	Nav.go("library", {"back": "title"})
+	await get_tree().process_frame
+	await Nav.close()
+	await get_tree().create_timer(0.6).timeout
+	check(Nav.current == null and Nav.ui.get_child_count() == 0, "a screen change cut short by quitting leaves no new screen behind")
+	Nav._closed = false
+	Nav._busy = false
 	Nav.go("title")
 	while Nav._busy:
 		await get_tree().process_frame
