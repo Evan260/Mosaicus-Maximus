@@ -1473,6 +1473,12 @@ func test_title_new_workshop_text_is_centred() -> void:
 
 func test_chapters_book_fits_every_spread() -> void:
 	game.new_game("Book")
+	Story.unlock(game.state, Data.chapters.size())
+	game.state["story_seen"].append("intro")
+	game.state["letters"] = Story.chapter_letters(game.state)
+	for d in 12:
+		game.state["letters"].append({"kind": "ship", "title": "A ship in the harbour", "day": 10 + d,
+			"text": Ui.say("A ship from %s has come in with %s. The stone merchant has it today only; buy a sack and it's yours to use from now on.", ["Carthage", "porphyry"])})
 	for loc in TranslationServer.get_loaded_locales():
 		TranslationServer.set_locale(loc)
 		UiTheme.use_language()
@@ -1480,7 +1486,7 @@ func test_chapters_book_fits_every_spread() -> void:
 		holder.theme = UiTheme.build()
 		add_child(holder)
 		var book := ChaptersPanel.open(holder, Vector2(480, 270))
-		check(book._marks.get_children().filter(func(c: Node) -> bool: return c is Button).size() == Data.chapters.size() + 1, "a bookmark for every chapter and one for the achievements (%s)" % loc)
+		check(book._marks.get_children().filter(func(c: Node) -> bool: return c is Button).size() == Data.chapters.size() + 2, "a bookmark for every chapter, one for the achievements and one for the letters (%s)" % loc)
 		var listed := 0
 		for pg in book._award_pages([]):
 			listed += (pg as Array).size()
@@ -1493,6 +1499,22 @@ func test_chapters_book_fits_every_spread() -> void:
 			for view in book._pages:
 				var col := view.get_child(0) as Control
 				check(col.size.y <= view.size.y + 0.5, "chapter %d's %s page fits without scrolling in %s (%d of %d)" % [n, "left" if view == book._pages[0] else "right", loc, col.size.y, view.size.y])
+		var letter_pages: Array = book._letter_pages()
+		var shown := 0
+		for pg in letter_pages:
+			shown += (pg as Array).size()
+		check(shown == (game.state["letters"] as Array).size(), "the letters spreads list every letter (%s)" % loc)
+		for n in range(ChaptersPanel.LETTERS, ChaptersPanel.LETTERS + ceili(letter_pages.size() / 2.0)):
+			book.chapter = n
+			book._fill()
+			await get_tree().process_frame
+			await get_tree().process_frame
+			for side in 2:
+				var view := book._pages[side]
+				var col := view.get_child(0) as Control
+				var page := (n - ChaptersPanel.LETTERS) * 2 + side
+				var alone: bool = page < letter_pages.size() and (letter_pages[page] as Array).size() == 1
+				check(alone or col.size.y <= view.size.y + 0.5, "letters spread %d's %s page fits without scrolling in %s (%d of %d)" % [n - ChaptersPanel.LETTERS, "left" if side == 0 else "right", loc, col.size.y, view.size.y])
 		check(book.get_combined_minimum_size().x <= 472 and book.get_combined_minimum_size().y <= 262, "the book fits a 480 by 270 interface (%s)" % loc)
 		holder.free()
 	TranslationServer.set_locale("en")
@@ -2202,3 +2224,51 @@ func test_the_stone_tray_names_its_number_keys_until_a_pad_is_used() -> void:
 	Nav.go("title")
 	while Nav._busy:
 		await get_tree().process_frame
+
+
+func test_letters_are_kept_to_read_again() -> void:
+	game.new_game("Post")
+	game.state["guide_off"] = true
+	Nav.go("workshop")
+	while Nav.current_name != "workshop" or Nav._busy:
+		await get_tree().process_frame
+	for i in 3:
+		await get_tree().process_frame
+	check((game.state["letters"] as Array).is_empty(), "a letter not yet read is not kept yet")
+	check(Nav.close_top(), "the uncle's letter closes")
+	var kept: Array = game.state["letters"]
+	check(kept.size() == 1 and int(kept[0]["n"]) == 1 and int(kept[0]["day"]) == 1, "once read, the uncle's letter is kept with its day")
+	Story.keep_letter(game.state, {"kind": "ship", "title": "A ship in the harbour", "text": Ui.say("A ship from %s has come in with %s. The stone merchant has it today only; buy a sack and it's yours to use from now on.", ["Carthage", "porphyry"])})
+	var book := ChaptersPanel.open(Nav.ui)
+	book.show_letters()
+	await get_tree().process_frame
+	var words := (book._pages[0].find_children("*", "Label", true, false) as Array).map(func(l: Label) -> String: return l.text)
+	check(words.size() >= 4 and words[0] == "Letters" and words[2] == "A ship in the harbour", "the letters page lists the newest first (%s)" % [words])
+	TranslationServer.set_locale("de")
+	book._fill()
+	words = (book._pages[0].find_children("*", "Label", true, false) as Array).map(func(l: Label) -> String: return l.text)
+	check(words.size() >= 4 and words[1] == "Tag 1" and words[3].begins_with(TranslationServer.translate("A ship from %s has come in with %s. The stone merchant has it today only; buy a sack and it's yours to use from now on.").get_slice("%s", 0)), "kept letters read in the language chosen now (%s)" % [words])
+	TranslationServer.set_locale("en")
+	book.free()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
+func test_an_old_save_rebuilds_its_chapter_letters() -> void:
+	game.new_game("Old")
+	Story.unlock(game.state, 3)
+	game.state["story_seen"].append("intro")
+	game.state["pending_events"] = [{"kind": "chapter", "n": 3, "title": Data.chapter(3)["title"], "text": Data.chapter(3)["text"]}]
+	var old: Dictionary = game.to_dict()
+	old.erase("letters")
+	game.from_dict(JSON.parse_string(JSON.stringify(old)))
+	var rebuilt := (game.state["letters"] as Array).map(func(e: Dictionary) -> int: return int(e["n"]))
+	check(rebuilt == [1, 2], "an old save gets back the chapter letters it has read, leaving the one still waiting (%s)" % [rebuilt])
+	var fresh: Dictionary = game.to_dict()
+	fresh["letters"] = []
+	game.from_dict(fresh)
+	check((game.state["letters"] as Array).is_empty(), "a save that keeps letters is left as it is")
+	var unread := {"name": "Unread", "chapter": 1, "story_seen": []}
+	game.from_dict(unread)
+	check((game.state["letters"] as Array).is_empty(), "a workshop that has not read its first letter has none to rebuild")

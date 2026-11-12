@@ -122,6 +122,10 @@ func enter(_args: Dictionary) -> void:
 			var book := ChaptersPanel.open(_root)
 			book.show_awards()
 			_show_panel(book)
+		"letters":
+			var book := ChaptersPanel.open(_root)
+			book.show_letters()
+			_show_panel(book)
 		"letter":
 			Story.unlock(Game.state, 2)
 			Game.state["reputation"] = 40
@@ -487,6 +491,7 @@ func _show_next_event() -> void:
 	var carry_on := func() -> void:
 		if _popup != popup:
 			return
+		Story.keep_letter(Game.state, e)
 		pending.erase(e)
 		_popup.queue_free()
 		_popup = null

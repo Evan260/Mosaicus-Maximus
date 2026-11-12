@@ -194,6 +194,27 @@ static func finish_job(state: Dictionary, job: Dictionary, result: Dictionary) -
 	return events
 
 
+## Keeps a letter or piece of news once it has been read, with the day it came, for the chapters book's Letters page.
+static func keep_letter(state: Dictionary, e: Dictionary) -> void:
+	var kept := e.duplicate(true)
+	kept["day"] = int(state.get("day", 1))
+	if not state.has("letters"):
+		state["letters"] = []
+	(state["letters"] as Array).append(kept)
+
+
+## The chapter letters already read in a save from before letters were kept, which are all it can still show.
+static func chapter_letters(state: Dictionary) -> Array:
+	var waiting := (state.get("pending_events", []) as Array).filter(func(e: Dictionary) -> bool: return e.get("kind", "") == "chapter").map(func(e: Dictionary) -> int: return int(e.get("n", 0)))
+	var letters := []
+	for n in range(1, int(state.get("chapter", 1)) + 1):
+		if n in waiting or (n == 1 and not "intro" in state.get("story_seen", [])):
+			continue
+		var ch := Data.chapter(n)
+		letters.append({"kind": "chapter", "n": n, "title": ch.get("title", ""), "text": ch.get("text", "")})
+	return letters
+
+
 static func check_chapters(state: Dictionary) -> Array:
 	var events := []
 	for ch in Data.chapters:

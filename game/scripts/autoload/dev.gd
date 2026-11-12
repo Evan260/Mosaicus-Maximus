@@ -71,6 +71,9 @@ func make_state() -> void:
 		Story.unlock(st, 3)
 		st.merge({"coins": 14250, "reputation": 174, "day": 140}, true)
 	st["story_seen"].append("intro")
+	st["letters"] = Story.chapter_letters(st)
+	for e in st["letters"]:
+		e["day"] = 1 + (int(e["n"]) - 1) * 30
 	Achievements.check(st)
 
 

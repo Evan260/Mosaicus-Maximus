@@ -280,6 +280,7 @@ Copy this floor,Copy this floor,Copier ce sol,Diesen Boden kopieren,Copia este s
 Copy to Pictures,Copy to Pictures,Copier dans Images,In Bilder kopieren,Copiar a Imágenes,Copia in Immagini,Copiar para Imagens,Kopiuj do Obrazów,Resimlere kopyala,В «Изображения»,У «Зображення»,ピクチャにコピー,사진 폴더로 복사,复制到“图片”,複製到「圖片」
 Cream,Cream,Crème,Creme,Crema,Crema,Creme,Kremowa,Krem,Кремовый,Кремовий,クリーム色,크림색,奶油色,奶油色
 Crowned by the aediles,Crowned by the aediles,Couronné par les édiles,Gekrönt von den Ädilen,La corona de los ediles,Premiato dagli edili,A coroa dos edis,Wieniec od edylów,Aedillerden ödül,Увенчан эдилами,Вінець від едилів,按察官の栄冠,조영관이 씌워 준 관,营造官加冕,獲市政官加冕
+Day %d,Day %d,Jour %d,Tag %d,Día %d,Giorno %d,Dia %d,Dzień %d,%d. gün,День %d,День %d,%d日目,%d일째,第%d天,第%d天
 "Day %d, %s","Day %d, %s","Jour %d, %s","Tag %d, %s","Día %d, %s","Giorno %d, %s","Dia %d, %s","Dzień %d, %s","%d. gün, %s","День %d, %s","День %d, %s",%d日目・%s,"%d일째, %s",第%d天，%s,第%d天，%s
 Decimus,Decimus,Decimus,Decimus,Decimus,Decimus,Decimus,Decimus,Decimus,Децим,Децим,デキムス,데키무스,德西穆斯,德西默斯
 Delete,Delete,Supprimer,Löschen,Eliminar,Elimina,Excluir,Usuń,Sil,Удалить,Видалити,削除,삭제,删除,刪除
@@ -488,6 +489,7 @@ Lay the tiles,Lay the tiles,Poser les tesselles,Leg die Steinchen,Coloca las tes
 Learn every regular client's taste,Learn every regular client's taste,Connaître les goûts de chaque client régulier,Lerne den Geschmack jedes Stammkunden kennen,Conoce los gustos de cada cliente habitual,Scopri i gusti di ogni cliente abituale,Conheça o gosto de cada cliente fiel,Poznaj gust każdego stałego klienta,Bütün düzenli müşterilerin zevkini öğren,Узнать вкусы всех постоянных клиентов,Дізнайся смаки всіх постійних клієнтів,常連客全員の好みを知る,단골 의뢰인의 취향 모두 알아내기,了解每位常客的品味,了解每位常客的品味
 Leave this floor?,Leave this floor?,Quitter ce sol ?,Diesen Boden verlassen?,¿Dejar este suelo?,Lasciare questo pavimento?,Sair deste piso?,Opuścić tę podłogę?,Bu zeminden çıkılsın mı?,Отложить этот пол?,Покинути цю підлогу?,この床を離れますか?,이 바닥에서 나갈까요?,离开这块地板？,離開這塊地板？
 Let your dog find an old floor,Let your dog find an old floor,Laisser ton chien trouver un vieux sol,Lass deinen Hund einen alten Boden finden,Deja que tu perro encuentre un suelo antiguo,Lascia che il tuo cane trovi un vecchio pavimento,Deixe seu cachorro encontrar um piso antigo,Pozwól psu znaleźć starą podłogę,Köpeğin eski bir zemin bulsun,Найти старый пол с помощью собаки,Нехай твій пес знайде стару підлогу,犬に古い床を見つけてもらう,반려견이 오래된 바닥을 찾게 하기,让你的狗找到一块旧地板,讓你的狗找到古老地板
+Letters,Letters,Lettres,Briefe,Cartas,Lettere,Cartas,Listy,Mektuplar,Письма,Листи,手紙,편지,信件,信件
 Library,Library,Collection,Sammlung,Colección,Raccolta,Biblioteca,Biblioteka,Arşiv,Коллекция,Бібліотека,ライブラリ,보관함,收藏,收藏
 Likeness: %d%%,Likeness: %d%%,Ressemblance : %d%%,Ähnlichkeit: %d%%,Semejanza: %d%%,Somiglianza: %d%%,Semelhança: %d%%,Podobieństwo: %d%%,Benzerlik: %d%%,Сходство: %d%%,Схожість: %d%%,再現度:%d%%,유사도: %d%%,相似度：%d%%,相似度：%d%%
 Limestone,Limestone,Calcaire,Kalkstein,Caliza,Pietra calcarea,Calcário,Wapień,Kireçtaşı,Известняк,Вапняк,石灰岩,석회암,石灰石,石灰石
@@ -543,6 +545,7 @@ No gold,No gold,Pas d’or,Kein Gold,Sin oro,Niente oro,Sem ouro,Bez złota,Alt�
 No green glass,No green glass,Pas de verre vert,Kein grünes Glas,Sin vidrio verde,Niente vetro verde,Sem vidro verde,Bez zielonego szkła,Yeşil cam yok,Нет зелёного стекла,Без зеленого скла,緑ガラスは使わない,초록 유리 금지,不用绿色玻璃,不要綠玻璃
 No green marble,No green marble,Pas de marbre vert,Kein grüner Marmor,Sin mármol verde,Niente marmo verde,Sem mármore verde,Bez zielonego marmuru,Yeşil mermer yok,Нет зелёного мрамора,Без зеленого мармуру,緑の大理石は使わない,초록 대리석 금지,不用绿色大理石,不要綠大理石
 No grey stone,No grey stone,Pas de pierre grise,Kein grauer Stein,Sin piedra gris,Niente pietra grigia,Sem pedra cinza,Bez szarego kamienia,Gri taş yok,Нет серого камня,Без сірого каменю,灰色の石は使わない,회색 돌 금지,不用灰石,不要灰石
+No letters yet.,No letters yet.,Pas encore de lettres.,Noch keine Briefe.,Aún no hay cartas.,Ancora nessuna lettera.,Nenhuma carta ainda.,Jeszcze żadnych listów.,Henüz mektup yok.,Писем пока нет.,Листів поки немає.,まだ手紙はありません。,아직 편지가 없습니다.,还没有信件。,還沒有信件。
 No limestone,No limestone,Pas de calcaire,Kein Kalkstein,Sin caliza,Niente pietra calcarea,Sem calcário,Bez wapienia,Kireçtaşı yok,Нет известняка,Без вапняку,石灰岩は使わない,석회암 금지,不用石灰石,不要石灰石
 No ochre marble,No ochre marble,Pas de marbre ocre,Kein Ockermarmor,Sin mármol ocre,Niente marmo ocra,Sem mármore ocre,Bez ochrowego marmuru,Okra mermer yok,Нет охристого мрамора,Без охрового мармуру,黄土色の大理石は使わない,황토색 대리석 금지,不用赭色大理石,不要赭色大理石
 No pink marble,No pink marble,Pas de marbre rose,Kein rosa Marmor,Sin mármol rosa,Niente marmo rosa,Sem mármore rosa,Bez różowego marmuru,Pembe mermer yok,Нет розового мрамора,Без рожевого мармуру,ピンクの大理石は使わない,분홍 대리석 금지,不用粉色大理石,不要粉紅大理石

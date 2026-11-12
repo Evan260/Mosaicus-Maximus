@@ -41,6 +41,7 @@ func defaults() -> Dictionary:
 		"seed": randi(),
 		"story_seen": [],
 		"pending_events": [],
+		"letters": [],
 		"achievements": [],
 		"panels": [],
 		"stats": {"earned": 0, "five_stars": 0, "restorations": 0, "contests_won": 0, "perfect_copies": 0, "biggest": 0, "ship_stones": 0, "pets": 0},
@@ -73,6 +74,8 @@ func from_dict(d: Dictionary) -> void:
 	var fresh := defaults()
 	for k in d:
 		fresh[k] = _whole(d[k])
+	if not d.has("letters"):
+		fresh["letters"] = Story.chapter_letters(fresh)
 	state = fresh
 	changed.emit()
 

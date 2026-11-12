@@ -1,7 +1,7 @@
 class_name ChaptersPanel
 extends PanelContainer
 ## The chapters as an open book, opened from the laurel in the top bar: a bookmark and a spread for each chapter,
-## and a last bookmark, a laurel, for the achievements.
+## then a laurel for the achievements and a sealed letter for the letters and news read so far.
 
 const STACK := 3
 const SPINE := 4
@@ -18,6 +18,8 @@ const LEATHER := Color8(104, 60, 40)
 const NUMERALS := ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 ## The first spread after the last chapter, which lists the achievements; any more spreads they need count down from it.
 const AWARDS := 0
+## The first spread of letters, newest first; any more spreads they need count up from it.
+const LETTERS := 100
 
 static var _papers := {}
 static var _cover: StyleBoxTexture
@@ -108,6 +110,10 @@ func _fill() -> void:
 	for ch in Data.chapters:
 		_bookmark(int(ch["n"]))
 	_bookmark(AWARDS)
+	_bookmark(LETTERS)
+	if chapter >= LETTERS:
+		_letters(_column(_pages[0]), _column(_pages[1]))
+		return
 	if chapter <= AWARDS:
 		_awards(_column(_pages[0]), _column(_pages[1]))
 		return
@@ -125,10 +131,10 @@ func _column(view: ScrollContainer) -> VBoxContainer:
 ## A ribbon beside the right page with the chapter's numeral; the open one is the colour of the paper.
 func _bookmark(n: int) -> void:
 	var now := int(Game.state["chapter"])
-	var open_now := n == chapter or (n == AWARDS and chapter < AWARDS)
+	var open_now := n == chapter or (n == AWARDS and chapter < AWARDS) or (n == LETTERS and chapter > LETTERS)
 	var b := Button.new()
-	if n == AWARDS:
-		b.icon = UiTheme.icon("laurel")
+	if n == AWARDS or n == LETTERS:
+		b.icon = UiTheme.icon("laurel" if n == AWARDS else "letter")
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	else:
 		b.text = NUMERALS[n - 1] if n <= NUMERALS.size() else str(n)
@@ -148,15 +154,16 @@ func _bookmark(n: int) -> void:
 		box.corner_radius_bottom_right = 2
 		box.content_margin_left = 3
 		box.content_margin_right = 4
-		box.content_margin_top = 2 if n == AWARDS else -1
-		box.content_margin_bottom = 2 if n == AWARDS else -1
+		box.content_margin_top = 2 if n == AWARDS or n == LETTERS else -1
+		box.content_margin_bottom = 2 if n == AWARDS or n == LETTERS else -1
 		b.add_theme_stylebox_override(state, box)
-	var ink := UiTheme.INK if n <= now + 1 or n == AWARDS else UiTheme.MUTED
+	var ink := UiTheme.INK if n <= now + 1 or n == AWARDS or n == LETTERS else UiTheme.MUTED
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
 		b.add_theme_color_override(c, ink)
 	b.add_theme_font_override("font", UiTheme.title_font("en"))
 	b.add_theme_font_size_override("font_size", 8)
-	Ui.tip_on(b, "Achievements" if n == AWARDS else tr("Chapter %d: %s") % [n, tr(Data.chapter(n)["title"])])
+	var tip := tr("Chapter %d: %s") % [n, tr(Data.chapter(n)["title"])] if n > AWARDS and n < LETTERS else ""
+	Ui.tip_on(b, "Achievements" if n == AWARDS else ("Letters" if n == LETTERS else tip))
 	b.pressed.connect(func() -> void: turn_to(n))
 	_marks.add_child(b)
 
@@ -238,6 +245,95 @@ func _award_pages(have: Array) -> Array:
 	return pages
 
 
+## The letters and news read so far, newest first, running on from page to page over as many spreads as they need.
+func _letters(left: VBoxContainer, right: VBoxContainer) -> void:
+	var w := _text_width()
+	var spread := chapter - LETTERS
+	var pages := _letter_pages()
+	if spread == 0:
+		var title := Ui.label(left, "Letters", "Heading", w)
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if pages[0].is_empty():
+			Ui.label(left, "No letters yet.", "MutedLabel", w).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	for side in 2:
+		var page: VBoxContainer = [left, right][side]
+		var on_page: Array = pages[spread * 2 + side] if spread * 2 + side < pages.size() else []
+		for i in on_page.size():
+			if i > 0 or (side == 0 and spread == 0):
+				page.add_child(_band(w))
+			_letter(page, on_page[i])
+	var gap := Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.add_child(gap)
+	var turns := Ui.hbox(right, 2)
+	turns.alignment = BoxContainer.ALIGNMENT_END
+	if spread > 0:
+		Ui.icon_button(turns, "arrow_l", "Previous page", func() -> void: turn_to(chapter - 1))
+	if (spread + 1) * 2 < pages.size():
+		Ui.icon_button(turns, "arrow_r", "Next page", func() -> void: turn_to(chapter + 1))
+
+
+## One letter: when it came, its heading and its words, all in the language chosen now.
+func _letter(page: VBoxContainer, e: Dictionary) -> void:
+	var w := _text_width()
+	var when := _letter_when(e)
+	if when != "":
+		Ui.label(page, when, "MutedLabel", w)
+	Ui.label(page, _letter_title(e), "Heading", w)
+	Ui.label(page, Ui.text(e.get("text", "")), "", w)
+
+
+func _letter_when(e: Dictionary) -> String:
+	var chapter_line := tr("Chapter %d") % int(e.get("n", 1)) if e.get("kind", "") == "chapter" else ""
+	if not e.has("day"):
+		return chapter_line
+	if chapter_line == "":
+		return tr("Day %d") % int(e["day"])
+	return tr("Day %d, %s") % [int(e["day"]), chapter_line]
+
+
+func _letter_title(e: Dictionary) -> String:
+	return Ui.text(e.get("title", Data.client(e.get("client", "")).get("name", "News")))
+
+
+## The letters, newest first, in page-sized groups: the first page leaves room for its heading, and the right pages for
+## the arrows. A letter longer than a page has a page to itself, which scrolls.
+func _letter_pages() -> Array:
+	var letters: Array = (Game.state.get("letters", []) as Array).duplicate()
+	letters.reverse()
+	var probe := Ui.vbox(null, 3)
+	probe.visible = false
+	_book.add_child(probe)
+	var full := _pages[0].size.y
+	var pages := [[]]
+	var room := full - _tall(probe, func() -> void: Ui.label(probe, "Letters", "Heading", _text_width())) - 3.0
+	for e in letters:
+		var tall := _tall(probe, func() -> void:
+			probe.add_child(_band(_text_width()))
+			_letter(probe, e)) + 3.0
+		if tall > room and not pages[-1].is_empty():
+			pages.append([])
+			room = full - (24.0 if pages.size() % 2 == 0 else 0.0)
+		pages[-1].append(e)
+		room -= tall
+	_book.remove_child(probe)
+	probe.free()
+	return pages
+
+
+## How tall what `fill` puts in the probe column stands, laid out at the page's width.
+func _tall(probe: VBoxContainer, fill: Callable) -> float:
+	for c in probe.get_children():
+		probe.remove_child(c)
+		c.free()
+	fill.call()
+	var h := 0.0
+	for c: Control in probe.get_children():
+		c.size.x = _text_width()
+		h += maxf(c.get_minimum_size().y, c.custom_minimum_size.y)
+	return h + 3.0 * maxi(0, probe.get_child_count() - 1)
+
+
 ## The right page: whether the chapter is done, open or still to come, and everything it brings.
 func _brings(page: VBoxContainer) -> void:
 	var now := int(Game.state["chapter"])
@@ -312,7 +408,7 @@ func _flat(c: Color) -> StyleBoxFlat:
 
 ## Pictures the pages as they are, lays the new spread out underneath, and turns a PageTurn leaf over it.
 func turn_to(n: int) -> void:
-	if n == chapter or n > Data.chapters.size():
+	if n == chapter or (n > Data.chapters.size() and n < LETTERS):
 		return
 	if _turning:
 		_queued = n
@@ -352,14 +448,22 @@ func turn_to(n: int) -> void:
 		turn.back = turn.capture([back], Nav.scale_factor())[0]
 
 
-## Where a spread lies in the book: the achievements come after the last chapter.
+## Where a spread lies in the book: the achievements come after the last chapter, and the letters after them.
 func _place_in_book(n: int) -> int:
+	if n >= LETTERS:
+		return LETTERS * 10 + n
 	return Data.chapters.size() + 1 + AWARDS - n if n <= AWARDS else n
 
 
 ## Opens the book at the achievements, at once, without turning to them.
 func show_awards() -> void:
 	chapter = AWARDS
+	_fill()
+
+
+## Opens the book at the letters, at once, without turning to them.
+func show_letters() -> void:
+	chapter = LETTERS
 	_fill()
 
 
