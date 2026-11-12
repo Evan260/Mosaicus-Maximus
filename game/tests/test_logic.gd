@@ -1537,6 +1537,40 @@ func test_a_click_beside_a_window_closes_it_and_nothing_under_it() -> void:
 	Nav.refit()
 
 
+func test_the_workshop_top_bar_works_while_a_window_is_open() -> void:
+	game.new_game("Bar")
+	game.state["story_seen"].append("intro")
+	game.state["guide_off"] = true
+	var was := get_window().size
+	get_window().size = Vector2i(960, 540)
+	Nav.refit()
+	Nav.go("workshop")
+	while Nav.current_name != "workshop" or Nav._busy:
+		await get_tree().process_frame
+	Nav.current._open_merchant()
+	for i in 3:
+		await get_tree().process_frame
+	var merchant: Control = Nav.current._panel
+	var chapter: Button = Nav.current._rep
+	_click(chapter.get_global_rect().get_center())
+	await get_tree().process_frame
+	check(Nav.current._panel is ChaptersPanel, "the top bar's Chapter button opens the chapters over the merchant rather than only closing it")
+	check(not is_instance_valid(merchant) or merchant.is_queued_for_deletion(), "and the merchant closes as the chapters open")
+	Nav.current._close_panel()
+	await get_tree().process_frame
+	Nav.current._open_merchant()
+	for i in 3:
+		await get_tree().process_frame
+	_click(Vector2(Nav.ui_size().x * 0.5, Nav.ui_size().y - 4.0))
+	await get_tree().process_frame
+	check(Nav.current._panel == null, "a click on the room beside the merchant still closes it")
+	get_window().size = was
+	Nav.refit()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
 ## Presses and lets go of the left button at a point in interface pixels.
 func _click(at: Vector2) -> void:
 	for down in [true, false]:

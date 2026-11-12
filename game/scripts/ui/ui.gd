@@ -162,7 +162,7 @@ static func _backdrop(window: Control, close: Callable) -> void:
 	if parent == null:
 		_backdrop.call_deferred(window, close)
 		return
-	var back := Control.new()
+	var back := Backdrop.new()
 	back.name = "Backdrop"
 	# Far larger than any interface, so it covers the screen whatever its parent's size and position.
 	back.position = Vector2(-4096, -4096)

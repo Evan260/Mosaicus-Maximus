@@ -326,6 +326,7 @@ func _dog_name() -> String:
 
 func _build_bar() -> void:
 	_bar = Ui.panel(_root, "TabletPanel")
+	_bar.add_to_group(Backdrop.ABOVE)
 	var row := Ui.hbox(_bar, 4)
 	Ui.icon(row, "coin")
 	_coins = Ui.label(row, "", "LightLabel")
