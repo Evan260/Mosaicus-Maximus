@@ -1510,6 +1510,35 @@ func test_settings_fit_the_smallest_interface_in_every_language() -> void:
 	UiTheme.use_language()
 
 
+func test_settings_keep_one_size_on_every_tab() -> void:
+	game.new_game("Steady")
+	for loc in TranslationServer.get_loaded_locales():
+		TranslationServer.set_locale(loc)
+		UiTheme.use_language()
+		for step in [-1, 2]:
+			Settings.ui_scale_step = step
+			Nav.refit()
+			var panel := SettingsPanel.open(Nav.ui, true)
+			await _check_steady_size(panel, func(t: String) -> void: panel._show(t, true), SettingsPanel.TABS, "settings in %s, interface size %d" % [loc, step])
+			panel.free()
+	Settings.ui_scale_step = 0
+	Nav.refit()
+	SettingsPanel.tab = "Sound"
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()
+
+
+## Shows each tab of a window in turn and checks the window is the same size on all of them.
+func _check_steady_size(window: Control, show: Callable, tabs: Array, what: String) -> void:
+	var sizes := {}
+	for t in tabs:
+		show.call(t)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		sizes[str(window.size)] = t
+	check(sizes.size() == 1, "the window keeps one size on every tab (%s): %s" % [what, sizes])
+
+
 func test_background_sound_quietens_behind_other_windows() -> void:
 	var was: String = Settings.background_sound
 	var loud: float = Settings.master

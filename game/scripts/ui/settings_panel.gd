@@ -57,7 +57,7 @@ func _build() -> void:
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(margin)
 	_page = Ui.vbox(margin, 4)
-	_page.custom_minimum_size.x = WIDTH
+	_page.custom_minimum_size.x = _widest()
 	if Dev.has("settings-tab"):
 		tab = Dev.get_arg("settings-tab")
 	_show(tab if tab in TABS else "Sound", true)
@@ -71,6 +71,12 @@ func _show(t: String, from_top: bool) -> void:
 	for k in _tabs:
 		(_tabs[k] as Button).button_pressed = k == t
 	var scrolled := 0 if from_top else _scroll.scroll_vertical
+	_fill(t)
+	_place.call_deferred()
+	(func() -> void: _scroll.scroll_vertical = scrolled).call_deferred()
+
+
+func _fill(t: String) -> void:
 	for c in _page.get_children():
 		_page.remove_child(c)
 		c.queue_free()
@@ -83,8 +89,15 @@ func _show(t: String, from_top: bool) -> void:
 			_gameplay()
 		"Keys":
 			_keys()
-	_place.call_deferred()
-	(func() -> void: _scroll.scroll_vertical = scrolled).call_deferred()
+
+
+## The width of the widest tab's page, which every tab takes, so the window keeps one size as the tabs change.
+func _widest() -> float:
+	var most := WIDTH
+	for t in TABS:
+		_fill(t)
+		most = maxf(most, _page.get_combined_minimum_size().x)
+	return most
 
 
 func _sound() -> void:
