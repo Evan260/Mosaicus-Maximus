@@ -355,6 +355,10 @@ func test_library_keeps_and_forgets() -> void:
 	check(Library.order_of(kept[0]) == order, "the laying order comes back as it was kept")
 	check(Library.picture(kept[0], true) != null, "a kept floor has a thumbnail")
 	check(FloorDesign.from_dict(kept[0]["design"]).placements.size() == 1, "the design is kept with it")
+	Library.enabled = false
+	Library.remove(kept[0])
+	check(Library.entries().size() == 1, "a run that writes nothing, such as the everything-unlocked launcher, never deletes a kept floor")
+	Library.enabled = true
 	Library.remove(kept[0])
 	check(Library.entries().is_empty(), "a removed floor leaves the library")
 

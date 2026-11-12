@@ -87,6 +87,7 @@ func enter(args: Dictionary) -> void:
 	Ui.tip_on(_copy, "Saves the picture and a time-lapse to a Mosaicus Maximus folder in your Pictures, for sharing")
 	_remove = Ui.button(_buttons, "", _remove_it, "trash")
 	Ui.tip_on(_remove, "Take it out of the library (click twice)")
+	_remove.visible = Library.enabled
 	_note = Ui.label(vcol, "", "LightLabel")
 	for e in _entries:
 		_add_slot(e)

@@ -67,6 +67,8 @@ static func picture(entry: Dictionary, thumb: bool = false) -> Texture2D:
 
 
 static func remove(entry: Dictionary) -> void:
+	if not enabled:
+		return
 	for suffix in [".json", ".png", "_thumb.png"]:
 		var path := dir.path_join(str(entry["id"]) + suffix)
 		if FileAccess.file_exists(path):
