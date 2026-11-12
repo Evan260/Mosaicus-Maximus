@@ -1654,3 +1654,23 @@ func test_title_menu_is_centred_once_its_buttons_are() -> void:
 	var menu: Control = Nav.current._menu
 	var off := menu.position.x + menu.size.x * 0.5 - Nav.ui_size().x * 0.5
 	check(absf(off) <= 1.0, "the title's menu sits in the middle of the window after its buttons centre their text (%.0f off)" % off)
+
+
+func test_the_design_tables_columns_stay_inside_the_window() -> void:
+	game.new_game("Table")
+	game.state["guide_off"] = true
+	for loc in ["en", "de"]:
+		TranslationServer.set_locale(loc)
+		UiTheme.use_language()
+		Nav.go("design_table", {"free": true})
+		while Nav._busy or Nav.current == null:
+			await get_tree().process_frame
+		for k in 3:
+			await get_tree().process_frame
+		var right: Control = Nav.current._right
+		check(right.get_combined_minimum_size().x <= right.size.x and right.size.x == Nav.current.RIGHT_W, "the design table's right column fits the width it is given, so it stays inside the window, in %s (needs %.0f)" % [loc, right.get_combined_minimum_size().x])
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame

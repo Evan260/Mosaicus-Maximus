@@ -6,6 +6,9 @@ extends Node
 const PART_NAMES := ["Border: band", "Border: pattern", "Border: second colour", "Border: trim"]
 ## How far the pointer moves, in interface pixels, before a press on the plan becomes a drag.
 const DRAG_START := 3.0
+## The right column's width, and the brief's text width inside it, which leaves room for the card's edges and scrollbar.
+const RIGHT_W := 124.0
+const BRIEF_W := 108.0
 
 var design: FloorDesign
 var job := {}
@@ -305,7 +308,7 @@ func _layout_ui() -> void:
 	_root.size = s
 	Ui.put(_desk, Vector2.ZERO, s)
 	var book_w := 134.0
-	var right_w := 124.0
+	var right_w := RIGHT_W
 	var bottom_h := 72.0
 	var cost_h := 116.0
 	Ui.put(_book, Vector2(5, 5), Vector2(book_w, s.y - cost_h - 14))
@@ -562,13 +565,13 @@ func _refresh_brief() -> void:
 	var verdict := Brief.judge({} if free else job, design, taste)
 	if free:
 		Ui.label(_brief_box, "Free design", "Heading")
-		Ui.label(_brief_box, "Design anything you like. Nobody pays, and nobody minds.", "", 112)
+		Ui.label(_brief_box, "Design anything you like. Nobody pays, and nobody minds.", "", BRIEF_W)
 	elif kind == "contest":
 		Ui.label(_brief_box, "The floor contest", "Heading")
-		Ui.label(_brief_box, tr("Judged on looks alone. The rival's entries earn about %d stars.") % Looks.stars(float(job.get("rival", 0.6))), "", 112)
+		Ui.label(_brief_box, tr("Judged on looks alone. The rival's entries earn about %d stars.") % Looks.stars(float(job.get("rival", 0.6))), "", BRIEF_W)
 	elif kind == "panel":
 		Ui.label(_brief_box, "A picture panel", "Heading")
-		Ui.label(_brief_box, "Lay a picture at the bench. Sell it to a collector, or set it into a client's floor later.", "", 112)
+		Ui.label(_brief_box, "Lay a picture at the bench. Sell it to a collector, or set it into a client's floor later.", "", BRIEF_W)
 	elif kind == "copy":
 		Ui.label(_brief_box, "Copy this floor", "Heading")
 		if _target_tex == null:
@@ -586,20 +589,20 @@ func _refresh_brief() -> void:
 			_plan.peek = null
 			_plan.queue_redraw())
 		_brief_box.add_child(sketch)
-		Ui.label(_brief_box, tr("Likeness: %d%%") % int(round(float(verdict.get("likeness", 0.0)) * 100.0)), "", 112)
+		Ui.label(_brief_box, tr("Likeness: %d%%") % int(round(float(verdict.get("likeness", 0.0)) * 100.0)), "", BRIEF_W)
 	else:
 		var who := Data.client(job.get("client", ""))
-		Ui.label(_brief_box, Ui.text(job.get("client_name", who.get("name", "The client"))), "Heading", 112)
+		Ui.label(_brief_box, Ui.text(job.get("client_name", who.get("name", "The client"))), "Heading", BRIEF_W)
 		var about := tr("%s.") % Data.room_title(job.get("room", ""))
 		if not taste.is_empty():
 			about = tr("%s. Likes %s.") % [Data.room_title(job.get("room", "")), Ui.list(taste.map(func(t: String) -> String: return tr(Looks.TASTES[t]["likes"])))]
 		elif str(job.get("client", "")) != "":
 			about = tr("%s. Taste not known yet.") % Data.room_title(job.get("room", ""))
-		Ui.label(_brief_box, about, "MutedLabel", 112)
+		Ui.label(_brief_box, about, "MutedLabel", BRIEF_W)
 		for w in verdict["wishes"]:
 			var row := Ui.hbox(_brief_box, 2)
 			Ui.icon(row, "tick" if w["met"] else "cross")
-			Ui.label(row, w["text"], "", 96)
+			Ui.label(row, w["text"], "", BRIEF_W - 18.0)
 			Ui.tip_on(row, Brief.help(w, _motifs_allowed()))
 	_stars_row(verdict)
 
@@ -623,14 +626,14 @@ func _stars_row(verdict: Dictionary) -> void:
 		var line := Ui.hbox(checklist, 3)
 		var mark := Ui.icon(line, "tick_small" if good else "cross_small")
 		mark.custom_minimum_size = Vector2(10, 11)
-		Ui.label(line, Looks.quality_name(id), "" if good else "MutedLabel", 100)
+		Ui.label(line, Looks.quality_name(id), "" if good else "MutedLabel", BRIEF_W - 13.0)
 		Ui.tip_on(line, Looks.quality_about(id))
 		if hints.has(id) and (worst == "" or float(looks["qualities"][id]) < float(looks["qualities"][worst])):
 			worst = id
 	if worst != "":
-		Ui.label(_brief_box, tr("Next: %s") % hints[worst], "", 112)
+		Ui.label(_brief_box, tr("Next: %s") % hints[worst], "", BRIEF_W)
 	elif int(verdict["stars"]) < 5:
-		Ui.label(_brief_box, "Next: meet every wish, and make each of these stronger still.", "", 112)
+		Ui.label(_brief_box, "Next: meet every wish, and make each of these stronger still.", "", BRIEF_W)
 
 
 ## The chips for every part of what is picked, a motif or the floor itself, with the chosen one raised in gold.
