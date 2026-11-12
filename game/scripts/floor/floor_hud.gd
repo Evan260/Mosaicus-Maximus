@@ -18,6 +18,8 @@ var _hint: Label
 var _last_hint := ""
 var _last_title := ""
 var _tray_phase := -1
+## The 1 to 9 in the corner of the first nine stone chips, which name their number keys.
+var _digits: Array[Label] = []
 
 
 func setup(s: Node) -> void:
@@ -113,6 +115,8 @@ func _process(_delta: float) -> void:
 		_find.visible = fv.gaps_left() > 0
 		_tray_panel.size = Vector2.ZERO
 		_place.call_deferred()
+	for d in _digits:
+		d.visible = not Pad.using
 	for key in _buttons:
 		var b: Button = _buttons[key]
 		if key is int:
@@ -134,6 +138,7 @@ func _build_tray() -> void:
 		c.get_parent().remove_child(c)
 		c.queue_free()
 	_buttons.clear()
+	_digits.clear()
 	_done = null
 	_find = null
 	var fv: FloorView = screen.floor_view
@@ -143,7 +148,9 @@ func _build_tray() -> void:
 			for k in order.size():
 				var st: int = order[k]
 				var b := _tray_button(MotifIcons.swatch(Stones.id_of(st), 12), "%s (%d)" % [Stones.title(Stones.id_of(st)), k + 1] if k < 9 else Stones.title(Stones.id_of(st)), func() -> void: screen.select_stone(st))
-				b.custom_minimum_size = Vector2(34, 22)
+				b.custom_minimum_size = Vector2(38, 22)
+				if k < 9:
+					_add_digit(b, k + 1)
 				_buttons[st] = b
 		FloorView.Phase.DIG:
 			_buttons["trowel"] = _tray_button(UiTheme.icon("trowel"), "Trowel: scrape away the dirt", func() -> void: screen.select_tool("trowel"), "Trowel")
@@ -190,6 +197,21 @@ func _tray_button(icon: Texture2D, tip: String, action: Callable, text: String =
 	if text != "":
 		Ui.centre_text(b)
 	return b
+
+
+## Writes a chip's number key small in its top left corner, with the chip's picture moved over to make room.
+func _add_digit(b: Button, n: int) -> void:
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		(b.get_theme_stylebox(state) as StyleBoxTexture).content_margin_left = 8
+	var d := Label.new()
+	d.text = str(n)
+	d.add_theme_font_override("font", UiTheme.digit_font())
+	d.add_theme_font_size_override("font_size", 8)
+	d.add_theme_color_override("font_color", UiTheme.MUTED)
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	d.position = Vector2(2, 1)
+	b.add_child(d)
+	_digits.append(d)
 
 
 ## A little bounce of the tray, when the brush is used before anything in it is picked.

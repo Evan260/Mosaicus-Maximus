@@ -19,6 +19,7 @@ static var _theme: Theme
 ## Each language's fonts, made once and kept, since text drawn with a font that is then thrown away shows as blocks.
 static var _bodies := {}
 static var _titles := {}
+static var _digits: Font
 
 
 ## The font for running text in the current language, or in the language given.
@@ -45,6 +46,13 @@ static func title_font(locale: String = "") -> Font:
 		f.fallbacks = [body_font(loc)]
 		_titles[loc] = f
 	return _titles[loc]
+
+
+## Silkscreen alone, for small numbers that read the same in every language.
+static func digit_font() -> Font:
+	if _digits == null:
+		_digits = _crisp(load(FONTS + "Silkscreen-Regular.ttf"))
+	return _digits
 
 
 ## The pixel size running text is drawn at, which is the size its pixel font is drawn for.

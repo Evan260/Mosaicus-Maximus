@@ -2165,3 +2165,40 @@ func test_quitting_during_a_screen_change_opens_nothing_more() -> void:
 	Nav.go("title")
 	while Nav._busy:
 		await get_tree().process_frame
+
+
+func test_the_stone_tray_names_its_number_keys_until_a_pad_is_used() -> void:
+	game.new_game("Keys")
+	Nav.go("floor", {"design": Samples.make("villa")})
+	while Nav._busy or Nav.current == null or Nav.current.floor_view == null:
+		await get_tree().process_frame
+	for i in 3:
+		await get_tree().process_frame
+	var hud: FloorHud = Nav.current._hud
+	var stones := mini(9, (Nav.current.floor_view as FloorView).stones_used().size())
+	var shown := hud._digits.map(func(d: Label) -> String: return d.text)
+	check(shown == range(1, stones + 1).map(func(n: int) -> String: return str(n)), "the first nine stone chips show 1 to 9 (%s)" % [shown])
+	check(hud._digits.all(func(d: Label) -> bool: return d.is_visible_in_tree()), "the numbers show while the mouse is in use")
+	var press := InputEventJoypadButton.new()
+	press.button_index = JOY_BUTTON_START
+	press.pressed = true
+	Pad._input(press)
+	await get_tree().process_frame
+	check(Pad.using and hud._digits.all(func(d: Label) -> bool: return not d.visible), "a pad's button hides them")
+	var key := InputEventKey.new()
+	key.keycode = KEY_A
+	key.pressed = true
+	Pad._input(key)
+	await get_tree().process_frame
+	check(not Pad.using and hud._digits.all(func(d: Label) -> bool: return d.visible), "and a key brings them back")
+	var sent := InputEventKey.new()
+	sent.keycode = KEY_R
+	sent.pressed = true
+	sent.device = Pad.SENT
+	Pad.using = true
+	Pad._input(sent)
+	check(Pad.using, "a key the pad sends itself keeps the pad in use")
+	Pad.using = false
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame

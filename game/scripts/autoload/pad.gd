@@ -2,6 +2,12 @@ extends Node
 ## Controller support: the left stick moves the pointer and A clicks and drags, so every screen works as with a mouse.
 ## The shoulder buttons change the brush size, B steps back, X turns and Y mirrors a motif.
 
+## Marks the mouse and key events the pad sends, so they never count as the player turning to the mouse or keyboard.
+const SENT := 7
+
+## Whether the pad was the last thing the player used, rather than the mouse or keyboard.
+var using := false
+
 const SPEED := 900.0
 const DEAD := 0.18
 
@@ -16,6 +22,7 @@ func _process(delta: float) -> void:
 	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_LEFT_X), Input.get_joy_axis(0, JOY_AXIS_LEFT_Y))
 	if stick.length() < DEAD:
 		return
+	using = true
 	if not _active:
 		_active = true
 		_cursor = get_viewport().get_mouse_position()
@@ -28,13 +35,16 @@ func _process(delta: float) -> void:
 	motion.global_position = _cursor
 	motion.relative = _cursor - before
 	motion.button_mask = MOUSE_BUTTON_MASK_LEFT if _held else 0
+	motion.device = SENT
 	Input.parse_input_event(motion)
 
 
 func _input(event: InputEvent) -> void:
 	if not event is InputEventJoypadButton:
+		_turned_away(event)
 		return
 	var b := event as InputEventJoypadButton
+	using = true
 	match b.button_index:
 		JOY_BUTTON_A:
 			_click(MOUSE_BUTTON_LEFT, b.pressed)
@@ -56,6 +66,19 @@ func _input(event: InputEvent) -> void:
 				_key(KEY_BRACKETRIGHT)
 
 
+## Notes the player using the mouse or keyboard; the pointer's own moves after a warp land where the pad put it.
+func _turned_away(event: InputEvent) -> void:
+	if not using or event.device == SENT:
+		return
+	if event is InputEventMouseMotion:
+		if (event as InputEventMouseMotion).position.distance_to(_cursor) > 2.0:
+			using = false
+			_active = false
+	elif (event is InputEventMouseButton or event is InputEventKey) and event.is_pressed():
+		using = false
+		_active = false
+
+
 func _click(button: MouseButton, pressed: bool) -> void:
 	var e := InputEventMouseButton.new()
 	e.button_index = button
@@ -63,6 +86,7 @@ func _click(button: MouseButton, pressed: bool) -> void:
 	e.position = get_viewport().get_mouse_position()
 	e.global_position = e.position
 	e.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+	e.device = SENT
 	Input.parse_input_event(e)
 
 
@@ -72,4 +96,5 @@ func _key(code: Key) -> void:
 		e.keycode = code
 		e.physical_keycode = code
 		e.pressed = pressed
+		e.device = SENT
 		Input.parse_input_event(e)
