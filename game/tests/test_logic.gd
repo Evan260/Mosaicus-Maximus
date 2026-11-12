@@ -1290,6 +1290,28 @@ func test_translations_keep_their_placeholders() -> void:
 	check(wrong.is_empty(), "every translation keeps the English placeholders (%d wrong: %s)" % [wrong.size(), ", ".join(wrong.slice(0, 6))])
 
 
+func test_translations_put_no_space_before_a_full_stop_or_comma() -> void:
+	var sheet := _sheet()
+	var wrong := []
+	for key in sheet:
+		if _space_before_stop(str(key)):
+			continue
+		for loc in sheet[key]:
+			if _space_before_stop(str(sheet[key][loc])):
+				wrong.append("%s in %s" % [str(key).left(40), loc])
+	check(wrong.is_empty(), "no translation has a space before a full stop or comma (%d wrong: %s)" % [wrong.size(), ", ".join(wrong.slice(0, 6))])
+
+
+## Whether a full stop or comma ends a word after a space, as in "là ." rather than an ellipsis.
+func _space_before_stop(t: String) -> bool:
+	var padded := t + " "
+	for k in range(1, padded.length() - 1):
+		if padded[k] in [".", ","] and padded[k - 1] == " " and padded[k + 1] in [" ", "
+"]:
+			return true
+	return false
+
+
 func test_every_language_is_offered() -> void:
 	var have := TranslationServer.get_loaded_locales()
 	for loc in SettingsPanel.NATIVE_NAMES:
