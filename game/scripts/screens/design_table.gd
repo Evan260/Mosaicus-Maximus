@@ -26,6 +26,7 @@ var _tab_buttons := {}
 var _plan_panel: PanelContainer
 var _plan: PlanView
 var _right: VBoxContainer
+var _brief_card: PanelContainer
 var _cost_panel: PanelContainer
 var _brief_box: VBoxContainer
 var _cost_label: Label
@@ -107,7 +108,7 @@ func enter(args: Dictionary) -> void:
 		_select(int(Dev.num("pick", 0)))
 	_refresh_chips()
 	if not free and str(job.get("kind", "")) != "panel":
-		Guide.note("design", "This is the design table. Drag patterns and pictures from the book onto the floor plan, and click any part to give it a stone. The stars show how much the client will like it. Then buy the stone and press Start laying.", "top")
+		Guide.note("design", "This is the design table. Drag patterns and pictures from the book onto the floor plan, and click any part to give it a stone. The stars show how much the client will like it. Then buy the stone and press Start laying.", "over", _brief_card)
 
 
 func _process(delta: float) -> void:
@@ -245,11 +246,11 @@ func _build() -> void:
 		_palette.add_child(b)
 		_stone_buttons[id] = b
 	_right = Ui.vbox(_root, 5)
-	var card := Ui.panel(_right, "CardPanel")
-	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_brief_card = Ui.panel(_right, "CardPanel")
+	_brief_card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var card_scroll := ScrollContainer.new()
 	card_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	card.add_child(card_scroll)
+	_brief_card.add_child(card_scroll)
 	_brief_box = Ui.vbox(card_scroll, 2)
 	_cost_panel = Ui.panel(_root, "PagePanel")
 	var cost_col := Ui.vbox(_cost_panel, 1)

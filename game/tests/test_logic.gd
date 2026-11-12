@@ -1694,6 +1694,51 @@ func test_the_client_visit_note_leaves_the_price_and_buttons_clear() -> void:
 		await get_tree().process_frame
 
 
+func test_the_design_table_note_keeps_off_the_middle_of_the_plan() -> void:
+	var was := get_window().size
+	var step := Settings.ui_scale_step
+	for large in [false, true]:
+		Settings.large_text = large
+		for loc in ["en", "de", "ru", "ja"]:
+			for wh in [Vector2i(1920, 1080), Vector2i(1280, 720), Vector2i(1024, 768), Vector2i(2560, 1080), Vector2i(800, 600)]:
+				for ui_step in [-1, 0, 1, 2]:
+					Settings.ui_scale_step = ui_step
+					TranslationServer.set_locale(loc)
+					UiTheme.use_language()
+					game.new_game("Table")
+					game.state["story_seen"].append("intro")
+					get_window().size = wh
+					Nav.refit()
+					Nav.go("design_table", {"job": Dev.test_job("commission")})
+					while Nav.current_name != "design_table" or Nav._busy:
+						await get_tree().process_frame
+					for i in 3:
+						await get_tree().process_frame
+					var notes := Nav.ui.find_children("*", "Guide", true, false)
+					check(notes.size() == 1, "the design table shows its note on a new workshop's first job")
+					if notes.is_empty():
+						continue
+					var note := (notes[0] as Control).get_global_rect()
+					var table: Node = Nav.current
+					var plan := (table._plan_panel as Control).get_global_rect()
+					var where := "%s, size %d, %s%s" % [wh, ui_step, loc, ", large text" if large else ""]
+					if not large:
+						check(not note.grow(-1.0).has_point(plan.get_center()), "the note keeps off the middle of the plan at %s" % where)
+					if loc == "en" and not large:
+						check(not note.intersects((table._start as Control).get_global_rect()), "the note leaves Start laying uncovered at %s" % where)
+					check(Nav.ui.get_global_rect().grow(0.5).encloses(note), "the note fits the screen at %s" % where)
+					(notes[0] as Node).free()
+	Settings.large_text = false
+	Settings.ui_scale_step = step
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()
+	get_window().size = was
+	Nav.refit()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
 func test_the_workshop_top_bar_fits_the_smallest_interface_in_every_language() -> void:
 	var was := get_window().size
 	get_window().size = Vector2i(480, 270)
