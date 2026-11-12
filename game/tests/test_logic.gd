@@ -1569,3 +1569,15 @@ func test_a_made_up_workshop_never_sends_achievements_to_steam() -> void:
 	check(Awards.may_send() == saves.enabled, "a real workshop sends its achievements")
 	game.state["_dev"] = true
 	check(not Awards.may_send(), "one made up by a dev option never does")
+
+
+func test_quitting_from_a_floor_clears_every_layer() -> void:
+	game.new_game("Quit")
+	game.state["guide_off"] = true
+	Nav.go("floor")
+	while Nav._busy or Nav.current == null or Nav.current.floor_view == null:
+		await get_tree().process_frame
+	await Nav.close()
+	for k in 3:
+		await get_tree().process_frame
+	check(Nav.world.get_child_count() == 0 and Nav.ui.get_child_count() == 0 and Nav.pictures.get_child_count() == 0, "closing for the quit takes the screen's floor and interface with it")

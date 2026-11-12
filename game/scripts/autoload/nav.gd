@@ -201,7 +201,11 @@ func close() -> void:
 	if current:
 		current.queue_free()
 		current = null
-		await get_tree().process_frame
+	for layer in [world, ui, pictures]:
+		for c in layer.get_children():
+			c.queue_free()
+	_forget_screen_listeners()
+	await get_tree().process_frame
 	for task in _left_tasks:
 		WorkerThreadPool.wait_for_task_completion(task)
 	_left_tasks.clear()
