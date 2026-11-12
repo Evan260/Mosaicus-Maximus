@@ -26,6 +26,12 @@ static func source(id: String) -> Image:
 	return img
 
 
+## Loads every motif's picture on the main thread, since a picture loaded on a worker thread is left over at exit.
+static func load_all() -> void:
+	for id in Data.motif_order:
+		source(id)
+
+
 ## The size in tiles a motif covers when its longest side is the given length, before turning.
 static func tiles(id: String, longest: float) -> Vector2:
 	var aspect := float(Data.motif(id).get("aspect", 1.0))

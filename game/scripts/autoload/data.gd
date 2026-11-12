@@ -43,6 +43,7 @@ func reload() -> void:
 	achievements = _read("achievements.json", [])
 	festivals = _read("festivals.json", [])
 	people = _read("people.json", {})
+	MotifLibrary.load_all()
 
 
 ## A balance number by its dotted path, such as "pricing.falloff".

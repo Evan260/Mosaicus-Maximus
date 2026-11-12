@@ -1581,3 +1581,9 @@ func test_quitting_from_a_floor_clears_every_layer() -> void:
 	for k in 3:
 		await get_tree().process_frame
 	check(Nav.world.get_child_count() == 0 and Nav.ui.get_child_count() == 0 and Nav.pictures.get_child_count() == 0, "closing for the quit takes the screen's floor and interface with it")
+
+
+func test_motif_pictures_are_loaded_before_any_worker_thread() -> void:
+	MotifLibrary._cache.clear()
+	data.reload()
+	check(Data.motif_order.all(func(id: String) -> bool: return MotifLibrary._cache.has(id)), "every pattern's picture is loaded on the main thread with the data, since one loaded on a worker thread is left over at exit")
