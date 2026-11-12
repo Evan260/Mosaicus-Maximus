@@ -16,6 +16,8 @@ var _shake: Button
 var _buttons: HBoxContainer
 var _wishes: ScrollContainer
 var _done := false
+## The guide's note on a new workshop's first visit, which the card moves aside for.
+var _note: Guide
 ## How many more times the client will hear a price they think too high before walking out.
 var _patience := 2
 ## The client's own offer after turning a price down; asking that or less is always accepted.
@@ -104,9 +106,13 @@ func enter(args: Dictionary) -> void:
 	_place.call_deferred()
 	Audio.play("rustle", -8.0)
 	if str(job.get("kind", "commission")) in ["commission", "copy"]:
-		Guide.note("visit", "The client says what she wants. Slide the coins to set your price: the more you ask, the more she expects, and ask too much and she'll haggle. Then shake on it." if she else "The client says what he wants. Slide the coins to set your price: the more you ask, the more he expects, and ask too much and he'll haggle. Then shake on it.", "bottom_right")
+		_note = Guide.note("visit", "The client says what she wants. Slide the coins to set your price: the more you ask, the more she expects, and ask too much and she'll haggle. Then shake on it." if she else "The client says what he wants. Slide the coins to set your price: the more you ask, the more he expects, and ask too much and he'll haggle. Then shake on it.", "top_right")
 	else:
-		Guide.note("visit", "Read what's wanted here, then take the job or turn it down.", "bottom_right")
+		_note = Guide.note("visit", "Read what's wanted here, then take the job or turn it down.", "top_right")
+	if _note:
+		# The note widens once its buttons centre their text, so the card moves again then.
+		_note.resized.connect(_place)
+		_note.tree_exited.connect(_note_gone)
 
 
 ## The card in the middle, with the wish list only as tall as fits, so the price and buttons always show.
@@ -117,7 +123,20 @@ func _place() -> void:
 	if _wishes:
 		fit_list(_card, _wishes, s.y - 8.0)
 	_card.reset_size()
-	_card.position = ((s - _card.size) * 0.5).floor()
+	var at := ((s - _card.size) * 0.5).floor()
+	if is_instance_valid(_note) and not _note.is_queued_for_deletion():
+		# The note sits in the top right corner, so the card moves left, then down, as far as it needs to clear it.
+		_note.reset_size()
+		var left := s.x - _note.size.x - 6.0
+		at.x = maxf(6.0, minf(at.x, left - 4.0 - _card.size.x))
+		if at.x + _card.size.x > left - 4.0:
+			at.y = minf(maxf(at.y, 30.0 + _note.size.y + 4.0), s.y - _card.size.y - 4.0)
+	_card.position = at.floor()
+
+
+func _note_gone() -> void:
+	if is_inside_tree():
+		_place()
 
 
 ## Gives a card's scrolling list as many whole lines as fit once the card fits in the height; the rest scroll.

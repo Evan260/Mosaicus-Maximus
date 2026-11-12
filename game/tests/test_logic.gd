@@ -1599,6 +1599,42 @@ func test_the_job_board_note_leaves_its_buttons_clear() -> void:
 		await get_tree().process_frame
 
 
+func test_the_client_visit_note_leaves_the_price_and_buttons_clear() -> void:
+	var was := get_window().size
+	for loc in ["en", "de", "ru"]:
+		for wh in [Vector2i(1920, 1080), Vector2i(1597, 927), Vector2i(1280, 720)]:
+			TranslationServer.set_locale(loc)
+			UiTheme.use_language()
+			game.new_game("Visit")
+			game.state["story_seen"].append("intro")
+			get_window().size = wh
+			Nav.refit()
+			Story.morning(game.state)
+			Nav.go("client_visit", {"job": (game.state["board"] as Array).filter(func(j: Dictionary) -> bool: return j.get("kind", "") == "commission")[0]})
+			while Nav.current_name != "client_visit" or Nav._busy:
+				await get_tree().process_frame
+			for i in 3:
+				await get_tree().process_frame
+			var notes := Nav.ui.find_children("*", "Guide", true, false)
+			check(notes.size() == 1, "the client's visit shows its note on a new workshop's first visit")
+			if notes.is_empty():
+				continue
+			var note := (notes[0] as Control).get_global_rect()
+			var visit: Node = Nav.current
+			for c in [[visit._price, "price"], [visit._price_label, "price label"], [visit._buttons, "buttons"]]:
+				check(not note.intersects((c[0] as Control).get_global_rect()), "the note leaves the visit's %s uncovered at %s in %s" % [c[1], wh, loc])
+			# A long language's note may reach over the speech's right margin, but never far into its words.
+			check(note.intersection((visit._speech as Control).get_global_rect()).size.x <= 8.0, "the note keeps off the client's words at %s in %s" % [wh, loc])
+			(notes[0] as Node).free()
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()
+	get_window().size = was
+	Nav.refit()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
 ## Presses and lets go of the left button at a point in interface pixels.
 func _click(at: Vector2) -> void:
 	for down in [true, false]:
