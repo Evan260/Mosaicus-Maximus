@@ -29,7 +29,7 @@ var _layout: MosaicLayout
 var _layout_for := ""
 var _task := -1
 var _gif_task := -1
-var _gif := PackedByteArray()
+var _gif_box := {}
 var _gif_for := {}
 ## What to do once the chosen floor's tiles are set out: "watch", "copy" or both.
 var _after_build: Array = []
@@ -186,7 +186,7 @@ func _process(_delta: float) -> void:
 
 
 func _gif_done() -> void:
-	var ok := Library.export_picture(_gif_for) and Library.export_gif(_gif_for, _gif)
+	var ok := Library.export_picture(_gif_for) and Library.export_gif(_gif_for, _gif_box.get("gif", PackedByteArray()))
 	_note.text = "Copied to Pictures, in a Mosaicus Maximus folder." if ok else "That couldn't be copied."
 	_copy.disabled = false
 	Audio.play("page_turn", -8.0)
@@ -282,7 +282,10 @@ func _make_gif() -> void:
 	_gif_for = _chosen
 	var layout := _layout
 	var order := Library.order_of(_chosen)
-	_gif_task = WorkerThreadPool.add_task(func() -> void: _gif = Timelapse.make(layout, order))
+	var box := _gif_box
+	box.clear()
+	# The worker writes only into locals, since the screen can be freed before it finishes.
+	_gif_task = WorkerThreadPool.add_task(func() -> void: box["gif"] = Timelapse.make(layout, order))
 
 
 func _remove_it() -> void:
@@ -322,3 +325,10 @@ func _finish_tasks() -> void:
 		WorkerThreadPool.wait_for_task_completion(_gif_task)
 		_gif_task = -1
 		_gif_done()
+
+
+func _exit_tree() -> void:
+	Nav.leave_task(_task)
+	Nav.leave_task(_gif_task)
+	_task = -1
+	_gif_task = -1

@@ -1599,3 +1599,21 @@ func test_quitting_while_a_floor_is_marked_out_is_safe() -> void:
 	check(screen.floor_view == null and screen._task >= 0, "the floor is still being marked out")
 	await Nav.close()
 	check(Nav._left_tasks.is_empty(), "the worker's floor is finished off before the quit")
+
+
+func test_a_library_closed_mid_copy_hands_its_work_over() -> void:
+	Nav.go("library", {"back": "title"})
+	while Nav._busy or Nav.current == null:
+		await get_tree().process_frame
+	var screen: Node = Nav.current
+	var d := FloorDesign.for_room("vestibule")
+	screen._layout = MosaicLayout.new()
+	screen._layout.build(Composer.compose(d, 6), 6)
+	screen._chosen = {"id": "test"}
+	screen._make_gif()
+	var task: int = screen._gif_task
+	Nav.current = null
+	screen.free()
+	check(task in Nav._left_tasks, "a time-lapse still being made when the library closes is finished off by Nav")
+	while not Nav._left_tasks.is_empty():
+		await get_tree().process_frame
