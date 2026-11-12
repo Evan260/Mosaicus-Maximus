@@ -124,7 +124,7 @@ GitHub never shows a secret again once saved, and the workflow keeps them out of
 
 ## The Steam upload
 
-The Steam job is written but switched off. It uploads the builds from the same run with steamcmd and makes them live on the `testing` branch, never the default branch, which is still set live by hand in Steamworks (`Steam-publishing.md`). The Mac depot needs the signed Mac build, so the Apple secrets come first. To switch it on:
+The Steam job is written but switched off. It uploads the builds from the same run with steamcmd, leaving the everything-unlocked launcher out of the Windows depot (it stays in the GitHub release), and makes them live on the `testing` branch, never the default branch, which is still set live by hand in Steamworks (`Steam-publishing.md`). The Mac depot needs the signed Mac build, so the Apple secrets come first. To switch it on:
 
 1. Fill in `tools/steam/steam.json` (the account, and the App ID and depots of `playtest` and `game`; `Steam-publishing.md`, step 8) and commit it.
 2. Log steamcmd in once in WSL, as in `Steam-publishing.md` step 9, with the account that uploads builds. That saves the login in `~/Steam/config/config.vdf` inside WSL.

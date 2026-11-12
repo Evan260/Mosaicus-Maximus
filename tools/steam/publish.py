@@ -9,7 +9,8 @@ Usage:
 The Steam account, app and depot ids are in tools/steam/steam.json; a depot left at 0 is skipped, and a dry run with
 no ids yet builds every platform. tools/export.py exports each platform here on Windows, then tools/steam/wsl_build.sh
 takes over inside WSL: a Mac app copied through Windows loses its file permissions and will not open, so the builds are
-laid out, the Mac app signed and notarized, and the upload made with Valve's Linux steamcmd there.
+laid out, the Mac app signed and notarized, and the upload made with Valve's Linux steamcmd there. The
+everything-unlocked launcher is left out of every depot.
 docs/Steam-publishing.md has the one-time setup.
 Steam only lets a script make a build live on a branch other than the default one, so testers choose that branch
 once in the game's Properties, Betas; builds for the default branch are set live on the Steamworks site.
@@ -52,6 +53,7 @@ def vdf(target, depots, note, content, output):
 \t\t\t\t"DepotPath" "."
 \t\t\t\t"recursive" "1"
 \t\t\t}}
+\t\t\t"FileExclusion" "{export.LAUNCHER}"
 \t\t}}''' for platform, depot in depots.items())
     return f'''"AppBuild"
 {{
@@ -95,6 +97,8 @@ def main():
     export.godot("--import")
     for platform in depots:
         export.export(platform, stage / platform)
+        # The everything-unlocked launcher is for local builds and GitHub releases, never for players on Steam.
+        (stage / platform / export.LAUNCHER).unlink(missing_ok=True)
     work = f"{home}/{WSL_HOME}/{args.target}"
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     note = f"{datetime.date.today()} {commit} {args.note}".strip().replace('"', "'")

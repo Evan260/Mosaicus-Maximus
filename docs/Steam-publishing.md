@@ -122,7 +122,7 @@ Ask Claude to "push an update to the playtest", or run:
 python tools/steam/publish.py playtest --note "Faster floor setting"
 ```
 
-The script builds the game for every platform with a depot, signs and notarizes the Mac app (Apple's check usually takes a few minutes), uploads it and makes it live on the `testing` branch. Testers get it the next time Steam updates, usually within minutes when Steam is open. The note and the git commit appear next to the build in Steamworks, under SteamPipe, Builds.
+The script builds the game for every platform with a depot, signs and notarizes the Mac app (Apple's check usually takes a few minutes), uploads it and makes it live on the `testing` branch. The Windows depot leaves out `Mosaicus Maximus - everything unlocked.bat`, the launcher that opens a workshop with everything unlocked, since it is for checking builds and never for players; `tools/export.py` and the GitHub release still put it beside the game. Testers get it the next time Steam updates, usually within minutes when Steam is open. The note and the git commit appear next to the build in Steamworks, under SteamPipe, Builds.
 
 `--dry-run` builds every platform, signs the Mac app if the Apple credentials exist, and lays everything out in `~/mosaicus-steam` inside WSL without notarizing or uploading, to check that everything is in order. It needs neither steamcmd nor any Steam numbers; with every number still 0 it builds all three platforms.
 
