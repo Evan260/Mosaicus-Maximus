@@ -5,6 +5,9 @@ const ROUTE := ["title", "workshop", "job_board", "design_table", "floor", "reve
 
 
 func test_screens_and_windows_leave_nothing_behind() -> void:
+	# A track starting between the counts would add its playback to them.
+	Audio.music_on = false
+	Audio._music.stop()
 	Game.new_game("Memory")
 	Game.state["story_seen"].append("intro")
 	Game.state["guide_off"] = true
@@ -25,6 +28,7 @@ func test_screens_and_windows_leave_nothing_behind() -> void:
 	check(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) <= orphans, "and no nodes outside the tree (%d before, %d after)" % [orphans, Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)])
 	check(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT) <= resources, "and no extra resources (%d before, %d after)" % [resources, Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)])
 	check(now <= objects, "and no extra objects (%d before, %d after)" % [objects, now])
+	Audio.music_on = true
 	Nav.go("title")
 	await _settle()
 
@@ -60,6 +64,8 @@ func _settle() -> void:
 
 
 func test_turning_pages_leaves_nothing_behind() -> void:
+	Audio.music_on = false
+	Audio._music.stop()
 	Game.new_game("Memory")
 	Game.state["story_seen"].append("intro")
 	Game.state["guide_off"] = true
@@ -84,6 +90,7 @@ func test_turning_pages_leaves_nothing_behind() -> void:
 	check(Performance.get_monitor(Performance.OBJECT_COUNT) <= objects, "and no extra objects (%d before, %d after)" % [objects, Performance.get_monitor(Performance.OBJECT_COUNT)])
 	Nav.close_top()
 	Settings.reduced_motion = motion
+	Audio.music_on = true
 	Nav.go("title")
 	await _settle()
 
