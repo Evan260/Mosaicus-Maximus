@@ -61,9 +61,17 @@ python tools/trailer/make_trailer.py, which keeps an .mp4 copy beside the .avi f
 confirm with the composer of the harp music (Mythago Music) that the free LITE pack may be used in a trailer.
 
 
+BUILDS
+
+The game itself goes to Steam with python tools/steam/publish.py, which builds Windows, macOS and Linux and uploads
+them. docs/Steam-publishing.md has the one-time Steamworks and Apple setup, the App ID and depot numbers to fill in,
+and how to send an update.
+
+
 STILL TO DECIDE BEFORE SUBMITTING
 
 - Developer and publisher name (your own name or a studio name).
 - Release date: "Coming soon", or a season and year such as "Spring 2027".
 - Price in CAD, which Steamworks asks for separately and which Valve reviews.
 - Steam Cloud and achievements are set up as described in docs/Steam-setup.md.
+- The builds are uploaded as described in docs/Steam-publishing.md.

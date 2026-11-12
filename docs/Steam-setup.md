@@ -1,12 +1,10 @@
 # Mosaicus Maximus: Steam Setup
 
-What has to happen on Steam's side before launch. The game already does its part: it records achievements in the save, and sends them to Steam whenever Steam is present.
+What has to happen on Steam's side before launch. The game already does its part: it records achievements in the save, and sends them to Steam whenever Steam is present. How builds get to Steam is in `Steam-publishing.md`.
 
 ## 1. Connect the game to Steam
 
-1. Create the app in Steamworks and note its App ID.
-2. Add GodotSteam (the GDExtension build for Godot 4.7) to `game/addons/`. The game looks for its `Steam` object and uses it when it is there (`game/scripts/autoload/awards.gd`); without it, nothing breaks.
-3. While testing outside Steam, put a file named `steam_appid.txt` holding the App ID next to the game's executable.
+GodotSteam is already in `game/addons/godotsteam/`, and `game/scripts/autoload/awards.gd` uses it whenever the game runs through Steam; without Steam, nothing breaks. Creating the app, its depots and launch options, testing with Valve's App ID 480 through a git-ignored `steam_appid.txt`, and uploading builds are all in `Steam-publishing.md`.
 
 ## 2. The store page
 
