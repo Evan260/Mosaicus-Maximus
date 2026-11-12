@@ -1,7 +1,8 @@
-# The SCons settings Farmus Maximus's trimmed export template was built with, kept here as a record because Mosaicus Maximus
-# ships with a copy of that template (tools/engine/slim.windows.template_release.x86_64.exe). It covers: 2D drawn with the Compatibility
-# (OpenGL) renderer, sound in Ogg, MP3 and WAV, fonts, particles and the window features of the desktop strip. Read
-# by tools/engine/build_template.py; see read-me notes there. Everything left out is unused by the game.
+# The SCons settings of the trimmed Windows export template Mosaicus Maximus ships with (tools/engine/slim.windows.template_release.x86_64.exe).
+# The template is built in Farmus Maximus by its tools/engine/build_template.py from tools/engine/farmus_profile.py, which matches this
+# file, and copied here from Farmus Maximus's tools/engine/bin/farmus.windows.template_release.x86_64.exe. It covers 2D drawn with the
+# Compatibility (OpenGL) renderer, sound in Ogg, MP3 and WAV, fonts, particles and the window features
+# of the desktop strip. Everything left out is unused by the game.
 
 target = "template_release"
 arch = "x86_64"
