@@ -373,6 +373,17 @@ func _shot_dig() -> void:
 	Nav.go("floor", {})
 	if _tall():
 		await _fill_tall(1.2, 0.07)
+	_brush_only_while_working()
+
+
+## Shows the brush ring only while the floor's own hand is working; between passes it would sit where the real mouse rests.
+func _brush_only_while_working() -> void:
+	while Nav.current_name != "floor" or Nav.current == null or Nav.current.cursor == null:
+		await get_tree().process_frame
+	var screen: Node = Nav.current
+	while is_instance_valid(screen) and Nav.current == screen:
+		screen.cursor.visible = screen._demo_prev != Vector2.INF
+		await get_tree().process_frame
 
 
 ## The dog is woken with a pat, and stands up wagging.
