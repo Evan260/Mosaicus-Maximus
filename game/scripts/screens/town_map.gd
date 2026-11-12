@@ -202,8 +202,8 @@ func _owner_line(f: Dictionary) -> String:
 ## Lays the floor out away from the main thread, then shows it in its room.
 func _start_visit(f: Dictionary, title: String) -> void:
 	_visit = Control.new()
-	_visit.size = Nav.ui_size()
 	_root.add_child(_visit)
+	_visit.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_visit_room = Control.new()
 	_visit_room.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	Nav.pictures.add_child(_visit_room)

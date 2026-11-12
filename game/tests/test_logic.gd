@@ -1718,6 +1718,31 @@ func test_end_the_day_turns_orange_in_the_evening() -> void:
 		await get_tree().process_frame
 
 
+func test_a_visit_on_the_town_map_covers_the_window_after_a_resize() -> void:
+	game.new_game("Visit")
+	game.state["story_seen"].append("intro")
+	var was := get_window().size
+	get_window().size = Vector2i(960, 540)
+	Nav.refit()
+	Nav.go("town_map")
+	while Nav.current_name != "town_map" or Nav._busy:
+		await get_tree().process_frame
+	var d := Samples.moved(Samples.make("villa"), "study")
+	Nav.current._start_visit({"room": "study", "design": d.to_dict(), "day": 1, "score": 0.9, "paid": 50}, "A study")
+	get_window().size = Vector2i(1280, 540)
+	Nav.refit()
+	await get_tree().process_frame
+	var visit: Control = Nav.current._visit
+	check(visit.size.x >= Nav.ui_size().x and visit.size.y >= Nav.ui_size().y, "a visit still covers the whole interface after the window widens, so a click anywhere beside the card leaves it")
+	while Nav.current._task >= 0:
+		await get_tree().process_frame
+	get_window().size = was
+	Nav.refit()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
 ## Presses and lets go of the left button at a point in interface pixels.
 func _click(at: Vector2) -> void:
 	for down in [true, false]:
