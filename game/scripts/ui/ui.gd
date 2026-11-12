@@ -65,6 +65,18 @@ static func centre_text(b: Button) -> void:
 	b.set_meta("centred", true)
 
 
+## Changes a button's look, and centres its text again on the new look's paper.
+static func restyle(b: Button, variation: String) -> void:
+	if b.theme_type_variation == variation:
+		return
+	b.theme_type_variation = variation
+	if b.has_meta("centred"):
+		for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+			b.remove_theme_stylebox_override(state)
+		b.remove_meta("centred")
+		centre_text(b)
+
+
 static func icon_button(parent: Node, icon_name: String, tip: String, action: Callable) -> Button:
 	var b := button(parent, "", action, icon_name)
 	tip_on(b, tip)

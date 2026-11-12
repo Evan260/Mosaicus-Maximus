@@ -1657,6 +1657,31 @@ func test_the_client_visit_note_leaves_the_price_and_buttons_clear() -> void:
 		await get_tree().process_frame
 
 
+func test_end_the_day_turns_orange_in_the_evening() -> void:
+	game.new_game("Evening")
+	game.state["story_seen"].append("intro")
+	game.state["guide_off"] = true
+	game.state["hour"] = 8.0
+	Nav.go("workshop")
+	while Nav.current_name != "workshop" or Nav._busy:
+		await get_tree().process_frame
+	for i in 3:
+		await get_tree().process_frame
+	var theme := UiTheme.build()
+	var end_day: Button = Nav.current._end_day
+	for hour in [8.0, 21.0, 9.0]:
+		game.state["hour"] = hour
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var want := "MainButton" if hour > 12.0 else "Button"
+		var box := end_day.get_theme_stylebox("normal") as StyleBoxTexture
+		check(box != null and box.texture == (theme.get_stylebox("normal", want) as StyleBoxTexture).texture, "End the day wears the %s paper at hour %d" % [want, hour])
+		check(end_day.get_theme_color("font_color") == theme.get_color("font_color", want), "and the %s text colour" % want)
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
 ## Presses and lets go of the left button at a point in interface pixels.
 func _click(at: Vector2) -> void:
 	for down in [true, false]:

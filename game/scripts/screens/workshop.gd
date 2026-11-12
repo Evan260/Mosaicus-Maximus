@@ -260,7 +260,7 @@ func _process(delta: float) -> void:
 		_day_key = day_key
 		_day.text = tr("Day %d, %s") % [int(Game.state["day"]), Daylight.part_name(part)]
 		_fit_bar()
-	_end_day.theme_type_variation = "MainButton" if part in ["evening", "night"] else ""
+	Ui.restyle(_end_day, "MainButton" if part in ["evening", "night"] else "")
 
 
 ## Lets a piece's painted sunlight fade at night with the room's, reading the room's sunlight map at its place.
