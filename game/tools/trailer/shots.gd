@@ -712,10 +712,11 @@ func _click_spot(piece: Control) -> void:
 		spot.clicked.emit()
 
 
-## The workshop's clickable piece under a point on screen, the one drawn last when they overlap; the screens draw on Nav.ui.
+## The workshop's clickable piece under a point on screen, the one drawn last when they overlap.
 func _spot_at(at: Vector2) -> Hotspot:
 	var found: Hotspot = null
-	for h in Nav.ui.find_children("*", "Control", true, false):
+	# The room's pieces are painted pictures, so they sit in Nav.pictures rather than in the interface.
+	for h in Nav.pictures.find_children("*", "Control", true, false) + Nav.ui.find_children("*", "Control", true, false):
 		if h is Hotspot and (h as Hotspot)._has_point(h.get_global_transform_with_canvas().affine_inverse() * at):
 			found = h
 	return found
