@@ -1563,6 +1563,39 @@ func test_a_click_beside_a_window_closes_it_and_nothing_under_it() -> void:
 	Nav.refit()
 
 
+func test_letters_and_a_new_workshop_stay_open_on_a_stray_click() -> void:
+	game.new_game("Stray")
+	game.state["guide_off"] = true
+	var was := get_window().size
+	get_window().size = Vector2i(960, 540)
+	Nav.refit()
+	Nav.go("workshop")
+	while Nav.current_name != "workshop" or Nav._busy:
+		await get_tree().process_frame
+	for i in 3:
+		await get_tree().process_frame
+	var letter: Control = Nav.current._popup
+	check(letter != null, "a new workshop opens on the uncle's letter")
+	_click(Vector2(Nav.ui_size().x * 0.5, Nav.ui_size().y - 4.0))
+	await get_tree().process_frame
+	check(is_instance_valid(letter) and not letter.is_queued_for_deletion() and not (game.state["pending_events"] as Array).is_empty(), "a click beside a letter leaves it open and waiting")
+	check(Nav.close_top() and (game.state["pending_events"] as Array).is_empty(), "Escape still closes the letter")
+	Nav.go("title")
+	while Nav.current_name != "title" or Nav._busy:
+		await get_tree().process_frame
+	var title: Node = Nav.current
+	title._show_new()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	title._name_edit.text = "Lucia"
+	_click(Vector2(1, 1))
+	await get_tree().process_frame
+	check(title._page == "new" and title._name_edit.text == "Lucia", "a click beside the new workshop page keeps it open with the name typed")
+	check(Nav.close_top() and title._page == "menu", "Escape still steps back from it")
+	get_window().size = was
+	Nav.refit()
+
+
 func test_the_workshop_top_bar_works_while_a_window_is_open() -> void:
 	game.new_game("Bar")
 	game.state["story_seen"].append("intro")

@@ -197,7 +197,8 @@ func _show_new() -> void:
 	Ui.button(buttons, "Back", _show_menu, "arrow_l")
 	var go := Ui.button(buttons, "Open the workshop", _begin, "house", true)
 	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	Ui.closes_with(_menu, _show_menu)
+	# A click beside the page would throw away the name typed so far, so only Back and Escape leave it.
+	Ui.closes_with(_menu, _show_menu, false)
 	_name_edit.grab_focus.call_deferred()
 
 

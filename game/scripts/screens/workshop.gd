@@ -492,7 +492,8 @@ func _show_next_event() -> void:
 		_popup = null
 		_show_next_event()
 	var ok := Ui.button(col, "Carry on", carry_on, "tick", true)
-	Ui.closes_with(_popup, carry_on)
+	# A letter closed by a stray click is never seen again, so only Carry on and Escape close it.
+	Ui.closes_with(_popup, carry_on, false)
 	ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	Audio.play("page_turn", -6.0)
 	_layout.call_deferred()
