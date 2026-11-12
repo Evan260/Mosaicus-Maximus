@@ -91,8 +91,8 @@ func _sound() -> void:
 	_slider(tr("Everything"), Settings.master, func(v: float) -> void: Settings.master = v)
 	_slider(tr("Music"), Settings.music, func(v: float) -> void: Settings.music = v)
 	_slider(tr("Effects"), Settings.effects, func(v: float) -> void: Settings.effects = v)
-	Ui.setting(_page, tr("Your own music"), tr("Open folder"), Audio.open_music_folder, WIDTH)
-	Ui.label(_page, tr("Music you put in this folder (.ogg, .mp3 or .wav) plays between the game's own tracks."), "MutedLabel", WIDTH)
+	var own := Ui.setting(_page, tr("Your own music"), tr("Open folder"), Audio.open_music_folder, WIDTH)
+	Ui.tip_on(own, "Music you put in this folder (.ogg, .mp3 or .wav) plays between the game's own tracks.")
 	var quiet := {"full": "Full volume", "quieter": "Quieter", "muted": "Muted"}
 	Ui.setting(_page, tr("While you use other windows"), tr(quiet.get(Settings.background_sound, "Full volume")), func() -> void:
 		Settings.set_value("background_sound", {"full": "quieter", "quieter": "muted"}.get(Settings.background_sound, "full")), WIDTH)
