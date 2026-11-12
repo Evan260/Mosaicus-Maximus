@@ -1516,6 +1516,24 @@ func test_escape_closes_the_top_window_first() -> void:
 	title.free()
 
 
+func test_escape_closes_the_newest_window_before_the_guide() -> void:
+	game.new_game("Newest")
+	var note := Guide.note("escape_test", "A note.", "top")
+	check(note != null, "the guide shows a note on a new workshop")
+	var settings := SettingsPanel.open(Nav.ui)
+	Nav.ui.move_child(settings, 0)
+	check(Nav.close_top() and settings.is_queued_for_deletion() and not note.is_queued_for_deletion(), "Escape closes a window opened after the guide's note first")
+	check(Nav.close_top() and note.is_queued_for_deletion(), "and then the note")
+	await get_tree().process_frame
+	var dog := DogPanel.open(Nav.ui)
+	var later := SettingsPanel.open(Nav.ui)
+	dog.visible = false
+	dog.visible = true
+	check(Nav.close_top() and dog.is_queued_for_deletion() and not later.is_queued_for_deletion(), "a window shown again counts as the newest")
+	later.queue_free()
+	await get_tree().process_frame
+
+
 func test_a_click_beside_a_window_closes_it_and_nothing_under_it() -> void:
 	game.new_game("Beside")
 	var was := get_window().size

@@ -6,6 +6,9 @@ const TAB_OPEN := Color8(240, 226, 192)
 const TAB_SHUT := Color8(214, 190, 146)
 const TAB_EDGE := Color8(160, 122, 84)
 
+## How many windows `closes_with` has marked, so each gets a number saying which opened last.
+static var _opened := 0
+
 
 static func label(parent: Node, text: String, variation: String = "", wrap_width: float = 0.0) -> Label:
 	var l := Label.new()
@@ -175,9 +178,21 @@ static func close_button(parent: Node, window: Control, action: Callable = Calla
 static func closes_with(window: Control, action: Callable = Callable(), outside: bool = true) -> Callable:
 	var close := action if action.is_valid() else window.queue_free
 	window.set_meta("close", close)
+	_mark_opened(window)
+	if not window.has_meta("opened_watch"):
+		window.set_meta("opened_watch", true)
+		window.visibility_changed.connect(func() -> void:
+			if window.visible:
+				_mark_opened(window))
 	if outside:
 		_backdrop(window, close)
 	return close
+
+
+## Stamps a window as the newest one open, which Escape closes first.
+static func _mark_opened(window: Control) -> void:
+	_opened += 1
+	window.set_meta("opened", _opened)
 
 
 ## Puts a clear backdrop just under a window, covering the interface, that closes it when clicked beside it.

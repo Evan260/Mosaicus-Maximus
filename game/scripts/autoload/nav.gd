@@ -248,12 +248,13 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Closes the window drawn on top, the last in the interface marked by `Ui.closes_with`; false when none is open.
+## Closes the newest window open of those marked by `Ui.closes_with`; false when none is open.
 func close_top() -> bool:
 	var top: Control = null
 	for c in ui.find_children("*", "Control", true, false):
 		if c.has_meta("close") and c.is_visible_in_tree() and not c.is_queued_for_deletion():
-			top = c
+			if top == null or int(c.get_meta("opened", 0)) >= int(top.get_meta("opened", 0)):
+				top = c
 	if top == null:
 		return false
 	Audio.play("click")
