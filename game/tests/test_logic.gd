@@ -1571,6 +1571,34 @@ func test_the_workshop_top_bar_works_while_a_window_is_open() -> void:
 		await get_tree().process_frame
 
 
+func test_the_job_board_note_leaves_its_buttons_clear() -> void:
+	var was := get_window().size
+	for wh in [Vector2i(480, 270), Vector2i(960, 540), Vector2i(1597, 927)]:
+		game.new_game("Board")
+		game.state["story_seen"].append("intro")
+		get_window().size = wh
+		Nav.refit()
+		Nav.go("job_board")
+		while Nav.current_name != "job_board" or Nav._busy:
+			await get_tree().process_frame
+		for i in 3:
+			await get_tree().process_frame
+		var notes := Nav.ui.find_children("*", "Guide", true, false)
+		check(notes.size() == 1, "the job board shows its note on a new workshop's first visit")
+		if notes.is_empty():
+			continue
+		var note: Control = notes[0]
+		for b in Nav.ui.find_children("*", "Button", true, false):
+			if (b as Button).text in ["Notebook", "Back to the workshop"]:
+				check(not note.get_global_rect().intersects((b as Control).get_global_rect()), "the note leaves the board's %s button uncovered at %s" % [(b as Button).text, wh])
+		note.free()
+	get_window().size = was
+	Nav.refit()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
 ## Presses and lets go of the left button at a point in interface pixels.
 func _click(at: Vector2) -> void:
 	for down in [true, false]:

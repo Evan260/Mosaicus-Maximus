@@ -42,7 +42,7 @@ func enter(_args: Dictionary) -> void:
 			Ui.label(col, "The board is bare. Come back tomorrow.", "LightLabel")
 		for job in board:
 			grid.add_child(_notice(job))
-		Guide.note("board", "These are today's notices. Each one shows a client's wishes for a new floor and about what the job pays. Pick one and click See him or See her.", "bottom_right")
+		Guide.note("board", "These are today's notices. Each one shows a client's wishes for a new floor and about what the job pays. Pick one and click See him or See her.", "bottom_left")
 	var foot := Ui.hbox(col, 4)
 	foot.alignment = BoxContainer.ALIGNMENT_END
 	Ui.button(foot, "Notebook", _open_notebook, "book")
