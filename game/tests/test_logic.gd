@@ -1490,6 +1490,36 @@ func test_escape_closes_the_top_window_first() -> void:
 	title.free()
 
 
+func test_the_stone_merchant_fits_the_smallest_interface() -> void:
+	game.new_game("Merchant")
+	game.state["story_seen"].append("intro")
+	game.state["guide_off"] = true
+	Story.unlock(game.state, 4)
+	game.state["ship"] = {"day": game.state["day"], "stone": "gold", "port": "Alexandria", "bargain": true}
+	var was := get_window().size
+	get_window().size = Vector2i(480, 270)
+	Nav.refit()
+	Nav.go("workshop")
+	while Nav.current_name != "workshop" or Nav._busy:
+		await get_tree().process_frame
+	for loc in ["en", "de", "ru"]:
+		TranslationServer.set_locale(loc)
+		UiTheme.use_language()
+		Nav.current._open_merchant()
+		for i in 3:
+			await get_tree().process_frame
+		var panel: Control = Nav.current._panel
+		check(panel.size.x <= Nav.ui_size().x, "the stone merchant fits a 480 pixel wide interface in %s (%.0f)" % [loc, panel.size.x])
+		Nav.current._close_panel()
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()
+	get_window().size = was
+	Nav.refit()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
 func test_settings_fit_the_smallest_interface_in_every_language() -> void:
 	game.new_game("Settings")
 	for loc in TranslationServer.get_loaded_locales():

@@ -131,33 +131,31 @@ def tablet(rng):
 
 
 def page(rng):
-    """Parchment with a soft darker edge."""
+    """Parchment in a thin walnut frame with a dark outer line, so a window stands out from what is behind it."""
     im = canvas(48, 48)
     rect(im, 1, 1, 46, 46, PARCH)
     noise(im, 2, 2, 45, 45, PARCH, 5, rng, 0.35)
+    bevel(im, 1, 1, 46, 46, WALNUT_HI, WALNUT_LO, 1)
+    outline(im, 2, 2, 45, 45, WALNUT_LO, round_corners=False)
     for k, c in enumerate((PARCH_LO, (226, 208, 168))):
-        for x in range(1 + k, 47 - k):
-            px(im, x, 1 + k, c)
-            px(im, x, 46 - k, c)
-        for y in range(1 + k, 47 - k):
-            px(im, 1 + k, y, c)
-            px(im, 46 - k, y, c)
-    outline(im, 0, 0, 47, 47, PARCH_EDGE)
-    for x in range(8, 40, 7):
-        px(im, x, 0, (0, 0, 0, 0))
-        px(im, x + 3, 47, (0, 0, 0, 0))
+        for x in range(3 + k, 45 - k):
+            px(im, x, 3 + k, c)
+            px(im, x, 44 - k, c)
+        for y in range(3 + k, 45 - k):
+            px(im, 3 + k, y, c)
+            px(im, 44 - k, y, c)
+    outline(im, 0, 0, 47, 47, INK)
     return im
 
 
 def card(rng):
-    """A paper notice, slightly shadowed below and to the right."""
+    """A paper notice with a darker edge, slightly shadowed below and to the right."""
     im = canvas(32, 32)
     rect(im, 1, 1, 31, 31, (40, 26, 20, 90))
     rect(im, 0, 0, 30, 30, (246, 238, 214))
     noise(im, 1, 1, 29, 29, (246, 238, 214), 4, rng, 0.3)
-    outline(im, 0, 0, 30, 30, PARCH_EDGE, round_corners=False)
-    for x in range(1, 30):
-        px(im, x, 29, PARCH_LO)
+    bevel(im, 1, 1, 29, 29, PARCH_HI, PARCH_LO, 1)
+    outline(im, 0, 0, 30, 30, WALNUT, round_corners=False)
     return im
 
 

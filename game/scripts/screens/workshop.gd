@@ -561,12 +561,14 @@ func _open_merchant() -> void:
 		var have := Ui.label(cell, tr("%d in stock") % Game.stock(id), "MutedLabel", 56)
 		var sid: String = id
 		var price := Game.sack_price(sid)
-		Ui.button(cell, Ui.coins_text(price), func() -> void:
+		var buy := Ui.button(cell, Ui.coins_text(price), func() -> void:
 			if Game.buy_sack(sid):
 				Audio.play("coins")
 				have.text = tr("%d in stock") % Game.stock(sid)
 			else:
 				Audio.play("nope"), "sack")
+		# Left-aligned, so the button keeps no room for its icon on the right and two columns fit a narrow interface.
+		buy.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	var cargo := Story.ship_stone(Game.state)
 	if cargo != "":
 		var ship := Ui.panel(col, "CardPanel")
@@ -582,7 +584,8 @@ func _open_merchant() -> void:
 				_open_merchant()
 			else:
 				Audio.play("nope"), "sack", true)
-	Ui.narrow_to_fit(_panel, labels, Nav.ui_size().x - 8.0)
+	# Deferred until the buttons have centred their text, which widens them.
+	Ui.narrow_to_fit.call_deferred(_panel, labels, Nav.ui_size().x - 8.0)
 	_layout.call_deferred()
 
 
@@ -706,7 +709,8 @@ func _open_upgrades() -> void:
 		var b := Ui.button(row, "Owned" if owned >= limit else Ui.coins_text(cost), func() -> void: _buy(uid, cost))
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.disabled = owned >= limit or cost > Game.coins()
-	Ui.narrow_to_fit(_panel, labels, Nav.ui_size().x - 8.0)
+	# Deferred until the buttons have centred their text, which widens them.
+	Ui.narrow_to_fit.call_deferred(_panel, labels, Nav.ui_size().x - 8.0)
 	_layout.call_deferred()
 
 

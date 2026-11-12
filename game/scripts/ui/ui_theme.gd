@@ -109,7 +109,7 @@ static func build() -> Theme:
 		t.set_stylebox(state[0], "MainButton", panel(state[1], 5, 4))
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		t.set_color(c, "MainButton", CREAM)
-	for variant in [["BoardPanel", "board", 8, 9], ["TabletPanel", "tablet", 8, 9], ["PagePanel", "page", 6, 8], ["CardPanel", "card", 5, 5], ["TipPanel", "tooltip", 4, 4], ["SlotPanel", "slot", 3, 2]]:
+	for variant in [["BoardPanel", "board", 8, 9], ["TabletPanel", "tablet", 8, 9], ["PagePanel", "page", 8, 9], ["CardPanel", "card", 5, 5], ["TipPanel", "tooltip", 4, 4], ["SlotPanel", "slot", 3, 2]]:
 		t.set_type_variation(variant[0], "PanelContainer")
 		t.set_stylebox("panel", variant[0], panel(variant[1], variant[2], variant[3]))
 	t.set_type_variation("Heading", "Label")
