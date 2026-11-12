@@ -31,7 +31,7 @@ wsl -u root -- bash tools/steam/wsl_setup.sh
 
 It installs steamcmd and rcodesign inside WSL and prints the rcodesign version when it is done.
 
-The Windows build uses a trimmed Godot engine, `tools/engine/slim.windows.template_release.x86_64.exe`, which is not in git. It is built in Farmus Maximus with `python tools/engine/build_template.py` and copied here from Farmus Maximus's `tools/engine/bin/farmus.windows.template_release.x86_64.exe`; build and copy it again on a new computer and after every Godot update.
+The Windows build uses a trimmed Godot engine, `tools/engine/slim.windows.template_release.x86_64.exe`, kept in Git LFS so a fresh clone and the GitHub release builds (`Release-builds.md`) use it. It is built in Farmus Maximus with `python tools/engine/build_template.py` and copied here from Farmus Maximus's `tools/engine/bin/farmus.windows.template_release.x86_64.exe`; build and copy it again after every Godot update, and commit it.
 
 ## One-time setup on Steamworks
 

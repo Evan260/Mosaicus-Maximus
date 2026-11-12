@@ -1,0 +1,37 @@
+name: Set up Godot
+description: Installs the Godot version pinned in .github/scripts/install_godot.sh, and its export templates when asked, both cached between runs.
+inputs:
+  templates:
+    description: Also install the Linux and macOS export templates
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Restore Godot
+      id: editor
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/godot
+        key: godot-editor-${{ runner.os }}-${{ hashFiles('.github/scripts/install_godot.sh') }}
+
+    - name: Download Godot
+      if: steps.editor.outputs.cache-hit != 'true'
+      shell: bash
+      run: bash .github/scripts/install_godot.sh editor
+
+    - name: Restore the export templates
+      id: templates
+      if: inputs.templates == 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.local/share/godot/export_templates
+        key: godot-templates-${{ runner.os }}-${{ hashFiles('.github/scripts/install_godot.sh') }}
+
+    - name: Download the export templates
+      if: inputs.templates == 'true' && steps.templates.outputs.cache-hit != 'true'
+      shell: bash
+      run: bash .github/scripts/install_godot.sh templates
+
+    - name: Put Godot on the path
+      shell: bash
+      run: echo "$HOME/godot" >> "$GITHUB_PATH"

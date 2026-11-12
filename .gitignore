@@ -6,10 +6,8 @@ builds/
 .env
 steam_appid.txt
 
-# The downloaded sound recordings the game's sounds are cut from (listed in CREDITS.md), and the trimmed engine,
-# copied from Farmus Maximus
+# The downloaded sound recordings the game's sounds are cut from (listed in CREDITS.md)
 tools/audio/downloads/
-tools/engine/*.exe
 
 # Recordings of the game
 

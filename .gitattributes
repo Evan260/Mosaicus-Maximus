@@ -12,3 +12,6 @@
 *.dll filter=lfs diff=lfs merge=lfs -text
 *.so filter=lfs diff=lfs merge=lfs -text
 *.dylib filter=lfs diff=lfs merge=lfs -text
+
+# The trimmed Windows engine the Windows preset exports with
+tools/engine/*.exe filter=lfs diff=lfs merge=lfs -text
