@@ -1617,3 +1617,29 @@ func test_a_library_closed_mid_copy_hands_its_work_over() -> void:
 	check(task in Nav._left_tasks, "a time-lapse still being made when the library closes is finished off by Nav")
 	while not Nav._left_tasks.is_empty():
 		await get_tree().process_frame
+
+
+func test_a_stone_still_falling_when_saved_comes_back_laid() -> void:
+	var d := FloorDesign.for_room("vestibule")
+	d.add("rosette", d.w * 0.5, d.h * 0.5, 14)
+	var layout := MosaicLayout.new()
+	layout.build(Composer.compose(d, 6), 6)
+	var holes := PackedInt32Array([10, 11, 200])
+	var a := FloorView.new()
+	add_child(a)
+	a.setup(layout)
+	a.setup_restoration(holes)
+	a._finish_channel(2)
+	a.repair_stone = 3
+	var at := layout.pos[200] * FloorView.WORLD
+	a.repair(at, at, 0.6 * a.tile_world())
+	var snap: Dictionary = JSON.parse_string(JSON.stringify(a.snapshot()))
+	var b := FloorView.new()
+	add_child(b)
+	b.setup(layout)
+	b.setup_restoration(holes)
+	b.restore(snap)
+	check(b.repaired.has(200) and b._start[200] != FloorView.UNSET, "a mended stone saved mid-fall is down in its gap when the floor comes back")
+	check(b.laid == layout.tile_count() - 2, "and is counted as laid (%d of %d)" % [b.laid, layout.tile_count() - 2])
+	a.free()
+	b.free()

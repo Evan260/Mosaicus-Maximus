@@ -429,7 +429,8 @@ func snapshot() -> Dictionary:
 	var mended := {}
 	for i in repaired:
 		mended[str(i)] = repaired[i]
-	return {"order": Array(order), "repaired": mended, "phase": int(phase), "covered": _covered.duplicate(), "size": _state.size(),
+	# Tiles still falling are saved as laid, since a gap mended with one would otherwise come back empty.
+	return {"order": Array(order) + Array(_flying), "repaired": mended, "phase": int(phase), "covered": _covered.duplicate(), "size": _state.size(),
 		"state": Marshalls.raw_to_base64(_state.compress(FileAccess.COMPRESSION_DEFLATE))}
 
 
