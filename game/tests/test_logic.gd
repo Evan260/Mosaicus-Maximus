@@ -1699,3 +1699,30 @@ func test_a_kept_picture_panel_is_named_once() -> void:
 	var name: String = screen._title_of({"room": "panel", "client_name": "Your picture panel"})
 	check(name == Data.room_title("panel"), "a picture panel in the library is called just that, not a panel for itself (%s)" % name)
 	screen.free()
+
+
+func test_town_map_labels_stay_inside_the_window() -> void:
+	game.new_game("Map")
+	game.state["guide_off"] = true
+	var was := get_window().size
+	get_window().size = Vector2i(1920, 1080)
+	Settings.ui_scale_step = 2
+	Nav.refit()
+	TranslationServer.set_locale("de")
+	UiTheme.use_language()
+	Nav.go("town_map")
+	while Nav._busy or Nav.current == null:
+		await get_tree().process_frame
+	await get_tree().process_frame
+	var s := Nav.ui_size()
+	for p in Nav.current._pinned:
+		var r := (p[0] as Control).get_rect()
+		check(r.position.x >= 0.0 and r.end.x <= s.x and r.position.y >= 0.0 and r.end.y <= s.y, "a label on the town map stays inside the window at the largest interface (%s)" % str(r))
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()
+	Settings.ui_scale_step = 0
+	get_window().size = was
+	Nav.refit()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame

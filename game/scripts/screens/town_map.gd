@@ -85,7 +85,8 @@ func enter(_args: Dictionary) -> void:
 		_edges.position = view.position
 		_edges.fit(Rect2(-view.position, Nav.BASE), view.size)
 		for p in _pinned:
-			(p[0] as Control).position = (Nav.picture_to_ui(p[1]) - p[2]).floor()
+			var c := p[0] as Control
+			c.position = (Nav.picture_to_ui(p[1]) - p[2]).clamp(Vector2.ZERO, (s - c.size).max(Vector2.ZERO)).floor()
 		back.reset_size()
 		back.position = Vector2(s.x - back.size.x - 6, s.y - back.size.y - 6)
 	Nav.resized.connect(place)
