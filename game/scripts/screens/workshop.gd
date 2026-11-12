@@ -342,15 +342,25 @@ func _build_bar() -> void:
 	Ui.icon_button(row, "house", "Save and go back to the title", _save_and_quit)
 
 
-## When big numbers would push the top bar past the edge, the job count goes first, then the chapter button shortens.
+## When big numbers or long words would push the top bar past the edge, the job count goes first, then the chapter
+## button shortens, then the purse shows only its number, and last End the day shows only its sun.
 func _fit_bar() -> void:
 	var room := Nav.ui_size().x - 8
+	var coins := int(Game.state["coins"])
 	_jobs.visible = true
 	_rep.text = _chapter_text(false)
+	_coins.text = Ui.coins_text(coins)
+	Ui.relabel(_end_day, tr("End the day"))
+	Ui.tip_on(_end_day, "")
 	if _bar.get_combined_minimum_size().x > room:
 		_jobs.visible = false
 	if _bar.get_combined_minimum_size().x > room:
 		_rep.text = _chapter_text(true)
+	if _bar.get_combined_minimum_size().x > room:
+		_coins.text = str(coins)
+	if _bar.get_combined_minimum_size().x > room:
+		Ui.relabel(_end_day, "")
+		Ui.tip_on(_end_day, "End the day")
 	_bar.size = Vector2(room, 0)
 
 
@@ -362,7 +372,6 @@ func _chapter_text(short: bool) -> String:
 
 func _refresh() -> void:
 	var st := Game.state
-	_coins.text = Ui.coins_text(int(st["coins"]))
 	Ui.tip_on(_coins, "Your purse. Money is counted in denarii, the Roman silver coin.")
 	var ch := Data.chapter(int(st["chapter"]))
 	var next := Data.chapter(int(st["chapter"]) + 1)

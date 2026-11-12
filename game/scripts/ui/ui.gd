@@ -71,10 +71,24 @@ static func restyle(b: Button, variation: String) -> void:
 		return
 	b.theme_type_variation = variation
 	if b.has_meta("centred"):
-		for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
-			b.remove_theme_stylebox_override(state)
-		b.remove_meta("centred")
+		_uncentre(b)
 		centre_text(b)
+
+
+## Changes a button's text, keeping it centred, and keeping a button left with only its icon even on both sides.
+static func relabel(b: Button, text: String) -> void:
+	if b.text == text:
+		return
+	b.text = text
+	if b.has_meta("centred"):
+		_uncentre(b)
+	centre_text(b)
+
+
+static func _uncentre(b: Button) -> void:
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		b.remove_theme_stylebox_override(state)
+	b.remove_meta("centred")
 
 
 static func icon_button(parent: Node, icon_name: String, tip: String, action: Callable) -> Button:

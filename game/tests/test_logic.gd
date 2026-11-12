@@ -1657,6 +1657,38 @@ func test_the_client_visit_note_leaves_the_price_and_buttons_clear() -> void:
 		await get_tree().process_frame
 
 
+func test_the_workshop_top_bar_fits_the_smallest_interface_in_every_language() -> void:
+	var was := get_window().size
+	get_window().size = Vector2i(480, 270)
+	Nav.refit()
+	for loc in TranslationServer.get_loaded_locales():
+		TranslationServer.set_locale(loc)
+		UiTheme.use_language()
+		game.new_game("Bar")
+		game.state["story_seen"].append("intro")
+		game.state["guide_off"] = true
+		game.state.merge({"coins": 99999, "day": 200, "reputation": 999}, true)
+		Story.unlock(game.state, 3)
+		Nav.go("workshop")
+		while Nav.current_name != "workshop" or Nav._busy:
+			await get_tree().process_frame
+		for i in 3:
+			await get_tree().process_frame
+		for hour in [8.0, 22.0]:
+			game.state["hour"] = hour
+			await get_tree().process_frame
+			await get_tree().process_frame
+			var bar: Control = Nav.current._bar
+			check(bar.get_global_rect().end.x <= Nav.ui_size().x - 2.0, "the top bar fits a 480 pixel interface in %s at hour %d (%.0f)" % [loc, hour, bar.get_global_rect().end.x])
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()
+	get_window().size = was
+	Nav.refit()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame
+
+
 func test_end_the_day_turns_orange_in_the_evening() -> void:
 	game.new_game("Evening")
 	game.state["story_seen"].append("intro")
