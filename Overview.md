@@ -1,6 +1,6 @@
 # Mosaicus Maximus
 
-Working title. A cozy craft and business game where you run a mosaic workshop in a Roman town. You design new floors for the townspeople and restore ancient floors buried under centuries of dirt. You decide what goes where, and the tiles lay themselves in sweeping animations. Every finished floor stays in the town, and the ones you love go in your library.
+A cozy craft and business game where you run a mosaic workshop in a Roman town. You design new floors for the townspeople and restore ancient floors buried under centuries of dirt. You decide what goes where, and the tiles lay themselves in sweeping animations. Every finished floor stays in the town, and the ones you love go in your library.
 
 There are no timers and no failure.
 
