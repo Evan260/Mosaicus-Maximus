@@ -136,7 +136,7 @@ static func tab_button(parent: Node, text: String, action: Callable) -> Button:
 	return b
 
 
-## A small X for a window's top right corner. Escape and the pad's B do the same, through `closes_with`.
+## A small X for a window's top right corner. Escape, the pad's B and a click beside the window do the same, through `closes_with`.
 static func close_button(parent: Node, window: Control, action: Callable = Callable()) -> Button:
 	var close := closes_with(window, action)
 	var b := icon_button(parent, "cross_small", "Close", close)
@@ -145,11 +145,44 @@ static func close_button(parent: Node, window: Control, action: Callable = Calla
 	return b
 
 
-## Marks a control as a window that Escape and the pad's B close with `action`, or by freeing it; returns that action.
-static func closes_with(window: Control, action: Callable = Callable()) -> Callable:
+## Marks a control as a window that Escape, the pad's B and, unless `outside` is false, a click beside it close with `action`, or by freeing it; returns that action.
+static func closes_with(window: Control, action: Callable = Callable(), outside: bool = true) -> Callable:
 	var close := action if action.is_valid() else window.queue_free
 	window.set_meta("close", close)
+	if outside:
+		_backdrop(window, close)
 	return close
+
+
+## Puts a clear backdrop just under a window, covering the interface, that closes it when clicked beside it.
+static func _backdrop(window: Control, close: Callable) -> void:
+	if not is_instance_valid(window) or window.is_queued_for_deletion():
+		return
+	var parent := window.get_parent()
+	if parent == null:
+		_backdrop.call_deferred(window, close)
+		return
+	var back := Control.new()
+	back.name = "Backdrop"
+	# Far larger than any interface, so it covers the screen whatever its parent's size and position.
+	back.position = Vector2(-4096, -4096)
+	back.size = Vector2(8192, 8192)
+	closes_on_click(back, close)
+	parent.add_child(back)
+	parent.move_child(back, window.get_index())
+	back.visible = window.visible
+	window.visibility_changed.connect(func() -> void: back.visible = window.visible)
+	window.tree_exiting.connect(back.queue_free)
+
+
+## Closes a window on a click on this control itself, keeping the click so it never also acts on what lies under it.
+static func closes_on_click(c: Control, close: Callable) -> void:
+	c.mouse_filter = Control.MOUSE_FILTER_STOP
+	c.gui_input.connect(func(e: InputEvent) -> void:
+		if e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_LEFT or e.button_index == MOUSE_BUTTON_RIGHT):
+			c.accept_event()
+			Audio.play("click")
+			close.call())
 
 
 ## A window's top line: its heading, and the X that closes it in the corner.

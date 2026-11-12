@@ -168,6 +168,7 @@ func _confirm_delete(slot: int, s: Dictionary) -> void:
 	var gone := Ui.button(row, "Delete", delete, "trash")
 	gone.disabled = true
 	Ui.button(row, "Cancel", _show_menu, "arrow_l", true)
+	Ui.closes_with(_menu, _show_menu)
 	field.text_changed.connect(func(_t: String) -> void: gone.disabled = not typed.call())
 	field.text_submitted.connect(func(_t: String) -> void: delete.call())
 	field.grab_focus.call_deferred()
@@ -196,6 +197,7 @@ func _show_new() -> void:
 	Ui.button(buttons, "Back", _show_menu, "arrow_l")
 	var go := Ui.button(buttons, "Open the workshop", _begin, "house", true)
 	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	Ui.closes_with(_menu, _show_menu)
 	_name_edit.grab_focus.call_deferred()
 
 

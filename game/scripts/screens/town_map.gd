@@ -248,7 +248,8 @@ func _process(_delta: float) -> void:
 		Ui.icon(stars, "star").modulate = Color(1, 1, 1, 1.0 if k < int(f.get("stars", Looks.stars(float(f.get("score", 0))))) else 0.2)
 	Ui.label(col, Ui.text([tr("Paid %s.") % Ui.coins_text(int(f.get("paid", 0))), _owner_line(f)]), "", 150)
 	Ui.button(col, "Back to the map", _leave_visit, "arrow_l", true)
-	Ui.closes_with(_visit, _leave_visit)
+	Ui.closes_with(_visit, _leave_visit, false)
+	Ui.closes_on_click(_visit, _leave_visit)
 	card.reset_size()
 	card.position = Vector2(6, floorf((s.y - card.size.y) * 0.5))
 

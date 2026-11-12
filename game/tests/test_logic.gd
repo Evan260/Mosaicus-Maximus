@@ -1490,6 +1490,64 @@ func test_escape_closes_the_top_window_first() -> void:
 	title.free()
 
 
+func test_a_click_beside_a_window_closes_it_and_nothing_under_it() -> void:
+	game.new_game("Beside")
+	var was := get_window().size
+	get_window().size = Vector2i(960, 540)
+	Nav.refit()
+	var hits := [0]
+	var under := Button.new()
+	under.position = Vector2(-50, -50)
+	under.size = Nav.ui.size + Vector2(100, 100)
+	under.pressed.connect(func() -> void: hits[0] += 1)
+	Nav.ui.add_child(under)
+	var lower := DogPanel.open(Nav.ui)
+	var upper := SettingsPanel.open(Nav.ui)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var r := upper.get_global_rect()
+	_click(r.position + Vector2(3, 3))
+	check(not upper.is_queued_for_deletion(), "a click on a window's own frame leaves it open")
+	_click(Vector2(1, 1))
+	check(upper.is_queued_for_deletion() and not lower.is_queued_for_deletion(), "a click beside two windows closes only the one on top")
+	check(hits[0] == 0, "and the click that closes a window never presses what is under it")
+	await get_tree().process_frame
+	_click(Vector2(1, 1))
+	check(lower.is_queued_for_deletion() and hits[0] == 0, "the next click beside closes the window under it")
+	await get_tree().process_frame
+	_click(Vector2(1, 1))
+	check(hits[0] == 1, "with every window closed a click reaches what is under it again")
+	var note := Ui.panel(Nav.ui, "TabletPanel")
+	note.position = Vector2(200, 200)
+	Ui.closes_with(note, Callable(), false)
+	_click(Vector2(1, 1))
+	check(not note.is_queued_for_deletion() and hits[0] == 2, "a note marked to stay lets a click beside it through")
+	note.free()
+	var title: Node = load("res://scripts/screens/title.gd").new()
+	title._confirm_delete(1, {"name": "Beside", "day": 3, "floors": 1})
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_click(Vector2(1, 1))
+	check(title._page == "menu" and hits[0] == 2, "a click beside the box asking to delete a workshop cancels it")
+	await get_tree().process_frame
+	title._menu.free()
+	title.free()
+	under.free()
+	get_window().size = was
+	Nav.refit()
+
+
+## Presses and lets go of the left button at a point in interface pixels.
+func _click(at: Vector2) -> void:
+	for down in [true, false]:
+		var b := InputEventMouseButton.new()
+		b.button_index = MOUSE_BUTTON_LEFT
+		b.pressed = down
+		b.position = at * Nav.scale_factor()
+		b.global_position = b.position
+		get_viewport().push_input(b)
+
+
 func test_the_stone_merchant_fits_the_smallest_interface() -> void:
 	game.new_game("Merchant")
 	game.state["story_seen"].append("intro")

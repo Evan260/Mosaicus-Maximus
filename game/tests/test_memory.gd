@@ -77,12 +77,15 @@ func test_turning_pages_leaves_nothing_behind() -> void:
 	# The first two rounds fill the caches every later round reuses: fonts, pictures and the book's paper.
 	for k in 2:
 		book = await _turns(book)
+	# The page and click sounds still playing would add their playbacks to the counts.
+	await get_tree().create_timer(1.5).timeout
 	var objects := Performance.get_monitor(Performance.OBJECT_COUNT)
 	var nodes := Performance.get_monitor(Performance.OBJECT_NODE_COUNT)
 	var orphans := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
 	var resources := Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)
 	for k in 2:
 		book = await _turns(book)
+	await get_tree().create_timer(1.5).timeout
 	check(Nav.ui.find_children("*", "SubViewport", true, false).is_empty(), "every page's picture is freed once its leaf lands or is cut short")
 	check(Performance.get_monitor(Performance.OBJECT_NODE_COUNT) <= nodes, "turning more pages leaves no extra nodes (%d before, %d after)" % [nodes, Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
 	check(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT) <= orphans, "and no nodes outside the tree (%d before, %d after)" % [orphans, Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)])
