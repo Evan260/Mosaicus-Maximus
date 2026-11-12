@@ -2,8 +2,9 @@
 game/.godot/
 builds/
 
-# Secrets
+# Secrets, and the Steam App ID file used to test Steam outside the Steam client (docs/Steam-publishing.md)
 .env
+steam_appid.txt
 
 # The downloaded sound recordings the game's sounds are cut from (listed in CREDITS.md), and the trimmed engine,
 # copied from Farmus Maximus

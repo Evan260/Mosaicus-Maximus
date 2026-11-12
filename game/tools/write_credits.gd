@@ -1,7 +1,7 @@
 extends SceneTree
 ## Writes "Credits and licences.txt", which ships beside the game: who made it, the music, every recorded sound with its
 ## licence, the fonts, and the Godot engine's licence with the full licences of the libraries built into it. The MIT
-## licence of Godot asks for its notice to go out with the game.
+## licences of Godot and GodotSteam ask for their notices to go out with the game.
 ##   Godot --headless --path game --script res://tools/write_credits.gd -- --out=PATH
 
 const CREDITS := "res://data/credits.json"
@@ -18,13 +18,18 @@ func _init() -> void:
 		return
 	var credits: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(CREDITS))
 	var text := PackedStringArray(["MOSAICUS MAXIMUS", ""])
-	for part in [["made_by", "Made by"], ["music", "Music"], ["sounds", "Sounds"], ["font", "Fonts"]]:
+	for part in [["made_by", "Made by"], ["music", "Music"], ["sounds", "Sounds"], ["font", "Fonts"], ["libraries", "Libraries"]]:
 		var lines: Array = credits.get(part[0], [])
 		if lines.is_empty():
 			continue
 		text.append(String(part[1]).to_upper())
 		for line in lines:
 			text.append("  " + String(line))
+		text.append("")
+	var own: Dictionary = credits.get("library_licences", {})
+	for name in own:
+		text.append("----- " + String(name) + " -----")
+		text.append(String(own[name]))
 		text.append("")
 	text.append("MADE WITH THE GODOT ENGINE")
 	text.append("")

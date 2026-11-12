@@ -24,8 +24,13 @@ func _ready() -> void:
 	_fit()
 	# GodotSteam adds a "Steam" singleton; without it (the editor, or a build outside Steam) achievements stay in the save.
 	if Engine.has_singleton("Steam"):
-		_steam = Engine.get_singleton("Steam")
-		_steam.call("steamInit")
+		var steam := Engine.get_singleton("Steam")
+		var started: Dictionary = steam.call("steamInitEx")
+		# Status 0 is a running Steam client that owns the game; any other leaves achievements in the save.
+		if int(started.get("status", -1)) == 0:
+			_steam = steam
+		else:
+			print_verbose("Steam is not available: ", started.get("verbal", ""))
 	Nav.screen_changed.connect(func(_s: String) -> void: _sync())
 
 
