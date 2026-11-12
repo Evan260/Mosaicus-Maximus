@@ -87,6 +87,8 @@ func _swap_menu() -> VBoxContainer:
 		_menu.queue_free()
 	_menu = Ui.panel(Nav.ui, "PagePanel")
 	_menu.custom_minimum_size.x = 236
+	# Buttons widen a little once their text is centred, after the menu was first placed.
+	_menu.resized.connect(_place)
 	_place.call_deferred()
 	return Ui.vbox(_menu, 5)
 

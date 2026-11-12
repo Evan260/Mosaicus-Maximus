@@ -1643,3 +1643,14 @@ func test_a_stone_still_falling_when_saved_comes_back_laid() -> void:
 	check(b.laid == layout.tile_count() - 2, "and is counted as laid (%d of %d)" % [b.laid, layout.tile_count() - 2])
 	a.free()
 	b.free()
+
+
+func test_title_menu_is_centred_once_its_buttons_are() -> void:
+	Nav.go("title")
+	while Nav._busy or Nav.current == null:
+		await get_tree().process_frame
+	for k in 3:
+		await get_tree().process_frame
+	var menu: Control = Nav.current._menu
+	var off := menu.position.x + menu.size.x * 0.5 - Nav.ui_size().x * 0.5
+	check(absf(off) <= 1.0, "the title's menu sits in the middle of the window after its buttons centre their text (%.0f off)" % off)
