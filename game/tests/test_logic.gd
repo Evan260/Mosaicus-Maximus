@@ -1674,3 +1674,21 @@ func test_the_design_tables_columns_stay_inside_the_window() -> void:
 	Nav.go("title")
 	while Nav._busy:
 		await get_tree().process_frame
+
+
+func test_the_librarys_buttons_fit_the_smallest_interface_in_every_language() -> void:
+	for loc in TranslationServer.get_loaded_locales():
+		TranslationServer.set_locale(loc)
+		UiTheme.use_language()
+		Nav.go("library", {"back": "title"})
+		while Nav._busy or Nav.current == null:
+			await get_tree().process_frame
+		await get_tree().process_frame
+		var screen: Node = Nav.current
+		var room: float = Nav.BASE.x - 162.0 - 14.0 - screen._viewer.get_theme_stylebox("panel").get_minimum_size().x
+		check(screen._buttons.get_combined_minimum_size().x <= room, "the library's buttons fit a 480 pixel wide interface in %s (%.0f of %.0f)" % [loc, screen._buttons.get_combined_minimum_size().x, room])
+	TranslationServer.set_locale("en")
+	UiTheme.use_language()
+	Nav.go("title")
+	while Nav._busy:
+		await get_tree().process_frame

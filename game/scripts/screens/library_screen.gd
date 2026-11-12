@@ -21,7 +21,7 @@ var _note: Label
 var _watch: Button
 var _copy: Button
 var _remove: Button
-var _buttons: HBoxContainer
+var _buttons: HFlowContainer
 var _vp: SubViewport
 var _floor: FloorView
 var _cam: Camera2D
@@ -77,7 +77,11 @@ func enter(args: Dictionary) -> void:
 	_view.add_child(_screen)
 	_title = Ui.label(vcol, "", "LightHeading")
 	_info = Ui.label(vcol, "", "LightLabel")
-	_buttons = Ui.hbox(vcol, 3)
+	# The buttons go onto a second line where a long language doesn't fit them on one.
+	_buttons = HFlowContainer.new()
+	_buttons.add_theme_constant_override("h_separation", 3)
+	_buttons.add_theme_constant_override("v_separation", 3)
+	vcol.add_child(_buttons)
 	_watch = Ui.button(_buttons, "Watch it being laid", _watch_it, "play", true)
 	_copy = Ui.button(_buttons, "Copy to Pictures", _copy_it, "eye")
 	Ui.tip_on(_copy, "Saves the picture and a time-lapse to a Mosaicus Maximus folder in your Pictures, for sharing")
