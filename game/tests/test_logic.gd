@@ -1587,3 +1587,15 @@ func test_motif_pictures_are_loaded_before_any_worker_thread() -> void:
 	MotifLibrary._cache.clear()
 	data.reload()
 	check(Data.motif_order.all(func(id: String) -> bool: return MotifLibrary._cache.has(id)), "every pattern's picture is loaded on the main thread with the data, since one loaded on a worker thread is left over at exit")
+
+
+func test_quitting_while_a_floor_is_marked_out_is_safe() -> void:
+	game.new_game("Quit early")
+	game.state["guide_off"] = true
+	Nav.go("floor", {"design": Samples.make("villa")})
+	while Nav._busy or Nav.current == null:
+		await get_tree().process_frame
+	var screen: Node = Nav.current
+	check(screen.floor_view == null and screen._task >= 0, "the floor is still being marked out")
+	await Nav.close()
+	check(Nav._left_tasks.is_empty(), "the worker's floor is finished off before the quit")

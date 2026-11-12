@@ -31,6 +31,7 @@ var _task := -1
 var _layout: MosaicLayout
 ## The area of picture panels set into this floor, which come already laid.
 var _made := PackedByteArray()
+var _made_box := {}
 var _loading: LoadingCard
 var _paused: PanelContainer
 
@@ -52,15 +53,18 @@ func enter(args: Dictionary) -> void:
 	var d := design
 	var layout := MosaicLayout.new()
 	_layout = layout
+	var made := _made_box
+	# The worker writes only into locals, since the screen can be freed before it finishes.
 	_task = WorkerThreadPool.add_task(func() -> void:
 		Composer.lay_out(d, layout)
 		FloorView.prepare(layout)
-		_made = Composer.panel_mask(d, TILE_PX))
+		made["mask"] = Composer.panel_mask(d, TILE_PX))
 
 
 ## Runs once the floor has been worked out on its worker thread: builds the floor, camera and interface.
 func _ready_floor() -> void:
 	var layout := _layout
+	_made = _made_box.get("mask", PackedByteArray())
 	_loading.queue_free()
 	floor_view = FloorView.new()
 	Nav.world.add_child(floor_view)
