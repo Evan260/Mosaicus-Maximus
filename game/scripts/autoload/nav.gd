@@ -248,6 +248,16 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Whether a window marked by `Ui.closes_with` is open, leaving out the guide's notes, which lie beside what they point at.
+func window_open() -> bool:
+	if ui == null:
+		return false
+	for c in ui.find_children("*", "Control", true, false):
+		if c.has_meta("close") and not c is Guide and c.is_visible_in_tree() and not c.is_queued_for_deletion():
+			return true
+	return false
+
+
 ## Closes the newest window open of those marked by `Ui.closes_with`; false when none is open.
 func close_top() -> bool:
 	var top: Control = null

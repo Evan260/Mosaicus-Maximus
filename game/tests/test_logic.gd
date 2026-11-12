@@ -2012,6 +2012,21 @@ func test_a_made_up_workshop_never_sends_achievements_to_steam() -> void:
 	check(not Awards.may_send(), "one made up by a dev option never does")
 
 
+func test_an_achievement_waits_for_an_open_window() -> void:
+	var window := Ui.panel(Nav.ui, "PagePanel")
+	Ui.closes_with(window)
+	Awards.show_card(Achievements.all()[0])
+	await get_tree().create_timer(0.3).timeout
+	check(Awards._card == null, "a card earned with a window open waits rather than covering it")
+	window.free()
+	await get_tree().create_timer(0.4).timeout
+	check(Awards._card != null, "and slides in once the window has closed")
+	if Awards._card:
+		Awards._card.free()
+		Awards._card = null
+	Awards._queue.clear()
+
+
 func test_quitting_from_a_floor_clears_every_layer() -> void:
 	game.new_game("Quit")
 	game.state["guide_off"] = true

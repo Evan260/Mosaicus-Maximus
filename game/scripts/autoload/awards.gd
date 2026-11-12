@@ -1,7 +1,7 @@
 extends CanvasLayer
 ## Achievements as they are earned: a parchment card with a laurel slides in at the top right on any screen, one after
-## another, stays five seconds unless clicked away, and each is handed to Steam when the game runs through Steam. Earned
-## ones live in the save, so ones earned without Steam are sent the next time it is there.
+## another and only once no window is open, stays five seconds unless clicked away, and each is handed to Steam when the
+## game runs through Steam. Earned ones live in the save, so ones earned without Steam are sent the next time it is there.
 
 const HOLD := 5.0
 const CHECK_EVERY := 1.0
@@ -12,6 +12,8 @@ var _queue: Array = []
 var _card: PanelContainer
 var _tween: Tween
 var _wait := 0.0
+## Set while a card waits for the open windows to close, so only one wait runs at a time.
+var _held := false
 
 
 func _ready() -> void:
@@ -77,8 +79,16 @@ func _unlock_on_steam(id: String) -> void:
 		_steam.call("storeStats")
 
 
+## Slides in the next card waiting, once no window is open, since a card would cover the window.
 func _next() -> void:
-	if _queue.is_empty():
+	if _queue.is_empty() or _held:
+		return
+	if Nav.window_open():
+		_held = true
+		get_tree().create_timer(0.25).timeout.connect(func() -> void:
+			_held = false
+			if _card == null:
+				_next())
 		return
 	var a: Dictionary = _queue.pop_front()
 	_card = Ui.panel(_root, "PagePanel")
