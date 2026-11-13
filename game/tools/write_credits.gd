@@ -17,7 +17,7 @@ func _init() -> void:
 		quit(1)
 		return
 	var credits: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(CREDITS))
-	var text := PackedStringArray(["MOSAICUS MAXIMUS", ""])
+	var text := PackedStringArray(["MOSAICUS MAXIMUS", "by " + String(credits.get("studio", "")), ""])
 	for part in [["made_by", "Made by"], ["music", "Music"], ["sounds", "Sounds"], ["font", "Fonts"], ["libraries", "Libraries"]]:
 		var lines: Array = credits.get(part[0], [])
 		if lines.is_empty():

@@ -68,9 +68,13 @@ them. docs/Steam-publishing.md has the one-time Steamworks and Apple setup, the 
 and how to send an update.
 
 
+DEVELOPER AND PUBLISHER (Basic Info)
+
+Slow Villa Games, in both the Developer and the Publisher fields.
+
+
 STILL TO DECIDE BEFORE SUBMITTING
 
-- Developer and publisher name (your own name or a studio name).
 - Release date: "Coming soon", or a season and year such as "Spring 2027".
 - Price in CAD, which Steamworks asks for separately and which Valve reviews.
 - Steam Cloud and achievements are set up as described in docs/Steam-setup.md.
