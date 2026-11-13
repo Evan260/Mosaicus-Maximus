@@ -70,7 +70,7 @@ and how to send an update.
 
 DEVELOPER AND PUBLISHER (Basic Info)
 
-Slow Villa Games, in both the Developer and the Publisher fields.
+Slow Sunday Games, in both the Developer and the Publisher fields.
 
 
 STILL TO DECIDE BEFORE SUBMITTING
