@@ -1383,7 +1383,10 @@ func test_the_interface_is_one_step_finer_than_what_fits() -> void:
 	check(Nav.ui_scale_for(Vector2(2560, 1440)) == 4, "1440p draws it four times")
 	check(Nav.ui_scale_for(Vector2(2560, 1080)) == 3, "an ultrawide 1080 screen goes by its height")
 	check(Nav.ui_scale_for(Vector2(1280, 1024)) == 2, "a tall window goes by its width")
-	check(Nav.ui_scale_for(Vector2(1280, 720)) == 1, "a small window still draws it at least once")
+	check(Nav.ui_scale_for(Vector2(1280, 720)) == 2, "720p draws it twice, 640 by 360, since once is too small to read")
+	check(Nav.ui_scale_for(Vector2(1280, 800)) == 2, "so does the Steam Deck's 1280 by 800, 640 by 400")
+	check(Nav.ui_scale_for(Vector2(1366, 768)) == 2, "and a 1366 by 768 laptop")
+	check(Nav.ui_scale_for(Vector2(1440, 810)) == 2, "a window just over 800 tall keeps the finer step")
 	check(Nav.ui_scale_for(Vector2(300, 200)) == 1, "a tiny window never goes below one")
 	for size in [Vector2(1920, 1080), Vector2(2560, 1440), Vector2(3440, 1440), Vector2(1280, 1024), Vector2(1280, 720)]:
 		var k := Nav.ui_scale_for(size, 1)

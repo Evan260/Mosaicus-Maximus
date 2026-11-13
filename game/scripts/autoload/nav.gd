@@ -9,6 +9,9 @@ signal resized
 const BASE := Vector2(480, 270)
 ## The interface scale starts from what fits this width, so it is one step finer than the pictures on a 16:9 window.
 const UI_FIT_WIDTH := 400.0
+## Windows this tall or shorter, such as 720p and the Steam Deck's 1280 by 800, draw the interface at what fits rather
+## than a step finer, since a step finer there is too small to read.
+const SMALL_HEIGHT := 800.0
 ## The most of the pictures' 480 by 270 view a scale may cut off each side to fill the window.
 const MOST_CROP := 0.12
 const SCREENS := {
@@ -87,11 +90,13 @@ func picture_scale() -> int:
 	return picture_scale_for(get_viewport().get_visible_rect().size)
 
 
-## One step under what fits the window, moved by the player's interface size, but never so large that 480 by 270 won't fit.
+## One step under what fits the window, or what fits on a small window, moved by the player's interface size, but never
+## so large that 480 by 270 won't fit.
 static func ui_scale_for(window: Vector2, step: int = 0) -> int:
 	var fit := maxi(1, int(minf(window.x / UI_FIT_WIDTH, window.y / BASE.y)))
 	var most := maxi(1, int(minf(window.x / BASE.x, window.y / BASE.y)))
-	return clampi(fit - 1 + step, 1, most)
+	var finer := 0 if window.y <= SMALL_HEIGHT else 1
+	return clampi(fit - finer + step, 1, most)
 
 
 ## The smallest scale that covers the window when it crops only a little, else the largest that fits.
