@@ -27,6 +27,10 @@ opengl3 = "yes"
 # Screen-reader support for engine interfaces, which this pixel-art interface does not use.
 accesskit = "no"
 
+# The advanced text server stays, as the simpler one drops the pixel fonts' kerning; Graphite serves only fonts with Graphite tables, which these lack.
+graphite = "no"
+
+module_astcenc_enabled = "no"
 module_basis_universal_enabled = "no"
 module_betsy_enabled = "no"
 module_bcdec_enabled = "no"
@@ -50,6 +54,7 @@ module_jpg_enabled = "no"
 module_jsonrpc_enabled = "no"
 module_ktx_enabled = "no"
 module_lightmapper_rd_enabled = "no"
+module_mbedtls_enabled = "no"
 module_meshoptimizer_enabled = "no"
 module_mobile_vr_enabled = "no"
 module_msdfgen_enabled = "no"
@@ -72,3 +77,4 @@ module_webrtc_enabled = "no"
 module_websocket_enabled = "no"
 module_webxr_enabled = "no"
 module_xatlas_unwrap_enabled = "no"
+module_zip_enabled = "no"
