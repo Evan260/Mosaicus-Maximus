@@ -40,6 +40,10 @@ window/stretch/mode="disabled"
 fonts/dynamic_fonts/use_oversampling=false
 theme/default_font_antialiasing=0
 
+[internationalization]
+
+locale/include_text_server_data=true
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
