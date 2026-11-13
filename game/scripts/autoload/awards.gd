@@ -2,6 +2,7 @@ extends CanvasLayer
 ## Achievements as they are earned: a parchment card with a laurel slides in at the top right on any screen, one after
 ## another and only once no window is open, stays five seconds unless clicked away, and each is handed to Steam when the
 ## game runs through Steam. Earned ones live in the save, so ones earned without Steam are sent the next time it is there.
+## It also keeps the player's Steam rich presence, what friends see they are doing, from tools/steam/rich_presence.vdf.
 
 const HOLD := 5.0
 const CHECK_EVERY := 1.0
@@ -14,6 +15,8 @@ var _tween: Tween
 var _wait := 0.0
 ## Set while a card waits for the open windows to close, so only one wait runs at a time.
 var _held := false
+## The rich presence last given to Steam, so Steam hears only of a change.
+var _presence := {}
 
 
 func _ready() -> void:
@@ -45,9 +48,12 @@ func _process(delta: float) -> void:
 	if _steam:
 		_steam.call("run_callbacks")
 	_wait += delta
-	if _wait < CHECK_EVERY or str(Game.state.get("name", "")) == "" or Dev.has("run-tests") or Dev.has("achievement"):
+	if _wait < CHECK_EVERY:
 		return
 	_wait = 0.0
+	_update_presence()
+	if str(Game.state.get("name", "")) == "" or Dev.has("run-tests") or Dev.has("achievement"):
+		return
 	for a in Achievements.check(Game.state):
 		_unlock_on_steam(str(a["id"]))
 		_queue.append(a)
@@ -59,6 +65,60 @@ func _process(delta: float) -> void:
 func _sync() -> void:
 	for id in Game.state.get("achievements", []):
 		_unlock_on_steam(str(id))
+
+
+## Tells Steam what the player is doing, only when it has changed, and never without Steam running.
+func _update_presence() -> void:
+	if _steam == null or not may_send():
+		return
+	var now := presence(Nav.current_name, Nav._args, Game.state)
+	if now == _presence:
+		return
+	_presence = now
+	_steam.call("clearRichPresence")
+	for key in now:
+		_steam.call("setRichPresence", key, now[key])
+
+
+## What Steam shows friends: a `steam_display` token from tools/steam/rich_presence.vdf, with the words it fills in.
+static func presence(screen: String, args: Dictionary, st: Dictionary) -> Dictionary:
+	var job: Dictionary = args.get("job", {})
+	if bool(args.get("free", false)) or bool(job.get("free", false)):
+		return {"steam_display": "#Status_FreeDesign"}
+	match screen:
+		"", "title":
+			return {"steam_display": "#Status_Title"}
+		"library":
+			return {"steam_display": "#Status_Library"}
+		"town_map":
+			return {"steam_display": "#Status_Town"}
+		"design_table", "floor":
+			match str(job.get("kind", "commission")):
+				"restoration":
+					return {"steam_display": "#Status_Restoring"}
+				"contest":
+					return {"steam_display": "#Status_Contest"}
+				"panel":
+					return {"steam_display": "#Status_Panel"}
+			var tokens := ["#Status_Designing", "#Status_DesigningAny"] if screen == "design_table" else ["#Status_Laying", "#Status_LayingAny"]
+			var who := first_name(job)
+			if who == "":
+				return {"steam_display": tokens[1]}
+			return {"steam_display": tokens[0], "client": who}
+	if str(st.get("name", "")) == "":
+		return {"steam_display": "#Status_Title"}
+	return {"steam_display": "#Status_Workshop", "day": str(int(st.get("day", 1)))}
+
+
+## A client's own name, the same in every language, since Steam fills it into each language's words as it is.
+static func first_name(job: Dictionary) -> String:
+	var id := str(job.get("client", ""))
+	if id != "":
+		return id.capitalize()
+	var named: Variant = job.get("client_name", "")
+	if named is Dictionary and str(named.get("say", "")) in ["%s, %s", "%s, a collector"]:
+		return str(named["args"][0])
+	return ""
 
 
 ## Only a real workshop sends achievements: never one made up by a test or a dev option such as --max-state.

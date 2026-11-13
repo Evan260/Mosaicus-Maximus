@@ -1,0 +1,255 @@
+"lang"
+{
+	"english"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Choosing a workshop"
+			"#Status_Workshop"	"Day %day% in the workshop"
+			"#Status_Designing"	"Designing a floor for %client%"
+			"#Status_DesigningAny"	"Designing a floor"
+			"#Status_Laying"	"Laying a floor for %client%"
+			"#Status_LayingAny"	"Laying a floor"
+			"#Status_Restoring"	"Restoring an old floor"
+			"#Status_Contest"	"Making a floor for the town contest"
+			"#Status_Panel"	"Making a picture panel"
+			"#Status_FreeDesign"	"In free design"
+			"#Status_Town"	"Walking round the town"
+			"#Status_Library"	"Looking through the library"
+		}
+	}
+	"french"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Choisit un atelier"
+			"#Status_Workshop"	"Jour %day% à l’atelier"
+			"#Status_Designing"	"Dessine un sol pour %client%"
+			"#Status_DesigningAny"	"Dessine un sol"
+			"#Status_Laying"	"Pose un sol pour %client%"
+			"#Status_LayingAny"	"Pose un sol"
+			"#Status_Restoring"	"Restaure un sol ancien"
+			"#Status_Contest"	"Prépare un sol pour le concours de la ville"
+			"#Status_Panel"	"Pose un panneau illustré"
+			"#Status_FreeDesign"	"En dessin libre"
+			"#Status_Town"	"Se promène en ville"
+			"#Status_Library"	"Parcourt sa collection"
+		}
+	}
+	"german"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Wählt eine Werkstatt"
+			"#Status_Workshop"	"Tag %day% in der Werkstatt"
+			"#Status_Designing"	"Entwirft einen Boden für %client%"
+			"#Status_DesigningAny"	"Entwirft einen Boden"
+			"#Status_Laying"	"Legt einen Boden für %client%"
+			"#Status_LayingAny"	"Legt einen Boden"
+			"#Status_Restoring"	"Restauriert einen alten Boden"
+			"#Status_Contest"	"Legt einen Boden für den Wettbewerb der Stadt"
+			"#Status_Panel"	"Legt eine Bildtafel"
+			"#Status_FreeDesign"	"Im freien Entwurf"
+			"#Status_Town"	"Spaziert durch die Stadt"
+			"#Status_Library"	"Stöbert in der Sammlung"
+		}
+	}
+	"spanish"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Eligiendo un taller"
+			"#Status_Workshop"	"Día %day% en el taller"
+			"#Status_Designing"	"Diseñando un suelo para %client%"
+			"#Status_DesigningAny"	"Diseñando un suelo"
+			"#Status_Laying"	"Colocando un suelo para %client%"
+			"#Status_LayingAny"	"Colocando un suelo"
+			"#Status_Restoring"	"Restaurando un suelo antiguo"
+			"#Status_Contest"	"Preparando un suelo para el concurso de la ciudad"
+			"#Status_Panel"	"Haciendo un cuadro de mosaico"
+			"#Status_FreeDesign"	"En diseño libre"
+			"#Status_Town"	"Paseando por la ciudad"
+			"#Status_Library"	"Mirando su colección"
+		}
+	}
+	"italian"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Sceglie una bottega"
+			"#Status_Workshop"	"Giorno %day% in bottega"
+			"#Status_Designing"	"Disegna un pavimento per %client%"
+			"#Status_DesigningAny"	"Disegna un pavimento"
+			"#Status_Laying"	"Posa un pavimento per %client%"
+			"#Status_LayingAny"	"Posa un pavimento"
+			"#Status_Restoring"	"Restaura un pavimento antico"
+			"#Status_Contest"	"Prepara un pavimento per il concorso cittadino"
+			"#Status_Panel"	"Posa un pannello figurato"
+			"#Status_FreeDesign"	"Nel disegno libero"
+			"#Status_Town"	"Passeggia per la città"
+			"#Status_Library"	"Sfoglia la sua raccolta"
+		}
+	}
+	"brazilian"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Escolhendo uma oficina"
+			"#Status_Workshop"	"Dia %day% na oficina"
+			"#Status_Designing"	"Desenhando um piso para %client%"
+			"#Status_DesigningAny"	"Desenhando um piso"
+			"#Status_Laying"	"Assentando um piso para %client%"
+			"#Status_LayingAny"	"Assentando um piso"
+			"#Status_Restoring"	"Restaurando um piso antigo"
+			"#Status_Contest"	"Fazendo um piso para o concurso da cidade"
+			"#Status_Panel"	"Assentando um painel de figura"
+			"#Status_FreeDesign"	"No desenho livre"
+			"#Status_Town"	"Passeando pela cidade"
+			"#Status_Library"	"Olhando a biblioteca"
+		}
+	}
+	"polish"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Wybiera warsztat"
+			"#Status_Workshop"	"Dzień %day% w warsztacie"
+			"#Status_Designing"	"Projektuje podłogę: %client%"
+			"#Status_DesigningAny"	"Projektuje podłogę"
+			"#Status_Laying"	"Układa podłogę: %client%"
+			"#Status_LayingAny"	"Układa podłogę"
+			"#Status_Restoring"	"Odnawia starą podłogę"
+			"#Status_Contest"	"Układa podłogę na miejski konkurs"
+			"#Status_Panel"	"Układa panel obrazkowy"
+			"#Status_FreeDesign"	"W wolnym projekcie"
+			"#Status_Town"	"Spaceruje po mieście"
+			"#Status_Library"	"Przegląda bibliotekę"
+		}
+	}
+	"turkish"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Bir atölye seçiyor"
+			"#Status_Workshop"	"Atölyede %day%. gün"
+			"#Status_Designing"	"%client% için zemin tasarlıyor"
+			"#Status_DesigningAny"	"Zemin tasarlıyor"
+			"#Status_Laying"	"%client% için zemin döşüyor"
+			"#Status_LayingAny"	"Zemin döşüyor"
+			"#Status_Restoring"	"Eski bir zemini onarıyor"
+			"#Status_Contest"	"Kasabanın yarışması için zemin döşüyor"
+			"#Status_Panel"	"Resim paneli döşüyor"
+			"#Status_FreeDesign"	"Serbest tasarımda"
+			"#Status_Town"	"Kasabada geziniyor"
+			"#Status_Library"	"Arşive göz atıyor"
+		}
+	}
+	"russian"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Выбирает мастерскую"
+			"#Status_Workshop"	"День %day% в мастерской"
+			"#Status_Designing"	"Придумывает пол: %client%"
+			"#Status_DesigningAny"	"Придумывает пол"
+			"#Status_Laying"	"Выкладывает пол: %client%"
+			"#Status_LayingAny"	"Выкладывает пол"
+			"#Status_Restoring"	"Реставрирует старый пол"
+			"#Status_Contest"	"Выкладывает пол для городского конкурса"
+			"#Status_Panel"	"Выкладывает панно"
+			"#Status_FreeDesign"	"В свободном эскизе"
+			"#Status_Town"	"Гуляет по городу"
+			"#Status_Library"	"Смотрит коллекцию"
+		}
+	}
+	"ukrainian"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"Обирає майстерню"
+			"#Status_Workshop"	"День %day% у майстерні"
+			"#Status_Designing"	"Задумує підлогу: %client%"
+			"#Status_DesigningAny"	"Задумує підлогу"
+			"#Status_Laying"	"Викладає підлогу: %client%"
+			"#Status_LayingAny"	"Викладає підлогу"
+			"#Status_Restoring"	"Реставрує стару підлогу"
+			"#Status_Contest"	"Викладає підлогу для міського конкурсу"
+			"#Status_Panel"	"Викладає панно"
+			"#Status_FreeDesign"	"У вільному дизайні"
+			"#Status_Town"	"Гуляє містом"
+			"#Status_Library"	"Переглядає бібліотеку"
+		}
+	}
+	"japanese"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"工房を選んでいます"
+			"#Status_Workshop"	"工房で%day%日目"
+			"#Status_Designing"	"%client%の床を設計中"
+			"#Status_DesigningAny"	"床を設計中"
+			"#Status_Laying"	"%client%の床を敷いています"
+			"#Status_LayingAny"	"床を敷いています"
+			"#Status_Restoring"	"古い床を修復中"
+			"#Status_Contest"	"町の床コンテストに向けて製作中"
+			"#Status_Panel"	"絵パネルを製作中"
+			"#Status_FreeDesign"	"自由設計中"
+			"#Status_Town"	"町を散歩中"
+			"#Status_Library"	"ライブラリを眺めています"
+		}
+	}
+	"koreana"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"공방을 고르는 중"
+			"#Status_Workshop"	"공방에서 %day%일째"
+			"#Status_Designing"	"%client%의 바닥을 도안하는 중"
+			"#Status_DesigningAny"	"바닥을 도안하는 중"
+			"#Status_Laying"	"%client%의 바닥을 까는 중"
+			"#Status_LayingAny"	"바닥을 까는 중"
+			"#Status_Restoring"	"옛 바닥을 복원하는 중"
+			"#Status_Contest"	"마을 바닥 대회 작품을 만드는 중"
+			"#Status_Panel"	"그림 패널을 만드는 중"
+			"#Status_FreeDesign"	"자유 도안 중"
+			"#Status_Town"	"마을을 산책하는 중"
+			"#Status_Library"	"보관함을 둘러보는 중"
+		}
+	}
+	"schinese"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"正在选择工坊"
+			"#Status_Workshop"	"在工坊的第%day%天"
+			"#Status_Designing"	"正在为%client%设计地板"
+			"#Status_DesigningAny"	"正在设计地板"
+			"#Status_Laying"	"正在为%client%铺地板"
+			"#Status_LayingAny"	"正在铺地板"
+			"#Status_Restoring"	"正在修复一块古老的地板"
+			"#Status_Contest"	"正在为镇上的地板比赛铺地板"
+			"#Status_Panel"	"正在铺一块画板"
+			"#Status_FreeDesign"	"正在自由设计"
+			"#Status_Town"	"正在镇上闲逛"
+			"#Status_Library"	"正在翻看收藏"
+		}
+	}
+	"tchinese"
+	{
+		"tokens"
+		{
+			"#Status_Title"	"正在選擇工坊"
+			"#Status_Workshop"	"在工坊的第%day%天"
+			"#Status_Designing"	"正在為%client%設計地板"
+			"#Status_DesigningAny"	"正在設計地板"
+			"#Status_Laying"	"正在為%client%鋪地板"
+			"#Status_LayingAny"	"正在鋪地板"
+			"#Status_Restoring"	"正在修復一塊古老的地板"
+			"#Status_Contest"	"正在為鎮上的地板比賽鋪地板"
+			"#Status_Panel"	"正在製作畫板"
+			"#Status_FreeDesign"	"正在自由設計"
+			"#Status_Town"	"正在鎮上閒逛"
+			"#Status_Library"	"正在翻看收藏"
+		}
+	}
+}

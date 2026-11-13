@@ -2015,6 +2015,82 @@ func test_a_made_up_workshop_never_sends_achievements_to_steam() -> void:
 	check(not Awards.may_send(), "one made up by a dev option never does")
 
 
+func test_steam_rich_presence_says_what_the_player_is_doing() -> void:
+	game.new_game("Presence")
+	var st: Dictionary = game.state
+	st["day"] = 12
+	check(Awards.presence("workshop", {}, st) == {"steam_display": "#Status_Workshop", "day": "12"}, "the workshop says which day it is")
+	check(Awards.presence("title", {}, st)["steam_display"] == "#Status_Title", "the title says the player is choosing a workshop")
+	var livia := {"kind": "commission", "client": "livia", "client_name": "Livia"}
+	check(Awards.presence("floor", {"job": livia}, st) == {"steam_display": "#Status_Laying", "client": "Livia"}, "laying a floor names its client")
+	check(Awards.presence("design_table", {"job": livia}, st)["steam_display"] == "#Status_Designing", "and so does designing it")
+	var townsman := {"kind": "commission", "client": "", "client_name": Ui.say("%s, %s", ["Lucius", "a potter"])}
+	check(Awards.presence("floor", {"job": townsman}, st).get("client", "") == "Lucius", "a townsman goes by his own name alone, the same in every language")
+	check(Awards.presence("floor", {"job": {"kind": "restoration", "client_name": "Your neighbour"}}, st)["steam_display"] == "#Status_Restoring", "a dig says restoring")
+	check(Awards.presence("design_table", {"free": true}, st)["steam_display"] == "#Status_FreeDesign", "free design says so")
+	var file := FileAccess.get_file_as_string(ProjectSettings.globalize_path("res://").path_join("../tools/steam/rich_presence.vdf"))
+	check(file != "", "tools/steam/rich_presence.vdf is there to upload")
+	var languages := ["english", "french", "german", "spanish", "italian", "brazilian", "polish", "turkish", "russian", "ukrainian", "japanese", "koreana", "schinese", "tchinese"]
+	var tokens := ["Title", "Workshop", "Designing", "DesigningAny", "Laying", "LayingAny", "Restoring", "Contest", "Panel", "FreeDesign", "Town", "Library"]
+	var blocks := file.split("\n\t\"")
+	for language in languages:
+		var block := ""
+		for b in blocks:
+			if b.begins_with(language + "\""):
+				block = b
+		check(block != "", "the rich presence has %s" % language)
+		for token in tokens:
+			var at := block.find("\"#Status_%s\"" % token)
+			check(at >= 0, "%s has #Status_%s" % [language, token])
+			if at < 0:
+				continue
+			var line := block.substr(at, block.find("\n", at) - at)
+			for key in ["%client%", "%day%"]:
+				check(line.contains(key) == (token in ["Designing", "Laying"] and key == "%client%" or token == "Workshop" and key == "%day%"), "%s's #Status_%s fills in %s only where English does" % [language, token, key])
+
+
+func test_rich_presence_reaches_steam_only_when_it_changes() -> void:
+	game.new_game("Presence")
+	var fake := FakeSteam.new()
+	var screen := Nav.current_name
+	Nav.current_name = "workshop"
+	Awards._steam = fake
+	Awards._presence = {}
+	Awards._update_presence()
+	Awards._update_presence()
+	check(fake.calls == 1, "the same presence is sent once, not every second")
+	game.state["day"] = 13
+	Awards._update_presence()
+	check(fake.calls == 2 and fake.values.get("day", "") == "13", "a new day is sent")
+	Awards._steam = null
+	game.state["day"] = 14
+	Awards._update_presence()
+	check(fake.calls == 2, "without Steam running nothing is sent")
+	Awards._presence = {}
+	Nav.current_name = screen
+
+
+class FakeSteam extends RefCounted:
+	var calls := 0
+	var values := {}
+
+	func clearRichPresence() -> void:
+		calls += 1
+		values.clear()
+
+	func setRichPresence(key: String, value: String) -> void:
+		values[key] = value
+
+	func run_callbacks() -> void:
+		pass
+
+	func setAchievement(_id: String) -> void:
+		pass
+
+	func storeStats() -> void:
+		pass
+
+
 func test_an_achievement_waits_for_an_open_window() -> void:
 	var window := Ui.panel(Nav.ui, "PagePanel")
 	Ui.closes_with(window)

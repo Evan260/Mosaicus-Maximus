@@ -66,3 +66,24 @@ Use Auto-Cloud; the game needs no code for it. Each workshop slot is saved as `w
 | Linux | `LinuxXdgDataHome` | `godot/app_userdata/Mosaicus Maximus` | `workshop_*.json.bak*` |
 
 The patterns leave out `workshop_N.json.tmp`, which only exists while a save is being written. The library of kept floors (`library/`) and `settings.cfg` stay on each computer. If the save files are ever renamed, these patterns must change with them in `game/scripts/autoload/saves.gd`, or cloud saves quietly stop syncing.
+
+## 5. Rich presence
+
+Steam shows friends what the player is doing, such as "Laying a floor for Livia" or "Day 12 in the workshop". `game/scripts/autoload/awards.gd` sets `steam_display` to one of the tokens in `tools/steam/rich_presence.vdf` and fills in `%client%` (a client's own name, which reads the same in every language) or `%day%`. It tells Steam only when that changes, and never when Steam is not running.
+
+The file holds every token in all fourteen of the game's languages. Upload it in Steamworks under Community, Rich Presence (for the main game and for the demo): choose the file and press Upload. Steam checks it there and shows any token a language is missing. After changing the tokens in `awards.gd`, change the file to match and upload it again; `test_steam_rich_presence_says_what_the_player_is_doing` checks that every language has every token with the same words filled in.
+
+| Token | English |
+|---|---|
+| `#Status_Title` | Choosing a workshop |
+| `#Status_Workshop` | Day %day% in the workshop |
+| `#Status_Designing` | Designing a floor for %client% |
+| `#Status_DesigningAny` | Designing a floor |
+| `#Status_Laying` | Laying a floor for %client% |
+| `#Status_LayingAny` | Laying a floor |
+| `#Status_Restoring` | Restoring an old floor |
+| `#Status_Contest` | Making a floor for the town contest |
+| `#Status_Panel` | Making a picture panel |
+| `#Status_FreeDesign` | In free design |
+| `#Status_Town` | Walking round the town |
+| `#Status_Library` | Looking through the library |
