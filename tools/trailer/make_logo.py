@@ -8,7 +8,8 @@ It also draws the parchment scroll the end card's "Wishlist" line is written on.
 
 Usage: python tools/trailer/make_logo.py
 Writes game/tools/trailer/logo.png, logo_plain.png (the name without the laurel) and scroll.png at 1 pixel per game
-pixel; the trailer shows them 4 times larger, like the game.
+pixel; the trailer shows them 4 times larger, like the game. It also writes game/assets/boot_splash.png, the logo three
+times larger, which Godot shows at its own size on the title's background colour while the game loads.
 """
 import math
 from pathlib import Path
@@ -20,6 +21,9 @@ HERE = Path(__file__).resolve().parent
 OUT = HERE.parents[1] / "game" / "tools" / "trailer" / "logo.png"
 SCROLL_OUT = OUT.with_name("scroll.png")
 PLAIN_OUT = OUT.with_name("logo_plain.png")
+SPLASH_OUT = HERE.parents[1] / "game" / "assets" / "boot_splash.png"
+# Three times fits a 1280 by 720 window, so the splash is never shrunk and every pixel stays square.
+SPLASH_SCALE = 3
 PARCHMENT, PARCHMENT_SHADE, PARCHMENT_LIGHT = (252, 242, 219), (226, 204, 166), (255, 250, 236)
 ROLL, ROLL_SHADE, ROLL_LIGHT = (214, 186, 140), (172, 136, 92), (240, 222, 186)
 CAP = 27
@@ -269,6 +273,7 @@ def main():
     logo.alpha_composite(right, ((total_w + second.width) // 2 - 2, mid))
     OUT.parent.mkdir(parents=True, exist_ok=True)
     logo.save(OUT)
+    logo.resize((logo.width * SPLASH_SCALE, logo.height * SPLASH_SCALE), Image.NEAREST).save(SPLASH_OUT)
     scroll().save(SCROLL_OUT)
     print(f"logo: {OUT} ({logo.width} x {logo.height} game pixels), and {SCROLL_OUT.name}")
 
