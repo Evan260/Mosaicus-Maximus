@@ -1,6 +1,8 @@
 extends Node
 ## Controller support: the left stick moves the pointer and A clicks and drags, so every screen works as with a mouse.
-## The shoulder buttons change the brush size, B steps back, X turns and Y mirrors a motif.
+## The shoulder buttons change the brush size, B steps back, X turns and Y mirrors a motif, the d-pad's up and down and
+## the right stick scroll a list or zoom as the mouse wheel does, the d-pad's right picks the next stone, and View
+## shows or hides the chalk sketch.
 
 ## Marks the mouse and key events the pad sends, so they never count as the player turning to the mouse or keyboard.
 const SENT := 7
@@ -10,15 +12,36 @@ var using := false
 
 const SPEED := 900.0
 const DEAD := 0.18
+## Seconds between wheel clicks while the right stick is held over.
+const WHEEL_EVERY := 0.12
+## Each pad button and what it does, as the picture `PadGlyph` shows beside a key hint.
+const GLYPHS := {"Esc": ["pad_b"], "R": ["pad_x"], "F": ["pad_y"], "[  ]": ["pad_lb", "pad_rb"], "Tab": ["pad_dpad_right"], "C": ["pad_view"]}
 
 var _held := false
 var _cursor := Vector2.ZERO
 var _active := false
+var _wheel_wait := 0.0
+
+
+func _ready() -> void:
+	# --pad shows the game as with a controller in hand, for screenshots of its button pictures.
+	using = Dev.has("pad")
+
+
+## Whether a controller is plugged in, so the keys window lists its buttons too.
+func connected() -> bool:
+	return not Input.get_connected_joypads().is_empty() or Dev.has("pad")
 
 
 func _process(delta: float) -> void:
 	if Input.get_connected_joypads().is_empty():
 		return
+	_wheel_wait = maxf(0.0, _wheel_wait - delta)
+	var right := Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
+	if absf(right) > 0.5 and _wheel_wait == 0.0:
+		using = true
+		_wheel_wait = WHEEL_EVERY
+		_wheel(right < 0.0)
 	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_LEFT_X), Input.get_joy_axis(0, JOY_AXIS_LEFT_Y))
 	if stick.length() < DEAD:
 		return
@@ -64,6 +87,15 @@ func _input(event: InputEvent) -> void:
 		JOY_BUTTON_RIGHT_SHOULDER:
 			if b.pressed:
 				_key(KEY_BRACKETRIGHT)
+		JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN:
+			if b.pressed:
+				_wheel(b.button_index == JOY_BUTTON_DPAD_UP)
+		JOY_BUTTON_DPAD_RIGHT:
+			if b.pressed:
+				_key(KEY_TAB)
+		JOY_BUTTON_BACK:
+			if b.pressed:
+				_key(KEY_C)
 
 
 ## Notes the player using the mouse or keyboard; the pointer's own moves after a warp land where the pad put it.
@@ -88,6 +120,19 @@ func _click(button: MouseButton, pressed: bool) -> void:
 	e.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
 	e.device = SENT
 	Input.parse_input_event(e)
+
+
+## One click of the mouse wheel where the pointer is, which scrolls a list or zooms the floor or a motif.
+func _wheel(up: bool) -> void:
+	for pressed in [true, false]:
+		var e := InputEventMouseButton.new()
+		e.button_index = MOUSE_BUTTON_WHEEL_UP if up else MOUSE_BUTTON_WHEEL_DOWN
+		e.pressed = pressed
+		e.factor = 1.0
+		e.position = get_viewport().get_mouse_position()
+		e.global_position = e.position
+		e.device = SENT
+		Input.parse_input_event(e)
 
 
 func _key(code: Key) -> void:

@@ -53,14 +53,19 @@ func setup(s: Node) -> void:
 	_tools = VBoxContainer.new()
 	_tools.add_theme_constant_override("separation", 3)
 	add_child(_tools)
-	_tools.add_child(_icon_button("plus", "Bigger brush ( ] )", func() -> void: screen.grow_brush(1.0)))
-	_tools.add_child(_icon_button("minus", "Smaller brush ( [ )", func() -> void: screen.grow_brush(-1.0)))
-	_tools.add_child(_icon_button("eye", "Show or hide the chalk sketch (C)", func() -> void: screen.floor_view.chalk_visible = not screen.floor_view.chalk_visible))
+	var tool_glyphs := {"pad_rb": _icon_button("plus", "Bigger brush ( ] )", func() -> void: screen.grow_brush(1.0)),
+		"pad_lb": _icon_button("minus", "Smaller brush ( [ )", func() -> void: screen.grow_brush(-1.0)),
+		"pad_view": _icon_button("eye", "Show or hide the chalk sketch (C)", func() -> void: screen.floor_view.chalk_visible = not screen.floor_view.chalk_visible)}
+	for glyph in tool_glyphs:
+		_tools.add_child(tool_glyphs[glyph])
+		PadGlyph.badge(tool_glyphs[glyph], glyph, Vector2(0.0, 0.5), Vector2(-11, 0))
 	_hint = Label.new()
 	_hint.theme_type_variation = "LightLabel"
 	_hint.add_theme_color_override("font_outline_color", Color8(40, 26, 20))
 	_hint.add_theme_constant_override("outline_size", 2)
 	add_child(_hint)
+	# The d-pad's right picks the next stone, as Tab does, so its picture follows the hint about picking stones.
+	PadGlyph.badge(_hint, "pad_dpad_right", Vector2(1.0, 0.5), Vector2(10, 0), func() -> bool: return screen.floor_view != null and screen.floor_view.phase == FloorView.Phase.LAY)
 	Nav.resized.connect(_place)
 	_place.call_deferred()
 

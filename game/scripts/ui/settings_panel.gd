@@ -20,6 +20,9 @@ const KEYS := [
 	["On the floor", [["Smaller or bigger brush", "[  ]"], ["Next stone", "Tab"], ["Pick a stone in the tray", "1 - 9"],
 		["Show or hide the chalk sketch", "C"]]],
 ]
+## What only a controller does, listed under the keys while one is plugged in.
+const PAD_ONLY := ["With a controller", [["Move the pointer", "pad_lstick"], ["Click, or hold to drag", "pad_a"],
+	["Scroll a list, zoom, or size a motif", "pad_dpad_updown", "pad_rstick"]]]
 
 ## The tab last open, shown again the next time the window opens.
 static var tab := "Sound"
@@ -133,18 +136,42 @@ func _gameplay() -> void:
 			DogPanel.open(get_parent()), WIDTH)
 
 
+## Each key in a chip, with the controller button that does the same beside it while a controller is plugged in.
 func _keys() -> void:
+	var pad := Pad.connected()
 	for group in KEYS:
 		Ui.label(_page, tr(group[0]), "Heading", WIDTH)
 		for pair in group[1]:
-			var row := Ui.hbox(_page, 6)
-			var l := Ui.label(row, tr(pair[0]), "", WIDTH - 76.0)
-			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			var chip := Ui.panel(row, "SlotPanel")
-			chip.custom_minimum_size.x = 70
-			chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			var chip := _key_row(pair[0])
 			var key := Ui.label(chip, tr(pair[1]))
 			key.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			if pad:
+				for glyph in Pad.GLYPHS.get(pair[1], []):
+					_glyph(chip, glyph)
+	if pad:
+		Ui.label(_page, tr(PAD_ONLY[0]), "Heading", WIDTH)
+		for row in PAD_ONLY[1]:
+			var chip := _key_row(row[0])
+			chip.alignment = BoxContainer.ALIGNMENT_CENTER
+			for glyph in row.slice(1):
+				_glyph(chip, glyph)
+
+
+## A line of the keys window: what it does on the left, and on the right a chip for the key and button that do it.
+func _key_row(what: String) -> HBoxContainer:
+	var row := Ui.hbox(_page, 6)
+	var l := Ui.label(row, tr(what), "", WIDTH - 76.0)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var chip := Ui.panel(row, "SlotPanel")
+	chip.custom_minimum_size.x = 70
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return Ui.hbox(chip, 2)
+
+
+func _glyph(parent: Control, glyph: String) -> void:
+	var t := Ui.texture(parent, PadGlyph.picture(glyph))
+	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 
 ## Keeps the window centred, with its page as tall as fits the interface.

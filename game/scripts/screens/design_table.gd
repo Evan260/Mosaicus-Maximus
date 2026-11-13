@@ -293,8 +293,8 @@ func _build() -> void:
 func _build_toolbar() -> void:
 	_toolbar = Ui.panel(_root, "TipPanel")
 	var tools := Ui.hbox(_toolbar, 2)
-	Ui.icon_button(tools, "rotate", "Turn a quarter (R)", _turn)
-	Ui.icon_button(tools, "flip", "Mirror it (F)", _flip)
+	PadGlyph.badge(Ui.icon_button(tools, "rotate", "Turn a quarter (R)", _turn), "pad_x", Vector2(0.5, 0.0), Vector2(0, -3))
+	PadGlyph.badge(Ui.icon_button(tools, "flip", "Mirror it (F)", _flip), "pad_y", Vector2(0.5, 0.0), Vector2(0, -3))
 	_pair_button = Ui.button(tools, "Pair", _mirror)
 	Ui.tip_on(_pair_button, "Add a mirrored copy on the other side of the room (M)")
 	_fine_button = Ui.button(tools, "Small tiles", _toggle_fine)

@@ -2091,6 +2091,32 @@ class FakeSteam extends RefCounted:
 		pass
 
 
+func test_every_key_hint_has_its_controller_button() -> void:
+	var keys := []
+	for group in SettingsPanel.KEYS:
+		for pair in group[1]:
+			keys.append(pair[1])
+	for key in Pad.GLYPHS:
+		check(key in keys, "the controller's %s is a key the keys window lists" % key)
+		for glyph in Pad.GLYPHS[key]:
+			check(PadGlyph.picture(glyph) != null, "%s has its picture" % glyph)
+	for row in SettingsPanel.PAD_ONLY[1]:
+		for glyph in row.slice(1):
+			check(PadGlyph.picture(glyph) != null, "%s has its picture" % glyph)
+	var b := Button.new()
+	Nav.ui.add_child(b)
+	var g := PadGlyph.badge(b, "pad_x", Vector2(0.5, 0.0), Vector2(0, -3))
+	var was: bool = Pad.using
+	Pad.using = false
+	g._process(0.0)
+	check(not g.visible, "a button's picture hides while the mouse is in use")
+	Pad.using = true
+	g._process(0.0)
+	check(g.visible, "and shows once the controller is")
+	Pad.using = was
+	b.free()
+
+
 func test_an_achievement_waits_for_an_open_window() -> void:
 	var window := Ui.panel(Nav.ui, "PagePanel")
 	Ui.closes_with(window)

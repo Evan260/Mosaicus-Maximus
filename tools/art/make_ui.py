@@ -887,6 +887,108 @@ def icon(art):
     return im
 
 
+# Controller button pictures for key hints, in the same ink, walnut and stone as the rest of the interface.
+PAD_LETTERS = {
+    "A": [".#.", "#.#", "###", "#.#", "#.#"], "B": ["##.", "#.#", "##.", "#.#", "##."],
+    "X": ["#.#", "#.#", ".#.", "#.#", "#.#"], "Y": ["#.#", "#.#", ".#.", ".#.", ".#."],
+    "L": ["#..", "#..", "#..", "#..", "###"], "R": ["##.", "#.#", "##.", "#.#", "#.#"],
+}
+PAD_FACE = {"A": (172, 216, 112), "B": (244, 124, 104), "X": (150, 198, 244), "Y": (252, 224, 132)}
+
+
+def pad_text(im, text, x, y, c):
+    for ch in text:
+        for dy, row in enumerate(PAD_LETTERS[ch]):
+            for dx, on in enumerate(row):
+                if on == "#":
+                    px(im, x + dx, y + dy, c)
+        x += 4
+
+
+def pad_disc(fill, hi, lo, size=11):
+    """A round button: an inked rim, a lit top and a shaded foot."""
+    im = canvas(size, size)
+    c = (size - 1) / 2
+    for y in range(size):
+        for x in range(size):
+            d = ((x - c) ** 2 + (y - c) ** 2) ** 0.5
+            if d <= c + 0.3:
+                px(im, x, y, INK if d > c - 0.75 else (hi if y < 3 else lo if y > size - 4 else fill))
+    return im
+
+
+def pad_face(letter):
+    im = pad_disc(WAX, WAX_HI, WAX_LO)
+    pad_text(im, letter, 4, 3, PAD_FACE[letter])
+    return im
+
+
+def pad_shoulder(text):
+    """LB and RB, the shoulder bumpers, as a flat stone key."""
+    w, h = 15, 9
+    im = canvas(w, h)
+    for y in range(h):
+        for x in range(w):
+            if (x in (0, w - 1)) and (y in (0, h - 1)):
+                continue
+            rim = y in (0, h - 1) or x in (0, w - 1)
+            px(im, x, y, INK if rim else (STONE_HI if y == 1 else STONE_LO if y == h - 2 else STONE))
+    pad_text(im, text, 4, 2, INK)
+    return im
+
+
+def pad_dpad(lit):
+    """The cross of the direction pad, with the arms named in `lit` picked out in gold."""
+    im = canvas(11, 11)
+    arms = {"up": (4, 0, 6, 3), "down": (4, 7, 6, 10), "left": (0, 4, 3, 6), "right": (7, 4, 10, 6)}
+    def inside(x, y):
+        return (3 <= x <= 7 and 0 <= y <= 10) or (0 <= x <= 10 and 3 <= y <= 7)
+    for y in range(11):
+        for x in range(11):
+            if not inside(x, y):
+                continue
+            edge = not all(inside(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+            fill = WAX
+            for name, (x0, y0, x1, y1) in arms.items():
+                if name in lit and x0 <= x <= x1 and y0 <= y <= y1:
+                    fill = GOLD
+            px(im, x, y, INK if edge else fill)
+    return im
+
+
+def pad_stick(letter):
+    im = pad_disc(STONE_LO, STONE, GREY_LO)
+    for y in range(3, 8):
+        for x in range(3, 8):
+            if (x - 5) ** 2 + (y - 5) ** 2 <= 5:
+                px(im, x, y, STONE_HI)
+    pad_text(im, letter, 4, 3, INK)
+    return im
+
+
+def pad_view():
+    """The small View button, two overlapping windows, which shows or hides the chalk."""
+    im = canvas(11, 9)
+    for y in range(9):
+        for x in range(11):
+            corner = (x in (0, 10)) and (y in (0, 8))
+            if not corner:
+                px(im, x, y, INK if x in (0, 10) or y in (0, 8) else WAX)
+    for x0, y0 in ((2, 2), (5, 4)):
+        for y in range(y0, y0 + 3):
+            for x in range(x0, x0 + 4):
+                if x in (x0, x0 + 3) or y in (y0, y0 + 2):
+                    px(im, x, y, CREAM)
+    return im
+
+
+def pad_glyphs():
+    glyphs = {f"pad_{k.lower()}": pad_face(k) for k in PAD_FACE}
+    glyphs.update({"pad_lb": pad_shoulder("LB"), "pad_rb": pad_shoulder("RB"), "pad_dpad_right": pad_dpad({"right"}), "pad_dpad_updown": pad_dpad({"up", "down"}),
+                   "pad_lstick": pad_stick("L"), "pad_rstick": pad_stick("R"), "pad_view": pad_view()})
+    return glyphs
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     rng = random.Random(4)
@@ -913,6 +1015,10 @@ def main():
     gear().save(icons / "gear.png")
     small_mark(True).save(icons / "tick_small.png")
     small_mark(False).save(icons / "cross_small.png")
+    pad = OUT / "pad"
+    pad.mkdir(exist_ok=True)
+    for name, im in pad_glyphs().items():
+        im.save(pad / f"{name}.png")
     sheet = canvas(16 * 8 * 4, 16 * 4 * 4)
     for i, name in enumerate(ICONS):
         im = icon(ICONS[name]).resize((64, 64), Image.NEAREST)
