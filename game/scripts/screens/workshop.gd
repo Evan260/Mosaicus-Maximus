@@ -94,6 +94,7 @@ func enter(_args: Dictionary) -> void:
 	# A demo workshop opened in the full game, or one past the demo's end, opens the chapters its reputation has reached.
 	for e in Story.check_chapters(Game.state):
 		_queue_event(e)
+	_refresh()
 	if Dev.has("panel") or Dev.has("no-hud"):
 		Game.state["pending_events"].clear()
 	_bar.visible = not Dev.has("no-hud")
@@ -377,6 +378,9 @@ func _fit_bar() -> void:
 func _chapter_text(short: bool) -> String:
 	var st := Game.state
 	var next := Data.chapter(int(st["chapter"]) + 1)
+	# Past the demo's end the next chapter is not coming, so its target would only read as an overfull count.
+	if not next.is_empty() and bool(st.get("demo_over", false)) and Game.in_full_game(int(next["n"])):
+		next = {}
 	return (tr("Ch %d  %d") if short else tr("Chapter %d  %d")) % [int(st["chapter"]), int(st["reputation"])] + ("" if next.is_empty() else "/%d" % int(next["reputation"]))
 
 
@@ -388,6 +392,8 @@ func _refresh() -> void:
 	var title := tr(str(ch.get("title", "")))
 	if next.is_empty():
 		Ui.tip_on(_rep, tr("Chapter %d: %s. Reputation %d. Click to see every chapter.") % [int(st["chapter"]), title, int(st["reputation"])])
+	elif Game.in_full_game(int(next["n"])) and bool(st.get("demo_over", false)):
+		Ui.tip_on(_rep, tr("Chapter %d: %s. Reputation %d. Chapter %d is in the full game. Click to see every chapter.") % [int(st["chapter"]), title, int(st["reputation"]), int(next["n"])])
 	elif Game.in_full_game(int(next["n"])):
 		Ui.tip_on(_rep, tr("Chapter %d: %s. Reputation %d of the %d that finishes the demo. Click to see every chapter.") % [int(st["chapter"]), title, int(st["reputation"]), int(next["reputation"])])
 	else:

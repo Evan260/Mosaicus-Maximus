@@ -87,6 +87,8 @@ func test_the_end_card_shows_once_and_is_not_kept_as_a_letter() -> void:
 	check((game.state["pending_events"] as Array).is_empty(), "it waits in the save no longer")
 	check((game.state["letters"] as Array).all(func(e: Dictionary) -> bool: return e.get("kind", "") != "demo_end"), "and is not kept with the letters")
 	check(bool(game.state["demo_over"]), "the workshop remembers the demo is over")
+	var bar: String = Nav.current._chapter_text(false)
+	check(bar == "Chapter 2  %d" % int(game.state["reputation"]), "the top bar no longer counts towards a chapter the demo never opens (%s)" % bar)
 	game.acts_as_demo = false
 	Nav.go("title")
 	while Nav._busy:
