@@ -3,6 +3,7 @@
 Usage:
   python tools/steam/publish.py playtest            upload to the Playtest app, live on its test branch
   python tools/steam/publish.py game                upload to the main game, live on its test branch
+  python tools/steam/publish.py demo                upload the free demo, live on its test branch
   python tools/steam/publish.py playtest --note "Faster floor setting"
   python tools/steam/publish.py game --dry-run      build, sign and lay out every platform, but do not upload
 
@@ -72,7 +73,7 @@ def vdf(target, depots, note, content, output):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("target", choices=["playtest", "game"])
+    parser.add_argument("target", choices=["playtest", "game", "demo"])
     parser.add_argument("--note", default="")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -84,6 +85,10 @@ def main():
             fail(f"set the {args.target} app id and depot ids in {CONFIG} first (see docs/Steam-publishing.md)")
         depots = dict(target["depots"])
         print("note: no Steam ids yet, so the dry run builds every platform")
+    store = int(json.loads((ROOT / "game" / "data" / "balance.json").read_text(encoding="utf-8"))["demo"]["store_app_id"])
+    if args.target == "demo" and not args.dry_run and store != config["targets"]["game"]["app_id"]:
+        fail("the demo's Wishlist button needs the game's App ID: set demo.store_app_id in game/data/balance.json to "
+             f"{config['targets']['game']['app_id']}, the game's app_id in {CONFIG}")
     if not config["account"] and not args.dry_run:
         fail(f"set the Steam account that uploads builds in {CONFIG} first")
     home = wsl("sh", "-c", "echo $HOME").stdout.strip()
@@ -96,7 +101,7 @@ def main():
         shutil.rmtree(stage)
     export.godot("--import")
     for platform in depots:
-        export.export(platform, stage / platform)
+        export.export(platform, stage / platform, args.target == "demo")
         # The everything-unlocked launcher is for local builds and GitHub releases, never for players on Steam.
         (stage / platform / export.LAUNCHER).unlink(missing_ok=True)
     work = f"{home}/{WSL_HOME}/{args.target}"

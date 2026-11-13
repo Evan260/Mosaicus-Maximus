@@ -1,5 +1,5 @@
 {
-  "_evan": "Fill in the uploading Steam account, then each app's App ID and depot ids from Steamworks once the account is verified; every 0 is a placeholder (docs/Steam-publishing.md, One-time setup on Steamworks).",
+  "_evan": "Fill in the uploading Steam account, then each app's App ID and depot ids (the Playtest, the game and the demo) from Steamworks once the account is verified; every 0 is a placeholder (docs/Steam-publishing.md, One-time setup on Steamworks).",
   "account": "",
   "targets": {
     "playtest": {
@@ -12,6 +12,15 @@
       "branch": "testing"
     },
     "game": {
+      "app_id": 0,
+      "depots": {
+        "windows": 0,
+        "macos": 0,
+        "linux": 0
+      },
+      "branch": "testing"
+    },
+    "demo": {
       "app_id": 0,
       "depots": {
         "windows": 0,

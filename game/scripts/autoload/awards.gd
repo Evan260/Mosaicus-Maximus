@@ -121,6 +121,11 @@ static func first_name(job: Dictionary) -> String:
 	return ""
 
 
+## Whether the Steam client is running and answered, as the demo's wishlist button asks before opening the store in it.
+func steam_running() -> bool:
+	return _steam != null
+
+
 ## Only a real workshop sends achievements: never one made up by a test or a dev option such as --max-state.
 func may_send() -> bool:
 	return Saves.enabled and not Dev.has("panel") and not Dev.has("achievement") and not Game.state.get("_dev", false)

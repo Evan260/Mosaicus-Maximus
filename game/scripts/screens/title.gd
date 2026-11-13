@@ -101,6 +101,10 @@ func _show_menu() -> void:
 	title.add_theme_font_override("font", UiTheme.title_font("en"))
 	title.add_theme_font_size_override("font_size", 16)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if Game.is_demo():
+		var demo := Ui.label(col, "Demo", "Heading")
+		demo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		demo.add_theme_color_override("font_color", UiTheme.RED)
 	Ui.label(col, "A town of floors, waiting to be laid", "MutedLabel").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	Ui.label(col, "The Bay of Naples, AD 72", "MutedLabel").horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var info := Saves.slots()
@@ -119,6 +123,10 @@ func _show_menu() -> void:
 	Ui.button(row, "Library", func() -> void: Nav.go("library", {"back": "title"}), "book")
 	Ui.button(row, "Settings", open_settings, "gear")
 	Ui.button(row, "Quit", quit_game)
+	if Game.is_demo():
+		var wish := DemoEnd.wishlist_button(col)
+		if wish:
+			wish.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
 ## One saved workshop: its name and how far along it is, and a bin that asks first.
@@ -136,6 +144,9 @@ func _slot_row(parent: Node, slot: int, s: Dictionary) -> void:
 		Audio.play("click")
 		_continue(slot))
 	row.add_child(b)
+	if Game.in_full_game(int(s["chapter"])):
+		b.disabled = true
+		Ui.tip_on(b, "In the full game")
 	var del := Ui.icon_button(row, "trash", "Delete this workshop", func() -> void: _confirm_delete(slot, s))
 	del.custom_minimum_size = Vector2(22, 30)
 

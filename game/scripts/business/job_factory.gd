@@ -279,7 +279,7 @@ static func restoration(state: Dictionary, rng: RandomNumberGenerator, small: bo
 
 ## Puts an unowned pattern from up to a chapter ahead at the heart of an old floor; restoring it adds it to the book.
 static func _hide_a_pattern(design: FloorDesign, state: Dictionary, rng: RandomNumberGenerator) -> String:
-	var ahead := int(state["chapter"]) + 1
+	var ahead := mini(int(state["chapter"]) + 1, Game.last_chapter())
 	var unknown := Data.motif_order.filter(func(id: String) -> bool:
 		var m := Data.motif(id)
 		return not id in state["unlocked_motifs"] and int(m.get("tier", 1)) <= ahead and m.get("kind", "") != "letters" and not "frame" in m.get("tags", []))

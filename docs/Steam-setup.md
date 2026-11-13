@@ -87,3 +87,21 @@ The file holds every token in all fourteen of the game's languages. Upload it in
 | `#Status_FreeDesign` | In free design |
 | `#Status_Town` | Walking round the town |
 | `#Status_Library` | Looking through the library |
+
+## 6. Demo
+
+The demo is the same project exported with the `demo` export presets in `game/export_presets.cfg` (Windows on the trimmed engine with GodotSteam, macOS and Linux), which set the `demo` feature that `Game.is_demo()` reads. It plays chapters 1 and 2 (`demo.chapters` in `game/data/balance.json`) and ends where chapter 3 would open: the workshop shows an end card once, with thanks, a look at picture panels and glass and gold, and a Wishlist on Steam button. Anything past it, such as later patterns, borders and chapters, reads "In the full game". Its save sits in the same folder as the full game's, so progress carries over on the same computer, and the full game opens chapter 3 as soon as it loads that workshop.
+
+Achievements work as in the full game: they are earned into the save, and since the demo app has none of its own on Steam, they reach Steam the first time the full game opens that workshop.
+
+In Steamworks, the demo is an app of its own, linked to the main game:
+
+1. On the main game's Steamworks page, under All Associated Packages, DLC, Demos and Tools, create a demo. Steam gives it its own App ID.
+2. Set it up like the main game (steps 2 to 6 of the Steamworks setup in `Steam-publishing.md`): three depots, a `testing` branch, App Bundles Are Notarized, and these launch options:
+   - `Mosaicus Maximus Demo.exe`, Windows
+   - `Mosaicus Maximus.app`, macOS (Godot names the Mac app after the project, so the demo's app keeps the full game's name)
+   - `Mosaicus Maximus Demo.x86_64`, Linux + SteamOS
+3. Put its App ID and depots into `targets.demo` in `tools/steam/steam.json`.
+4. Put the main game's App ID into `demo.store_app_id` in `game/data/balance.json`. The Wishlist on Steam buttons on the title and the end card stay hidden while it is 0, and `publish.py demo` refuses to upload until it matches the game's App ID in `steam.json`.
+5. Upload the rich presence file to the demo too (section 5).
+6. Upload it with `python tools/steam/publish.py demo`. As with the main game, the build goes live on `testing`, and you set it live on the default branch in Steamworks when the demo is ready to release.

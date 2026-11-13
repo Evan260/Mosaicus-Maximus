@@ -6,6 +6,8 @@ signal changed
 const VERSION := 1
 
 var state := {}
+## Lets the tests play by the demo's limits without a demo build.
+var acts_as_demo := false
 
 
 func _ready() -> void:
@@ -236,6 +238,21 @@ func buy_from_ship() -> bool:
 		state["unlocked_stones"].append(id)
 	add_stock(id, int(Data.num("sack", 100)))
 	return true
+
+
+## Whether this is the free demo: the same project exported with the "demo" feature, or tried with --as-demo.
+func is_demo() -> bool:
+	return OS.has_feature("demo") or acts_as_demo or Dev.has("as-demo")
+
+
+## The last chapter this build plays: the demo's last, or the whole story's.
+func last_chapter() -> int:
+	return int(Data.num("demo.chapters", 2)) if is_demo() else Data.chapters.size()
+
+
+## Whether something that opens in chapter n is only in the full game.
+func in_full_game(n: int) -> bool:
+	return n > last_chapter()
 
 
 func has_stone(id: String) -> bool:

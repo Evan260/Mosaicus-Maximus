@@ -8,7 +8,7 @@ on:
       steam_target:
         description: Steam app to upload to, when Steam uploads are switched on
         type: choice
-        options: [playtest, game]
+        options: [playtest, game, demo]
         default: playtest
 
 permissions:
@@ -50,13 +50,14 @@ jobs:
           grep -q "ALL TESTS PASSED" test.log
 
   export:
-    name: Export ${{ matrix.platform }}
+    name: Export ${{ matrix.edition }} ${{ matrix.platform }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         platform: [windows, macos, linux]
+        edition: [full, demo]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,21 +72,25 @@ jobs:
         run: godot --headless --path game --import
 
       - name: Export
-        run: bash .github/scripts/export.sh ${{ matrix.platform }}
+        run: bash .github/scripts/export.sh ${{ matrix.platform }} ${{ matrix.edition }}
 
       - name: Upload the build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ${{ matrix.platform == 'macos' && 'macos-export' || 'release' }}-${{ matrix.platform }}
+          name: ${{ matrix.platform == 'macos' && 'macos-export' || 'release' }}-${{ matrix.edition }}-${{ matrix.platform }}
           path: dist/
           if-no-files-found: error
           compression-level: 0
 
   macos:
-    name: Sign macOS
+    name: Sign ${{ matrix.edition }} macOS
     needs: export
     runs-on: macos-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [full, demo]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -97,11 +102,11 @@ jobs:
       - name: Download the macOS export
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: macos-export-macos
+          name: macos-export-${{ matrix.edition }}-macos
           path: export
 
       - name: Sign, notarize and zip
-        run: bash .github/scripts/sign_macos.sh export
+        run: bash .github/scripts/sign_macos.sh export ${{ matrix.edition }}
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -113,7 +118,7 @@ jobs:
       - name: Upload the build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: release-macos
+          name: release-${{ matrix.edition }}-macos
           path: dist/
           if-no-files-found: error
           compression-level: 0

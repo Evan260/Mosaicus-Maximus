@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Uploads the release builds in artifacts/ to Steam with steamcmd, live on the testing branch, using the depots in
 # tools/steam/steam.json and tools/steam/publish.py's build script layout:
-#   bash .github/scripts/steam_upload.sh <playtest|game>
+#   bash .github/scripts/steam_upload.sh <playtest|game|demo>
 set -euo pipefail
 
 TARGET="$1"
 case "$TARGET" in
-  playtest|game) ;;
-  *) echo "::error::Unknown Steam target '$TARGET'; use playtest or game"; exit 1 ;;
+  playtest|game) EDITION=full ;;
+  demo) EDITION=demo ;;
+  *) echo "::error::Unknown Steam target '$TARGET'; use playtest, game or demo"; exit 1 ;;
 esac
 ROOT="$(pwd)"
 source "$ROOT/.github/scripts/names.sh"

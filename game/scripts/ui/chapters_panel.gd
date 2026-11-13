@@ -185,7 +185,11 @@ func _story(page: VBoxContainer) -> void:
 		return
 	var from := int(Data.chapter(now)["reputation"])
 	page.add_child(_progress(int(st["reputation"]) - from, int(ch["reputation"]) - from, w))
-	Ui.label(page, tr("Reputation %d of %d: %d more to go.") % [int(st["reputation"]), int(ch["reputation"]), int(ch["reputation"]) - int(st["reputation"])], "", w)
+	if int(st["reputation"]) < int(ch["reputation"]):
+		Ui.label(page, tr("Reputation %d of %d: %d more to go.") % [int(st["reputation"]), int(ch["reputation"]), int(ch["reputation"]) - int(st["reputation"])], "", w)
+	if Game.in_full_game(chapter):
+		Ui.label(page, "In the full game", "MutedLabel", w)
+		return
 	Ui.label(page, "Every finished floor earns reputation, and better floors earn more. Enough reputation opens the next chapter.", "MutedLabel", w)
 
 
@@ -337,7 +341,9 @@ func _tall(probe: VBoxContainer, fill: Callable) -> float:
 ## The right page: whether the chapter is done, open or still to come, and everything it brings.
 func _brings(page: VBoxContainer) -> void:
 	var now := int(Game.state["chapter"])
-	if chapter < now:
+	if Game.in_full_game(chapter):
+		_status(page, "lock", "In the full game. It brings:")
+	elif chapter < now:
 		_status(page, "tick", "Done. It brought:")
 	elif chapter == now:
 		_status(page, "laurel", "You are here. It brought:")

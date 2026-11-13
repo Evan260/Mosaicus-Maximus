@@ -51,6 +51,7 @@ These steps need you, because they involve your Steam account, payment and tax d
    - `account`: the Steam account that uploads builds. Valve recommends a separate Steam account that has only the permission to upload builds, so your own account is never used by a script.
    - `targets.playtest`: the Playtest's App ID and its depots (`windows`, and `macos` and `linux` if it has them).
    - `targets.game`: the main game's App ID and its three depots.
+   - `targets.demo`: the demo's App ID and its three depots, once the demo app exists (`Steam-setup.md`, section 6).
 9. **Log in to steamcmd once.** In PowerShell, run:
 
    ```
@@ -128,6 +129,6 @@ The script builds the game for every platform with a depot, signs and notarizes 
 
 ## The default branch and release
 
-Steam only lets a script make a build live on a branch such as `testing`. For the default branch, the one every buyer gets, go to SteamPipe, Builds in Steamworks and set the build live there yourself. This is Valve's safeguard against a script releasing a broken build to everyone. When the game launches, the same command uploads with `game` instead of `playtest`, and you set each release live on the default branch by hand.
+Steam only lets a script make a build live on a branch such as `testing`. For the default branch, the one every buyer gets, go to SteamPipe, Builds in Steamworks and set the build live there yourself. This is Valve's safeguard against a script releasing a broken build to everyone. When the game launches, the same command uploads with `game` instead of `playtest`, and you set each release live on the default branch by hand. The free demo works the same way with `demo` (`python tools/steam/publish.py demo`), from the demo export presets; its Steamworks setup is in `Steam-setup.md`, section 6.
 
 Before each release, raise `config/version` in `game/project.godot`; the Windows exe's version and the Mac app's version are both taken from it.

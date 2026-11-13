@@ -269,7 +269,7 @@ func _build() -> void:
 		rooms.clip_text = true
 		rooms.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		Ui.tip_on(rooms, "The room to design a floor for")
-		var ids := Data.rooms.keys()
+		var ids := Data.rooms.keys().filter(func(id: String) -> bool: return not Game.in_full_game(int(Data.room(id).get("tier", 1))))
 		for i in ids.size():
 			var r := Data.room(ids[i])
 			rooms.add_item(tr("%s, %d by %d") % [Data.room_title(ids[i]), int(r["w"]), int(r["h"])], i)
@@ -338,14 +338,22 @@ func _place_toolbar() -> void:
 	_toolbar.position = (at - _root.get_global_rect().position).floor()
 
 
+## Free design offers everything the build has: every chapter's, or only the demo's in the demo.
 func _motifs_allowed() -> Array:
-	return Data.motif_order if free else Game.state["unlocked_motifs"]
+	if free:
+		return Data.motif_order.filter(func(id: String) -> bool: return not Game.in_full_game(int(Data.motif(id).get("tier", 1))))
+	return Game.state["unlocked_motifs"]
 
 
 func _stones_allowed() -> Array:
 	if free:
-		return Stones.LIST.map(func(s) -> String: return s["id"])
+		return Stones.LIST.filter(func(s: Dictionary) -> bool: return not Game.in_full_game(int(s["tier"]))).map(func(s: Dictionary) -> String: return s["id"])
 	return Game.state["unlocked_stones"]
+
+
+## What a locked motif or border says: the chapter that opens it, or that only the full game has it.
+func _locked_tip(tier: int) -> Variant:
+	return "In the full game" if Game.in_full_game(tier) else Ui.say("Unlocks in chapter %d, or dig one up.", [tier])
 
 
 func _fill_book() -> void:
@@ -377,10 +385,10 @@ func _fill_book() -> void:
 		slot.add_theme_stylebox_override("hover", UiTheme.panel("chip_off", 3, 2))
 		slot.add_theme_stylebox_override("pressed", UiTheme.panel("slot", 3, 2))
 		slot.add_theme_stylebox_override("disabled", UiTheme.panel("slot", 3, 2))
-		var open := free or Game.has_motif(id)
+		var open: bool = id in _motifs_allowed()
 		var shows := (m.get("tags", []) as Array).filter(func(t: String) -> bool: return Brief.TAG_WORDS.has(t)).map(func(t: String) -> String: return Brief.tag_words(t))
 		var about := (tr("%s. Shows %s.") % [Data.motif_title(id), tr(", ").join(shows)]) if not shows.is_empty() else tr("%s.") % Data.motif_title(id)
-		Ui.tip_on(slot, Ui.text([about, "Drag it onto the floor, or click to add it." if open else Ui.say("Unlocks in chapter %d, or dig one up.", [int(m.get("tier", 1))])]))
+		Ui.tip_on(slot, Ui.text([about, "Drag it onto the floor, or click to add it." if open else _locked_tip(int(m.get("tier", 1)))]))
 		if not open:
 			slot.disabled = true
 			slot.modulate = Color(1, 1, 1, 0.35)
@@ -449,17 +457,18 @@ func _add_border_slot(id: String, name: String) -> void:
 	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	if id != "":
 		b.icon = MotifIcons.border(id, 28)
-		var open := free or Game.has_border(id)
+		var tier := int(Data.borders[id].get("tier", 1))
+		var open := (free and not Game.in_full_game(tier)) or Game.has_border(id)
 		if not open:
 			b.disabled = true
-			Ui.tip_on(b, tr("%s: unlocks in chapter %d") % [name, int(Data.borders[id].get("tier", 1))])
+			Ui.tip_on(b, tr("%s: in the full game") % name if Game.in_full_game(tier) else tr("%s: unlocks in chapter %d") % [name, tier])
 	b.toggle_mode = true
 	b.button_pressed = str(design.border.get("id", "")) == id
 	b.pressed.connect(func() -> void:
 		Audio.play("click")
 		_remember()
 		design.set_border(id)
-		if not free:
+		if not free or Game.is_demo():
 			design.border["stones"] = (design.border.get("stones", []) as Array).map(func(s: String) -> String: return Stones.nearest(s, _stones_allowed()))
 		_dirty = true
 		_cost_dirty = true
@@ -645,7 +654,7 @@ func _refresh_chips() -> void:
 	if selected >= 0:
 		var p: Dictionary = design.placements[selected]
 		var m := Data.motif(p["motif"])
-		_fine_button.visible = m.get("kind", "") == "picture" and (free or int(Game.state["chapter"]) >= 3) and not _is_panel(selected)
+		_fine_button.visible = m.get("kind", "") == "picture" and _fine_open() and not _is_panel(selected)
 		_pair_button.visible = not _is_panel(selected)
 		_fine_button.button_pressed = bool(p.get("fine", false))
 		if _is_panel(selected):
@@ -986,10 +995,15 @@ func _drag_preview(motif_id: String) -> Control:
 	return holder
 
 
+## Whether pictures may be laid in half-size tiles, which chapter 3 brings and free design has when the build has chapter 3.
+func _fine_open() -> bool:
+	return (free and not Game.in_full_game(3)) or int(Game.state["chapter"]) >= 3
+
+
 ## A motif's own stones, each swapped for the nearest one the workshop has, as it will be laid; all of them in free design.
 func _stones_for(motif_id: String) -> Dictionary:
 	var stones := (Data.motif(motif_id).get("stones", {}) as Dictionary).duplicate()
-	if not free:
+	if not free or Game.is_demo():
 		for k in stones:
 			stones[k] = Stones.nearest(stones[k], _stones_allowed())
 	return stones
@@ -999,9 +1013,9 @@ func _add_motif(motif_id: String, at: Vector2) -> void:
 	_remember()
 	var m := Data.motif(motif_id)
 	var p := design.add(motif_id, snappedf(at.x, 0.5), snappedf(at.y, 0.5), _starting_size(motif_id))
-	p["fine"] = m.get("kind", "") == "picture" and (free or int(Game.state["chapter"]) >= 3)
+	p["fine"] = m.get("kind", "") == "picture" and _fine_open()
 	p["stones"] = _stones_for(motif_id)
-	if not free:
+	if not free or Game.is_demo():
 		if str(p.get("outline", "")) != "":
 			p["outline"] = Stones.nearest(p["outline"], _stones_allowed())
 	Audio.play("tab", -8.0)

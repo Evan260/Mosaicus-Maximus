@@ -1,6 +1,6 @@
 # Mosaicus Maximus: Release builds
 
-GitHub builds the game in the cloud: it runs the tests, exports Windows, macOS and Linux, signs and notarizes the Mac app, and for a version tag publishes a GitHub release with every build attached. The workflow is `.github/workflows/release.yml`; the scripts it runs are in `.github/scripts/`.
+GitHub builds the game in the cloud: it runs the tests, exports Windows, macOS and Linux for the full game and the demo, signs and notarizes the Mac apps, and for a version tag publishes a GitHub release with every build attached. The workflow is `.github/workflows/release.yml`; the scripts it runs are in `.github/scripts/`.
 
 GitHub Actions is free for public repositories, Mac runners included, so the repository has to be public before the first run.
 
@@ -24,8 +24,8 @@ The tag must be `v` followed by `config/version`, or the tests job stops with "V
 | Job | Runs on | What it does |
 |---|---|---|
 | Tests | Ubuntu | Imports the project and runs `--run-tests`; fails unless it prints `ALL TESTS PASSED` |
-| Export (three at once) | Ubuntu | Exports Windows, macOS and Linux with `tools/export.py`, with `Credits and licences.txt` and, for Windows, the everything-unlocked launcher |
-| Sign macOS | Mac | Signs the app and its libraries with the Developer ID certificate, notarizes it with Apple, staples the ticket and checks it with Gatekeeper |
+| Export (six at once) | Ubuntu | Exports Windows, macOS and Linux for the full game and the demo with `tools/export.py`, with `Credits and licences.txt` and, for the full Windows game, the everything-unlocked launcher |
+| Sign macOS (twice) | Mac | Signs the app and its libraries with the Developer ID certificate, notarizes it with Apple, staples the ticket and checks it with Gatekeeper |
 | GitHub release | Ubuntu | Only for a tag: creates the release and attaches every build |
 | Steam upload | Ubuntu | Switched off until set up (below) |
 
@@ -35,16 +35,19 @@ Godot 4.7.2 and its export templates are downloaded from Godot's GitHub releases
 
 **Every run:** open the run on the Actions tab and scroll to **Artifacts** at the bottom. Each download is a zip holding one build:
 
-- `release-windows`: the game folder zipped
-- `release-linux`: a `.tar.gz`, which keeps the Linux executable permissions that a plain zip from GitHub would lose
-- `release-macos`: the signed and notarized app with the credits, zipped on the Mac, or `-macos-unsigned.zip` when the Apple secrets are not set
-- `macos-export-macos`: Godot's unsigned export, only used by the signing job
+- `release-full-windows`, `release-demo-windows`: the game folder zipped
+- `release-full-linux`, `release-demo-linux`: a `.tar.gz`, which keeps the Linux executable permissions that a plain zip from GitHub would lose
+- `release-full-macos`, `release-demo-macos`: the signed and notarized app with the credits, zipped on the Mac, or `-macos-unsigned.zip` when the Apple secrets are not set
+- `macos-export-full-macos`, `macos-export-demo-macos`: Godot's unsigned export, only used by the signing job
 
 **A tag:** the repository's **Releases** page gets a release named after the tag with these files:
 
 - `Mosaicus-Maximus-v1.0.0-windows.zip`
 - `Mosaicus-Maximus-v1.0.0-macos.zip`
 - `Mosaicus-Maximus-v1.0.0-linux.tar.gz`
+- `Mosaicus-Maximus-Demo-v1.0.0-windows.zip`, `Mosaicus-Maximus-Demo-v1.0.0-macos.zip`, `Mosaicus-Maximus-Demo-v1.0.0-linux.tar.gz`
+
+The demo's Mac app is named `Mosaicus Maximus.app`, since Godot names the app after the project.
 
 ## The secrets
 
@@ -126,7 +129,7 @@ GitHub never shows a secret again once saved, and the workflow keeps them out of
 
 The Steam job is written but switched off. It uploads the builds from the same run with steamcmd, leaving the everything-unlocked launcher out of the Windows depot (it stays in the GitHub release), and makes them live on the `testing` branch, never the default branch, which is still set live by hand in Steamworks (`Steam-publishing.md`). The Mac depot needs the signed Mac build, so the Apple secrets come first. To switch it on:
 
-1. Fill in `tools/steam/steam.json` (the account, and the App ID and depots of `playtest` and `game`; `Steam-publishing.md`, step 8) and commit it.
+1. Fill in `tools/steam/steam.json` (the account, and the App ID and depots of `playtest`, `game` and `demo`; `Steam-publishing.md`, step 8) and commit it.
 2. Log steamcmd in once in WSL, as in `Steam-publishing.md` step 9, with the account that uploads builds. That saves the login in `~/Steam/config/config.vdf` inside WSL.
 3. Copy that saved login as base64 from PowerShell:
 
@@ -136,6 +139,6 @@ The Steam job is written but switched off. It uploads the builds from the same r
 
    Add it as the secret `STEAM_CONFIG_VDF`, and the account name as `STEAM_USERNAME`.
 4. On the same Settings page, choose the **Variables** tab and add the repository variable `STEAM_UPLOAD` with the value `true`.
-5. A tag then uploads to the Playtest. To upload tags to the main game instead, add the variable `STEAM_TARGET` with `game`. **Run workflow** has a menu to pick the app for that run.
+5. A tag then uploads to the Playtest. To upload tags to another app, add the variable `STEAM_TARGET` with `game` or `demo`. **Run workflow** has a menu to pick the app for that run.
 
 If Steam ends the saved login, the job fails asking for a new `STEAM_CONFIG_VDF`; log in again in WSL and repeat step 3. To switch uploads off, set `STEAM_UPLOAD` to `false`.

@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Runs on a Mac: opens Godot's export, signs, notarizes and staples the app when the Apple secrets are set, and zips it
 # with the credits into dist/. Without the secrets it zips the app unsigned and says so.
-#   bash .github/scripts/sign_macos.sh <folder with the exported .zip and the credits>
+#   bash .github/scripts/sign_macos.sh <folder with the exported .zip and the credits> <full|demo>
 set -euo pipefail
 
 EXPORT="$1"
+EDITION="${2:-full}"
 ROOT="$(pwd)"
 source "$ROOT/.github/scripts/names.sh"
-WORK="${RUNNER_TEMP:-/tmp}/mac"
+WORK="${RUNNER_TEMP:-/tmp}/mac-$EDITION"
 DIST="$ROOT/dist"
 SECRETS=(MACOS_CERTIFICATE_P12 MACOS_CERTIFICATE_PASSWORD APPLE_API_KEY_P8 APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_TEAM_ID)
 

@@ -81,7 +81,7 @@ static func _ship(state: Dictionary, rng: RandomNumberGenerator) -> void:
 	var day := int(state["day"])
 	if day < 3 or day - int(state.get("ship", {}).get("day", -9)) < 3 or rng.randf() > Data.num("ship.chance", 0.3):
 		return
-	var reach := int(state["chapter"]) + 1
+	var reach := mini(int(state["chapter"]) + 1, Game.last_chapter())
 	var cargo := Stones.LIST.filter(func(st: Dictionary) -> bool: return int(st["tier"]) <= reach and not st["id"] in state["unlocked_stones"])
 	var bargain := cargo.is_empty()
 	if bargain:
@@ -215,11 +215,18 @@ static func chapter_letters(state: Dictionary) -> Array:
 	return letters
 
 
+## Opens every chapter the reputation has reached. In the demo, reaching the first chapter past its end brings the
+## demo's end card once instead.
 static func check_chapters(state: Dictionary) -> Array:
 	var events := []
 	for ch in Data.chapters:
 		var n := int(ch["n"])
 		if n > int(state["chapter"]) and int(state["reputation"]) >= int(ch["reputation"]):
+			if Game.in_full_game(n):
+				if not bool(state.get("demo_over", false)):
+					state["demo_over"] = true
+					events.append({"kind": "demo_end"})
+				break
 			unlock(state, n)
 			events.append({"kind": "chapter", "n": n, "title": ch["title"], "text": ch["text"]})
 	return events
@@ -259,6 +266,8 @@ static func next_chapter_line(state: Dictionary, extra: int = 0, brief: bool = f
 	var n := int(next["n"])
 	var title := TranslationServer.translate(str(next["title"]))
 	var short := int(next["reputation"]) - int(state["reputation"]) - extra
+	if Game.in_full_game(n):
+		return TranslationServer.translate("%d more reputation finishes the demo") % short if short > 0 else TranslationServer.translate("Chapter %d is in the full game") % n
 	if short <= 0:
 		return TranslationServer.translate("Enough for chapter %d!") % n if brief else TranslationServer.translate("Enough reputation for chapter %d: %s!") % [n, title]
 	return TranslationServer.translate("%d more reputation for chapter %d") % [short, n] if brief else TranslationServer.translate("%d more reputation opens chapter %d: %s") % [short, n, title]
@@ -272,6 +281,7 @@ static func _list(names: Array, most: int = 5) -> String:
 
 ## Opens a chapter: its stones, motifs and borders join the workshop, each only once.
 static func unlock(state: Dictionary, n: int) -> void:
+	n = mini(n, Game.last_chapter())
 	state["chapter"] = maxi(int(state["chapter"]), n)
 	for s in Stones.LIST:
 		if int(s["tier"]) <= n and not s["id"] in state["unlocked_stones"]:

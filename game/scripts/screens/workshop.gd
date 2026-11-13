@@ -91,6 +91,9 @@ func enter(_args: Dictionary) -> void:
 		Game.state["story_seen"].append("intro")
 		var ch := Data.chapter(1)
 		_queue_event({"kind": "chapter", "n": 1, "title": ch.get("title", ""), "text": ch.get("text", "")})
+	# A demo workshop opened in the full game, or one past the demo's end, opens the chapters its reputation has reached.
+	for e in Story.check_chapters(Game.state):
+		_queue_event(e)
 	if Dev.has("panel") or Dev.has("no-hud"):
 		Game.state["pending_events"].clear()
 	_bar.visible = not Dev.has("no-hud")
@@ -126,6 +129,9 @@ func enter(_args: Dictionary) -> void:
 			var book := ChaptersPanel.open(_root)
 			book.show_letters()
 			_show_panel(book)
+		"demo-end":
+			_queue_event({"kind": "demo_end"})
+			_show_next_event()
 		"letter":
 			Story.unlock(Game.state, 2)
 			Game.state["reputation"] = 40
@@ -382,6 +388,8 @@ func _refresh() -> void:
 	var title := tr(str(ch.get("title", "")))
 	if next.is_empty():
 		Ui.tip_on(_rep, tr("Chapter %d: %s. Reputation %d. Click to see every chapter.") % [int(st["chapter"]), title, int(st["reputation"])])
+	elif Game.in_full_game(int(next["n"])):
+		Ui.tip_on(_rep, tr("Chapter %d: %s. Reputation %d of the %d that finishes the demo. Click to see every chapter.") % [int(st["chapter"]), title, int(st["reputation"]), int(next["reputation"])])
 	else:
 		Ui.tip_on(_rep, tr("Chapter %d: %s. Reputation %d of the %d that opens chapter %d. Click to see every chapter.") % [int(st["chapter"]), title, int(st["reputation"]), int(next["reputation"]), int(next["n"])])
 	var left := Story.jobs_left(st)
@@ -471,6 +479,9 @@ func _show_next_event() -> void:
 		_guide.call_deferred()
 		return
 	var e: Dictionary = pending[0]
+	if e.get("kind", "") == "demo_end":
+		_show_demo_end(e)
+		return
 	_popup = Ui.panel(_root, "PagePanel")
 	var popup := _popup
 	var sides := Ui.hbox(_popup, 10)
@@ -501,6 +512,21 @@ func _show_next_event() -> void:
 	Ui.closes_with(_popup, carry_on, false)
 	ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	Audio.play("page_turn", -6.0)
+	_layout.call_deferred()
+
+
+## The demo's end card, which is not kept with the letters, since it is about the game rather than the town.
+func _show_demo_end(e: Dictionary) -> void:
+	var card: Array[Control] = []
+	var carry_on := func() -> void:
+		if card.is_empty() or _popup != card[0]:
+			return
+		(Game.state["pending_events"] as Array).erase(e)
+		_popup.queue_free()
+		_popup = null
+		_show_next_event()
+	_popup = DemoEnd.open(_root, carry_on)
+	card.append(_popup)
 	_layout.call_deferred()
 
 
