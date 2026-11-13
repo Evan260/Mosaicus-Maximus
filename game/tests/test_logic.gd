@@ -1338,6 +1338,12 @@ func test_fonts_have_every_letter() -> void:
 	check(missing.is_empty(), "every language's font draws all its letters (missing %s)" % str(missing))
 
 
+func test_wrap_width_breaks_long_words() -> void:
+	var word := "Mosaicusmosaicusmosaicusmosaicus"
+	var widest := UiTheme.body_font().get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, UiTheme.text_size()).x + 20.0
+	check(Ui.wrap_width(word, 30.0, 1, widest) > 30.0, "a word too long for its line is measured as the label breaks it, over several lines")
+
+
 func test_kept_words_follow_the_language() -> void:
 	var rng := _seeded_rng(4)
 	game.new_game("Words")

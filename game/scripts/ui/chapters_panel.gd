@@ -240,7 +240,7 @@ func _award_pages(have: Array) -> Array:
 	var pages := [[]]
 	var room := full - UiTheme.heading_size() - line - 6.0
 	for a in ordered:
-		var tall := font.get_multiline_string_size(tr(str(a["name"])), HORIZONTAL_ALIGNMENT_LEFT, _text_width() - 7, size).y + 1.0
+		var tall := font.get_multiline_string_size(tr(str(a["name"])), HORIZONTAL_ALIGNMENT_LEFT, _text_width() - 7, size, -1, Ui.WRAP_BREAKS).y + 1.0
 		if tall > room and not pages[-1].is_empty():
 			pages.append([])
 			room = full - (24.0 if pages.size() % 2 == 0 else 0.0)

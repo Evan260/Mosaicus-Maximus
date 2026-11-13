@@ -9,6 +9,9 @@ const TAB_EDGE := Color8(160, 122, 84)
 ## How many windows `closes_with` has marked, so each gets a number saying which opened last.
 static var _opened := 0
 
+## The line breaks of a smart-wrapping label, so text measured here wraps as it does on screen, a word too long for its line included.
+const WRAP_BREAKS := TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+
 
 static func label(parent: Node, text: String, variation: String = "", wrap_width: float = 0.0) -> Label:
 	var l := Label.new()
@@ -335,7 +338,7 @@ static func wrap_width(text: String, width: float, lines: int, widest: float) ->
 	var font := UiTheme.body_font()
 	var size := UiTheme.text_size()
 	var w := width
-	while w < widest and font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, w, size).y > lines * font.get_height(size):
+	while w < widest and font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, w, size, -1, WRAP_BREAKS).y > lines * font.get_height(size):
 		w += 10.0
 	return minf(w, widest)
 
