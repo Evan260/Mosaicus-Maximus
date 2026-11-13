@@ -889,9 +889,12 @@ def icon(art):
 
 # Controller button pictures for key hints, in the same ink, walnut and stone as the rest of the interface.
 PAD_LETTERS = {
-    "A": [".#.", "#.#", "###", "#.#", "#.#"], "B": ["##.", "#.#", "##.", "#.#", "##."],
-    "X": ["#.#", "#.#", ".#.", "#.#", "#.#"], "Y": ["#.#", "#.#", ".#.", ".#.", ".#."],
-    "L": ["#..", "#..", "#..", "#..", "###"], "R": ["##.", "#.#", "##.", "#.#", "#.#"],
+    "A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+    "B": ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."],
+    "X": ["#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#"],
+    "Y": ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."],
+    "L": ["#....", "#....", "#....", "#....", "#....", "#....", "#####"],
+    "R": ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
 }
 PAD_FACE = {"A": (172, 216, 112), "B": (244, 124, 104), "X": (150, 198, 244), "Y": (252, 224, 132)}
 
@@ -902,10 +905,26 @@ def pad_text(im, text, x, y, c):
             for dx, on in enumerate(row):
                 if on == "#":
                     px(im, x + dx, y + dy, c)
-        x += 4
+        x += 7
 
 
-def pad_disc(fill, hi, lo, size=11):
+def halo(im):
+    """A one-pixel cream rim round the picture, so a dark button still stands out on a grey floor or dark wood."""
+    out = canvas(im.width + 2, im.height + 2)
+    out.alpha_composite(im, (1, 1))
+    solid = out.copy()
+    for y in range(out.height):
+        for x in range(out.width):
+            if solid.getpixel((x, y))[3]:
+                continue
+            near = any(0 <= x + dx < out.width and 0 <= y + dy < out.height and solid.getpixel((x + dx, y + dy))[3]
+                       for dx in (-1, 0, 1) for dy in (-1, 0, 1))
+            if near:
+                px(out, x, y, PARCH_HI)
+    return out
+
+
+def pad_disc(fill, hi, lo, size=13):
     """A round button: an inked rim, a lit top and a shaded foot."""
     im = canvas(size, size)
     c = (size - 1) / 2
@@ -925,7 +944,7 @@ def pad_face(letter):
 
 def pad_shoulder(text):
     """LB and RB, the shoulder bumpers, as a flat stone key."""
-    w, h = 15, 9
+    w, h = 19, 11
     im = canvas(w, h)
     for y in range(h):
         for x in range(w):
@@ -933,18 +952,18 @@ def pad_shoulder(text):
                 continue
             rim = y in (0, h - 1) or x in (0, w - 1)
             px(im, x, y, INK if rim else (STONE_HI if y == 1 else STONE_LO if y == h - 2 else STONE))
-    pad_text(im, text, 4, 2, INK)
+    pad_text(im, text, 3, 2, INK)
     return im
 
 
 def pad_dpad(lit):
     """The cross of the direction pad, with the arms named in `lit` picked out in gold."""
-    im = canvas(11, 11)
-    arms = {"up": (4, 0, 6, 3), "down": (4, 7, 6, 10), "left": (0, 4, 3, 6), "right": (7, 4, 10, 6)}
+    im = canvas(13, 13)
+    arms = {"up": (5, 0, 7, 4), "down": (5, 8, 7, 12), "left": (0, 5, 4, 7), "right": (8, 5, 12, 7)}
     def inside(x, y):
-        return (3 <= x <= 7 and 0 <= y <= 10) or (0 <= x <= 10 and 3 <= y <= 7)
-    for y in range(11):
-        for x in range(11):
+        return (4 <= x <= 8 and 0 <= y <= 12) or (0 <= x <= 12 and 4 <= y <= 8)
+    for y in range(13):
+        for x in range(13):
             if not inside(x, y):
                 continue
             edge = not all(inside(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
@@ -958,9 +977,9 @@ def pad_dpad(lit):
 
 def pad_stick(letter):
     im = pad_disc(STONE_LO, STONE, GREY_LO)
-    for y in range(3, 8):
-        for x in range(3, 8):
-            if (x - 5) ** 2 + (y - 5) ** 2 <= 5:
+    for y in range(3, 10):
+        for x in range(3, 10):
+            if (x - 6) ** 2 + (y - 6) ** 2 <= 10:
                 px(im, x, y, STONE_HI)
     pad_text(im, letter, 4, 3, INK)
     return im
@@ -968,25 +987,25 @@ def pad_stick(letter):
 
 def pad_view():
     """The small View button, two overlapping windows, which shows or hides the chalk."""
-    im = canvas(11, 9)
-    for y in range(9):
-        for x in range(11):
-            corner = (x in (0, 10)) and (y in (0, 8))
-            if not corner:
-                px(im, x, y, INK if x in (0, 10) or y in (0, 8) else WAX)
-    for x0, y0 in ((2, 2), (5, 4)):
-        for y in range(y0, y0 + 3):
-            for x in range(x0, x0 + 4):
-                if x in (x0, x0 + 3) or y in (y0, y0 + 2):
+    im = canvas(13, 11)
+    for y in range(11):
+        for x in range(13):
+            if not ((x in (0, 12)) and (y in (0, 10))):
+                px(im, x, y, INK if x in (0, 12) or y in (0, 10) else WAX)
+    for x0, y0 in ((2, 2), (6, 5)):
+        for y in range(y0, y0 + 4):
+            for x in range(x0, x0 + 5):
+                if x in (x0, x0 + 4) or y in (y0, y0 + 3):
                     px(im, x, y, CREAM)
     return im
 
 
 def pad_glyphs():
     glyphs = {f"pad_{k.lower()}": pad_face(k) for k in PAD_FACE}
-    glyphs.update({"pad_lb": pad_shoulder("LB"), "pad_rb": pad_shoulder("RB"), "pad_dpad_right": pad_dpad({"right"}), "pad_dpad_updown": pad_dpad({"up", "down"}),
-                   "pad_lstick": pad_stick("L"), "pad_rstick": pad_stick("R"), "pad_view": pad_view()})
-    return glyphs
+    glyphs.update({"pad_lb": pad_shoulder("LB"), "pad_rb": pad_shoulder("RB"), "pad_dpad_right": pad_dpad({"right"}),
+                   "pad_dpad_updown": pad_dpad({"up", "down"}), "pad_lstick": pad_stick("L"), "pad_rstick": pad_stick("R"),
+                   "pad_view": pad_view()})
+    return {name: halo(im) for name, im in glyphs.items()}
 
 
 def main():
