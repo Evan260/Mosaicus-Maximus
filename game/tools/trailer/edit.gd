@@ -60,7 +60,7 @@ pet the dog", "caption_at": 0.0},
 	{"shot": "pet_sighthound", "from": 1.6, "beats": 3, "caption": "and the sighthound", "caption_at": 0.0},
 	{"shot": "pet_lapdog", "from": 1.6, "beats": 3, "caption": "and the little one", "caption_at": 0.0},
 	{"shot": "pet_sheepdog", "from": 1.6, "beats": 4, "caption": "and the fluffy one", "caption_at": 0.0},
-	{"end": "endcard", "from": 1.0, "beats": 5, "dim": 0.55},
+	{"end": "endcard", "from": 1.0, "beats": 6, "dim": 0.55},
 ]
 ## An old floor dug up slowly, the picture under the dirt kept a secret until the end.
 const GUESS := [
@@ -71,7 +71,7 @@ under the dirt", "caption_at": 0.0},
 	{"shot": "guess_dig", "from": 7.4, "beats": 4, "caption": "any guesses?", "caption_at": 0.0},
 	{"shot": "guess_dig", "from": 10.8, "beats": 3, "caption": "a guard dog.
 of course.", "caption_at": 0.0},
-	{"end": "endcard", "from": 1.0, "beats": 5, "dim": 0.55},
+	{"end": "endcard", "from": 1.0, "beats": 6, "dim": 0.55},
 ]
 ## No music: the stones, the sponge, the cloth, the trowel and the dog.
 const ASMR := [
@@ -80,13 +80,13 @@ sound on", "caption_at": 0.0},
 	{"shot": "floor", "from": 11.5, "beats": 5},
 	{"shot": "guess_dig", "from": 1.3, "beats": 13},
 	{"shot": "pet_hound", "from": 1.4, "beats": 4},
-	{"end": "endcard", "from": 1.0, "beats": 5, "dim": 0.55},
+	{"end": "endcard", "from": 1.0, "beats": 6, "dim": 0.55},
 ]
 ## The first floor a workshop lays, and one from its last chapter.
 const FIRST_LAST := [
 	{"shot": "first_pour", "from": 0.2, "beats": 6, "caption": "my first floor", "caption_at": 0.0},
 	{"shot": "last_pour", "from": 1.2, "beats": 8, "caption": "my 50th floor", "caption_at": 0.0},
-	{"end": "endcard", "from": 1.0, "beats": 5, "dim": 0.55},
+	{"end": "endcard", "from": 1.0, "beats": 6, "dim": 0.55},
 ]
 ## What four clients said once their floors were down, each shown in their own room.
 const REVIEWS := [
@@ -104,7 +104,7 @@ his couch. Perfect.\"", "caption_at": 0.0},
 	{"shot": "react_livia", "from": 1.5, "beats": 5, "caption": "Livia, a bride-to-be:
 \"Mother cried. Then she
 asked who made it.\"", "caption_at": 0.0},
-	{"end": "endcard", "from": 1.0, "beats": 5, "dim": 0.55},
+	{"end": "endcard", "from": 1.0, "beats": 6, "dim": 0.55},
 ]
 ## The town's forum floor, poured from one corner as the view pulls back to show how big it is.
 const BIGGEST := [
@@ -113,7 +113,7 @@ a bigger floor", "caption_at": 0.0},
 	{"shot": "forum_pour", "from": 5.0, "beats": 3, "caption": "bigger", "caption_at": 0.0},
 	{"shot": "forum_pour", "from": 7.6, "beats": 5, "caption": "the forum:
 17,847 stones", "caption_at": 0.0},
-	{"end": "endcard", "from": 1.0, "beats": 5, "dim": 0.55},
+	{"end": "endcard", "from": 1.0, "beats": 6, "dim": 0.55},
 ]
 ## How each cut is laid out: its frame, how many screen pixels make one overlay pixel, its caption size and where its
 ## text and logo sit in overlay pixels, and where in the music it starts.
