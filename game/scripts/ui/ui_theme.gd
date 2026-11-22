@@ -20,6 +20,8 @@ static var _theme: Theme
 static var _bodies := {}
 static var _titles := {}
 static var _digits: Font
+## The fingertip and line height the theme was last padded for, so padding it again for the same is skipped.
+static var _padded_for := Vector2i(-1, -1)
 
 
 ## The font for running text in the current language, or in the language given.
@@ -161,13 +163,44 @@ static func build() -> Theme:
 		t.set_stylebox("grabber_highlight", bar, _flat(Color8(150, 104, 64), 2))
 		t.set_stylebox("grabber_pressed", bar, _flat(Color8(176, 128, 82), 2))
 	_theme = t
+	fit_touch()
 	return t
+
+
+## The room above and below a button's text: a computer's 4 pixels, or on a phone enough to make a line a fingertip tall.
+static func button_pad_for(finger: int, line: float) -> int:
+	if finger <= 0:
+		return 4
+	return maxi(4, ceili((finger - line) / 2.0))
+
+
+## Pads the shared theme's buttons, text fields and lists to a fingertip on a phone, or back to a computer's size.
+static func fit_touch() -> void:
+	if _theme == null:
+		return
+	var finger := Nav.touch_px()
+	var line := body_font().get_height(text_size())
+	if _padded_for == Vector2i(finger, roundi(line)):
+		return
+	_padded_for = Vector2i(finger, roundi(line))
+	var pad := button_pad_for(finger, line)
+	for type in ["Button", "MainButton"]:
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			var box := _theme.get_stylebox(state, type)
+			box.content_margin_top = pad
+			box.content_margin_bottom = pad
+	for state in ["normal", "focus"]:
+		var box := _theme.get_stylebox(state, "LineEdit")
+		box.content_margin_top = pad
+		box.content_margin_bottom = pad
+	_theme.set_constant("v_separation", "PopupMenu", maxi(4, finger - int(line)))
 
 
 ## Switches the shared theme to the current language's fonts; every control drawn with it follows.
 static func use_language() -> void:
 	if _theme:
 		_set_fonts(_theme)
+		fit_touch()
 
 
 static func _set_fonts(t: Theme) -> void:

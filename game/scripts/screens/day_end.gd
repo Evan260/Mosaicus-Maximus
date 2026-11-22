@@ -33,3 +33,8 @@ func enter(_args: Dictionary) -> void:
 	Nav.resized.connect(place)
 	place.call_deferred()
 	Audio.play("page_turn", -6.0)
+
+
+## A phone's back gesture sleeps, as the tablet's one button does.
+func carry_on() -> void:
+	Nav.go("workshop")

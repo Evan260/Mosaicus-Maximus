@@ -113,7 +113,7 @@ func _show_achievement() -> void:
 
 
 func _point(ui_at: Vector2, click: bool) -> void:
-	var at := ui_at * Nav.scale_factor()
+	var at := (ui_at + Nav.safe_top_left) * Nav.scale_factor()
 	get_viewport().warp_mouse(at)
 	var m := InputEventMouseMotion.new()
 	m.position = at
@@ -158,12 +158,12 @@ func _drag(from: Vector2, to: Vector2) -> void:
 	var b := InputEventMouseButton.new()
 	b.button_index = MOUSE_BUTTON_LEFT
 	b.pressed = true
-	b.position = from * k
+	b.position = (from + Nav.safe_top_left) * k
 	b.global_position = b.position
 	Input.parse_input_event(b)
 	for i in range(1, 13):
 		await get_tree().process_frame
-		var at := from.lerp(to, i / 12.0) * k
+		var at := (from.lerp(to, i / 12.0) + Nav.safe_top_left) * k
 		get_viewport().warp_mouse(at)
 		var m := InputEventMouseMotion.new()
 		m.position = at

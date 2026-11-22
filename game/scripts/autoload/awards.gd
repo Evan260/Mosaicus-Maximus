@@ -42,6 +42,7 @@ func _ready() -> void:
 func _fit() -> void:
 	var k := Nav.scale_factor()
 	transform = Transform2D(0.0, Vector2(k, k), 0.0, Vector2.ZERO)
+	_root.position = Nav.safe_top_left
 
 
 func _process(delta: float) -> void:
@@ -179,9 +180,18 @@ func _next() -> void:
 	_leave(HOLD)
 
 
+## Sends the card showing on its way, as a click on it does, for a phone's back gesture; true if there was one.
+func dismiss() -> bool:
+	if _card == null or _card.has_meta("going"):
+		return false
+	_leave(0.0)
+	return true
+
+
 ## Slides the card back out after `wait` seconds, or at once when it is clicked, and brings on the next.
 func _leave(wait: float) -> void:
 	if wait == 0.0:
+		_card.set_meta("going", true)
 		_tween.kill()
 		_tween = _card.create_tween()
 	var card := _card

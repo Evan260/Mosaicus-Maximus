@@ -126,7 +126,8 @@ func apply() -> void:
 	var whole := master
 	# A recording is made while other windows have the focus, so it always keeps its sound.
 	if _behind and Engine.get_write_movie_path() == "":
-		whole *= float({"quieter": 0.25, "muted": 0.0}.get(background_sound, 1.0))
+		# A phone game put away is silent, as phone apps are.
+		whole *= 0.0 if Nav.phone else float({"quieter": 0.25, "muted": 0.0}.get(background_sound, 1.0))
 	Audio.set_volumes(whole, music, effects)
 
 
@@ -136,7 +137,7 @@ func pace() -> void:
 
 
 func _restore_window() -> void:
-	if "--window" in str(OS.get_cmdline_user_args()):
+	if Nav.phone or "--window" in str(OS.get_cmdline_user_args()):
 		return
 	if maximized:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
@@ -146,8 +147,8 @@ func _restore_window() -> void:
 
 
 func _notification(what: int) -> void:
-	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_FOCUS_IN]:
-		_behind = what == NOTIFICATION_APPLICATION_FOCUS_OUT
+	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_FOCUS_IN, NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_RESUMED]:
+		_behind = what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED]
 		apply()
 		pace()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
@@ -193,19 +194,28 @@ func save(announce: bool = true) -> void:
 		changed.emit()
 
 
-## The interface size after `step`: Normal, Larger, Largest, Smaller, then Normal again.
-static func next_ui_step(step: int) -> int:
+## The interface size after `step`: Normal, Larger, Largest, Smaller, then Normal again; a phone, which already draws it
+## as large as fits, has only Normal and Smaller.
+static func next_ui_step(step: int, phone := false) -> int:
+	if phone:
+		return -1 if step >= 0 else 0
 	return (step + 2) % 4 - 1
 
 
 ## Steps the interface size on to the next of Smaller, Normal, Larger and Largest, and lays the screen out again at it.
 func cycle_ui_size() -> void:
-	ui_scale_step = next_ui_step(ui_scale_step)
+	ui_scale_step = next_ui_step(ui_scale_step, Nav.phone)
 	save()
 	Nav.refit()
+	# A phone's buttons are a fingertip at the interface's scale, so they are padded again and the screen built anew.
+	if Nav.phone:
+		UiTheme.fit_touch()
+		Nav.reopen()
 
 
 func toggle_fullscreen() -> void:
+	if Nav.phone:
+		return
 	var mode := DisplayServer.window_get_mode()
 	fullscreen = mode != DisplayServer.WINDOW_MODE_FULLSCREEN
 	if fullscreen:

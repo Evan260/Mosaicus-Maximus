@@ -293,6 +293,12 @@ func _panels_bonus() -> int:
 	return total
 
 
+## A phone's back gesture does what Back to the workshop does, once the card is there to show what was paid.
+func carry_on() -> void:
+	if _keep != null:
+		_finish()
+
+
 func _finish() -> void:
 	if _done:
 		return

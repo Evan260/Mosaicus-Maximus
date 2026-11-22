@@ -45,6 +45,9 @@ func _process(delta: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and playing():
 		save()
+	# A phone may close a game put in the background without warning, so it is saved as soon as it is put away.
+	elif what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT] and OS.has_feature("mobile") and playing():
+		save()
 
 
 func save(n: int = -1) -> bool:

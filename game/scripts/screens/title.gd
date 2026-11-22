@@ -63,6 +63,9 @@ func _process(delta: float) -> void:
 	if _cam:
 		var drift := Vector2.ZERO if Settings.reduced_motion else Vector2(sin(_t * 0.07), cos(_t * 0.05)) * 60.0
 		_cam.position = _floor.size_world() * 0.5 + drift
+	# While a phone's keyboard is up, the menu rises until the name being typed shows above it.
+	if Nav.phone and is_instance_valid(_menu):
+		Ui.clear_keyboard(_menu, floorf((Nav.ui_size().y - _menu.size.y) * 0.5))
 
 
 func _fit() -> void:
@@ -122,7 +125,9 @@ func _show_menu() -> void:
 	Ui.button(row, "Free design", func() -> void: Nav.go("design_table", {"free": true}), "brush")
 	Ui.button(row, "Library", func() -> void: Nav.go("library", {"back": "title"}), "book")
 	Ui.button(row, "Settings", open_settings, "gear")
-	Ui.button(row, "Quit", quit_game)
+	# Phone games are put away rather than quit, so a phone has no Quit.
+	if not Nav.phone:
+		Ui.button(row, "Quit", quit_game)
 	if Game.is_demo():
 		var wish := DemoEnd.wishlist_button(col)
 		if wish:
@@ -148,7 +153,7 @@ func _slot_row(parent: Node, slot: int, s: Dictionary) -> void:
 		b.disabled = true
 		Ui.tip_on(b, "In the full game")
 	var del := Ui.icon_button(row, "trash", "Delete this workshop", func() -> void: _confirm_delete(slot, s))
-	del.custom_minimum_size = Vector2(22, 30)
+	del.custom_minimum_size = Ui.finger(Vector2(22, 30))
 
 
 ## Deleting a workshop can't be undone, so the word "delete" has to be typed before it goes.
@@ -210,7 +215,9 @@ func _show_new() -> void:
 	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# A click beside the page would throw away the name typed so far, so only Back and Escape leave it.
 	Ui.closes_with(_menu, _show_menu, false)
-	_name_edit.grab_focus.call_deferred()
+	# A phone's keyboard would cover the dog and the button, and the name has a default, so it waits to be tapped.
+	if not Nav.phone:
+		_name_edit.grab_focus.call_deferred()
 
 
 ## Quitting here does what closing the window does, so the window's size and the settings are kept.

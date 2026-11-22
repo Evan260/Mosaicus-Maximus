@@ -100,9 +100,14 @@ static func _uncentre(b: Button) -> void:
 static func icon_button(parent: Node, icon_name: String, tip: String, action: Callable) -> Button:
 	var b := button(parent, "", action, icon_name)
 	tip_on(b, tip)
-	b.custom_minimum_size = Vector2(20, 20)
+	b.custom_minimum_size = finger(Vector2(20, 20))
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return b
+
+
+## A target's size, grown on a phone to at least a fingertip each way.
+static func finger(size: Vector2) -> Vector2:
+	return size.max(Vector2.ONE * Nav.touch_px())
 
 
 ## A line of a window naming a setting on the left, wrapped if long, with a short button for it on the right.
@@ -156,6 +161,10 @@ static func tab_button(parent: Node, text: String, action: Callable) -> Button:
 		box.content_margin_right = 6
 		box.content_margin_top = 4 if open else 2
 		box.content_margin_bottom = 3 if open else 2
+		# On a phone the closed tabs grow to a fingertip's height, and the open one stands as much taller as before.
+		var grow := maxi(0, ceili((Nav.touch_px() - UiTheme.body_font().get_height(UiTheme.text_size()) - 4.0) / 2.0))
+		box.content_margin_top += grow
+		box.content_margin_bottom += grow
 		b.add_theme_stylebox_override(state, box)
 	for c in ["font_color", "font_hover_color"]:
 		b.add_theme_color_override(c, UiTheme.MUTED)
@@ -172,7 +181,7 @@ static func tab_button(parent: Node, text: String, action: Callable) -> Button:
 static func close_button(parent: Node, window: Control, action: Callable = Callable()) -> Button:
 	var close := closes_with(window, action)
 	var b := icon_button(parent, "cross_small", "Close", close)
-	b.custom_minimum_size = Vector2(16, 16)
+	b.custom_minimum_size = finger(Vector2(16, 16))
 	b.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	return b
 
@@ -235,6 +244,30 @@ static func window_head(parent: Node, window: Control, title: String, action: Ca
 	label(head, title, "Heading", wrap_width).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	close_button(head, window, action)
 	return head
+
+
+## The top of a phone's on-screen keyboard in interface pixels, or INF while it is hidden or on a computer.
+static func keyboard_top() -> float:
+	var tall := DisplayServer.virtual_keyboard_get_height() if Nav.phone else 0
+	if tall <= 0:
+		return INF
+	return float(DisplayServer.window_get_size().y - tall) / Nav.scale_factor() - Nav.safe_top_left.y
+
+
+## The text field of `root` that is being typed in, or null.
+static func typing_in(root: Control) -> LineEdit:
+	var focus := root.get_viewport().gui_get_focus_owner() if root.is_inside_tree() else null
+	return focus as LineEdit if focus is LineEdit and root.is_ancestor_of(focus) else null
+
+
+## Moves a window up while a phone's keyboard is up, until the field being typed in shows above it; `y` is where it sits otherwise.
+static func clear_keyboard(window: Control, y: float) -> void:
+	var field := typing_in(window) if Nav.phone else null
+	if field != null:
+		var top := field.get_global_rect().position.y - window.get_global_rect().position.y
+		y = Touch.clear_keyboard(y, top, top + field.size.y, keyboard_top())
+	if window.position.y != y:
+		window.position.y = y
 
 
 ## Gives a control a tooltip, shown at the interface's scale by the Tips layer.

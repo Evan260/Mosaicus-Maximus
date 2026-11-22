@@ -34,14 +34,15 @@ func _build() -> void:
 	_view.play("happy")
 	_view.position = Vector2(28, -8)
 	_controls = Ui.vbox(self, 3)
-	_controls.custom_minimum_size.x = 112
+	# A phone's arrows are a fingertip wide, and the column widens by as much so the breed's name still fits between them.
+	_controls.custom_minimum_size.x = 112 + 2 * maxi(0, Nav.touch_px() - 18)
 	_breed_label = _chooser(func(by: int) -> void: _step_breed(by))
 	_coat_label = _chooser(func(by: int) -> void: _step_coat(by))
 	_coat_row = _coat_label.get_parent() as HBoxContainer
 	_name = LineEdit.new()
 	_name.max_length = 14
 	_name.text = str(dog.get("name", ""))
-	_name.custom_minimum_size = Vector2(112, 20)
+	_name.custom_minimum_size = Vector2(_controls.custom_minimum_size.x, 20)
 	_name.text_changed.connect(func(t: String) -> void:
 		dog["name"] = t.strip_edges()
 		changed.emit(dog))
@@ -63,11 +64,11 @@ func _suggested() -> String:
 
 func _chooser(step: Callable) -> Label:
 	var row := Ui.hbox(_controls, 2)
-	Ui.icon_button(row, "arrow_l", "", func() -> void: step.call(-1)).custom_minimum_size = Vector2(18, 18)
+	Ui.icon_button(row, "arrow_l", "", func() -> void: step.call(-1)).custom_minimum_size = Ui.finger(Vector2(18, 18))
 	var label := Ui.label(row, "")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	Ui.icon_button(row, "arrow_r", "", func() -> void: step.call(1)).custom_minimum_size = Vector2(18, 18)
+	Ui.icon_button(row, "arrow_r", "", func() -> void: step.call(1)).custom_minimum_size = Ui.finger(Vector2(18, 18))
 	return label
 
 

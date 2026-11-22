@@ -5,8 +5,10 @@ The game lays the mosaic with its own floor renderer and saves it:
 Then: python tools/art/make_icon.py RENDER.png
 Writes game/icon.png (the window's icon) and game/icon.ico (the exe's and the taskbar's, in every size Windows asks for),
 rounded into a tile with a dark rim as Fishus Maximus's is, its corners and rim worked out on a 64 pixel grid so they
-step in the same blocks. With --profile SQUARE.png it rounds the marketing profile picture the same way instead:
+step in the same blocks, and Android's adaptive launcher icon from it into game/assets/android/. With --profile
+SQUARE.png it rounds the marketing profile picture the same way instead, and --android remakes only Android's icon:
   python tools/art/make_icon.py --profile tools/art/profile_square.png   (writes marketing/profile_picture.png)
+  python tools/art/make_icon.py --android
 """
 import sys
 from pathlib import Path
@@ -39,7 +41,23 @@ def rounded(square: Image.Image, size: int = 256) -> Image.Image:
     return Image.fromarray(art)
 
 
+def android(icon: Image.Image) -> None:
+    """Android's adaptive launcher icon: the tile small enough that no launcher's mask cuts it, on the title's dark brown."""
+    side = 432
+    tile = round(side * 0.52)
+    front = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    front.paste(icon.resize((tile, tile), Image.LANCZOS), ((side - tile) // 2,) * 2)
+    out = ROOT / "game" / "assets" / "android"
+    out.mkdir(exist_ok=True)
+    front.save(out / "icon_foreground.png")
+    Image.new("RGBA", (side, side), (33, 27, 23, 255)).save(out / "icon_background.png")
+
+
 def main():
+    if sys.argv[1] == "--android":
+        android(Image.open(ROOT / "game" / "icon.png").convert("RGBA"))
+        print("wrote game/assets/android/icon_foreground.png and icon_background.png")
+        return
     if sys.argv[1] == "--profile":
         square = Image.open(sys.argv[2])
         rounded(square, square.width).save(ROOT / "marketing" / "profile_picture.png")
@@ -50,7 +68,8 @@ def main():
     big.save(ROOT / "game" / "icon.png")
     frames = [big.resize((s, s), Image.LANCZOS) for s in SIZES]
     frames[-1].save(ROOT / "game" / "icon.ico", sizes=[(s, s) for s in SIZES], append_images=frames[:-1])
-    print("wrote game/icon.png and game/icon.ico")
+    android(big)
+    print("wrote game/icon.png, game/icon.ico and the Android launcher icon in game/assets/android/")
 
 
 if __name__ == "__main__":

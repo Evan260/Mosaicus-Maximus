@@ -29,3 +29,9 @@ func _build() -> void:
 func _place() -> void:
 	reset_size()
 	position = ((Nav.ui_size() - size) * 0.5).floor()
+
+
+## While a phone's keyboard is up, the window rises until the dog's name being typed shows above it.
+func _process(_delta: float) -> void:
+	if Nav.phone:
+		Ui.clear_keyboard(self, floorf((Nav.ui_size().y - size.y) * 0.5))

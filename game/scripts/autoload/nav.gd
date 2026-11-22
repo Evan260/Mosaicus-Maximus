@@ -41,6 +41,16 @@ var _busy := false
 var _fitted := Vector2.ZERO
 ## A fixed interface scale, for recordings that frame the interface as it was laid out for them; 0 picks it as usual.
 var ui_scale_override := 0
+## On a phone or tablet the game fills the screen and is played by touch; `--phone` previews that on a computer.
+var phone := OS.has_feature("mobile") or "--phone" in OS.get_cmdline_user_args()
+## True for `--phone` on a computer, which feels a click as a touch.
+var phone_preview := phone and not OS.has_feature("mobile")
+## How far the interface sits in from the screen's top left and bottom right, in interface pixels, clear of a phone's
+## camera and rounded corners; zero on a computer.
+var safe_top_left := Vector2.ZERO
+var safe_bottom_right := Vector2.ZERO
+## When the last back gesture was answered, in milliseconds since the game started.
+var _back_at := -1000
 ## Worker tasks whose screen closed before they finished, each waited for once done, since a task never waited for is never freed.
 var _left_tasks: Array[int] = []
 ## Set once the game starts quitting, so a screen change still fading stops instead of opening a new screen.
@@ -75,6 +85,10 @@ func _ready() -> void:
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(_fade)
 	get_viewport().size_changed.connect(_fit)
+	get_tree().node_added.connect(_on_node_added)
+	# The preview feels a click as a touch, so lists scroll by dragging as they do on a phone.
+	if phone_preview:
+		Input.emulate_touch_from_mouse = true
 	_fit()
 
 
@@ -82,7 +96,75 @@ func _ready() -> void:
 func scale_factor() -> int:
 	if ui_scale_override > 0:
 		return ui_scale_override
-	return ui_scale_for(get_viewport().get_visible_rect().size, Settings.ui_scale_step)
+	var window := get_viewport().get_visible_rect().size
+	if phone:
+		return phone_ui_scale(window, Settings.ui_scale_step)
+	return ui_scale_for(window, Settings.ui_scale_step)
+
+
+## A phone is held close but its screen is small, so the interface is drawn as large as 480 by 270 still fits; the
+## player's size setting can only make it smaller.
+static func phone_ui_scale(window: Vector2, step: int) -> int:
+	var most := maxi(1, int(minf(window.x / BASE.x, window.y / BASE.y)))
+	return clampi(most + mini(step, 0), 1, most)
+
+
+## The interface's insets from the top left and the bottom right, in interface pixels: the screen's safe area, which
+## leaves out the camera, and at each side enough to clear the rounded corners, which then barely reach the top and bottom.
+static func phone_insets(window: Vector2, safe: Rect2, ui: int) -> Array:
+	var corner := ceilf(minf(window.x, window.y) * 0.035)
+	var top_left := Vector2(maxf(safe.position.x, corner), safe.position.y)
+	var bottom_right := Vector2(maxf(window.x - safe.end.x, corner), window.y - safe.end.y)
+	return [(top_left / ui).ceil(), (bottom_right / ui).ceil()]
+
+
+## The part of the screen clear of the camera, in screen pixels; the preview takes it from `--phone-insets=L,T,R,B`.
+func _safe_area(window: Vector2) -> Rect2:
+	if not phone_preview:
+		return Rect2(DisplayServer.get_display_safe_area())
+	var cut := [0.0, 0.0, 0.0, 0.0]
+	var parts := Dev.get_arg("phone-insets").split(",", false)
+	for i in mini(4, parts.size()):
+		cut[i] = float(parts[i])
+	return Rect2(cut[0], cut[1], window.x - cut[0] - cut[2], window.y - cut[1] - cut[3])
+
+
+## The screen's pixels per inch, which the preview takes as a phone's or a tablet's by the window's shape.
+func phone_dpi() -> float:
+	if phone_preview:
+		return preview_dpi(get_viewport().get_visible_rect().size, scale_factor())
+	return float(DisplayServer.screen_get_dpi())
+
+
+## A wide window previews a Pixel 9a, at 420 pixels an inch on a four-times interface; a squarer one a tablet, whose
+## interface pixels come out larger on the glass.
+static func preview_dpi(window: Vector2, ui: int) -> float:
+	return (105.0 if window.x / window.y >= 1.9 else 60.0) * ui
+
+
+## How many interface pixels a fingertip needs across, about 7 mm, so a target that size is easy to tap; 0 on a computer.
+func touch_px() -> int:
+	return touch_px_for(phone_dpi(), scale_factor()) if phone else 0
+
+
+static func touch_px_for(dpi: float, ui: int, mm := 7.0) -> int:
+	return ceili(mm / 25.4 * dpi / maxi(1, ui))
+
+
+## How far a finger may wander, in screen pixels, while it still counts as resting in one place: about 2 mm.
+func touch_slop() -> float:
+	return 2.0 / 25.4 * phone_dpi()
+
+
+## The whole window in the interface's own pixels, as seen from its top left corner, which a phone moves in.
+func screen_rect() -> Rect2:
+	return Rect2(-safe_top_left, (get_viewport().get_visible_rect().size / scale_factor()).floor())
+
+
+## Every list on a phone scrolls by dragging a finger over it, even from one of its buttons.
+func _on_node_added(node: Node) -> void:
+	if phone and node is ScrollContainer:
+		TouchScroll.attach.call_deferred(node)
 
 
 ## Screen pixels per picture pixel.
@@ -120,7 +202,7 @@ func picture_view() -> Rect2:
 
 ## A point in picture pixels turned into interface pixels.
 func picture_to_ui(p: Vector2) -> Vector2:
-	return (picture_origin() + p * picture_scale()) / scale_factor()
+	return (picture_origin() + p * picture_scale()) / scale_factor() - safe_top_left
 
 
 ## A rectangle in picture pixels turned into interface pixels.
@@ -130,12 +212,12 @@ func picture_rect_to_ui(r: Rect2) -> Rect2:
 
 ## The interface's size in its own pixels. Wider windows get more room at the sides, never stretched pixels.
 func ui_size() -> Vector2:
-	return (get_viewport().get_visible_rect().size / scale_factor()).floor()
+	return (get_viewport().get_visible_rect().size / scale_factor()).floor() - safe_top_left - safe_bottom_right
 
 
 ## A point in the window turned into interface pixels.
 func to_ui(screen: Vector2) -> Vector2:
-	return screen / scale_factor()
+	return screen / scale_factor() - safe_top_left
 
 
 func go(screen: String, args: Dictionary = {}) -> void:
@@ -231,8 +313,13 @@ func refit() -> void:
 func _fit() -> void:
 	_fitted = get_viewport().get_visible_rect().size
 	var k := scale_factor()
+	var insets := phone_insets(_fitted, _safe_area(_fitted), k) if phone else [Vector2.ZERO, Vector2.ZERO]
+	safe_top_left = insets[0]
+	safe_bottom_right = insets[1]
 	ui_layer.transform = Transform2D(0.0, Vector2(k, k), 0.0, Vector2.ZERO)
+	ui.position = safe_top_left
 	ui.size = ui_size()
+	UiTheme.fit_touch()
 	var p := picture_scale()
 	pictures_layer.transform = Transform2D(0.0, Vector2(p, p), 0.0, picture_origin())
 	pictures.size = BASE
@@ -241,8 +328,36 @@ func _fit() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11 and not phone:
 		Settings.toggle_fullscreen()
+
+
+func _notification(what: int) -> void:
+	# Android reports each back gesture twice, so a second report straight after the first is ignored.
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and phone and Time.get_ticks_msec() - _back_at > 300:
+		_back_at = Time.get_ticks_msec()
+		back_gesture()
+
+
+## A phone's back gesture closes the newest window or card, then steps back out of the screen one place at a time, and
+## on the title puts the game away as the home button would.
+func back_gesture() -> void:
+	if _busy or close_top() or Awards.dismiss():
+		return
+	if current and current.has_method("go_back") and current.go_back():
+		return
+	match Touch.back_from(current_name):
+		"background":
+			if Engine.has_singleton("AndroidRuntime"):
+				Engine.get_singleton("AndroidRuntime").getActivity().moveTaskToBack(true)
+		"job_board":
+			go("job_board")
+		"carry_on":
+			if current and current.has_method("carry_on"):
+				current.carry_on()
+		"title":
+			Saves.save()
+			go("title")
 
 
 ## Escape, which the pad's B sends too, closes the topmost window, or else steps back out of the screen, even while typing.

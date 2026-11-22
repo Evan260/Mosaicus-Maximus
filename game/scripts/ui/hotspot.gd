@@ -63,10 +63,13 @@ func _has_point(point: Vector2) -> bool:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()
-		# The release comes here even off the shape, since this took the press, so letting go elsewhere cancels.
-		if not event.pressed and _pressed and _has_point(event.position):
+		# The release comes here even off the shape, so letting go elsewhere cancels, as does a finger held to read the name.
+		if not event.pressed and _pressed and _has_point(event.position) and not (Nav.phone and Tips.long_press):
 			clicked.emit()
 		_pressed = event.pressed
+		# A finger rests nowhere until it touches, so on a phone the piece lights up and names itself while it is held.
+		if Nav.phone:
+			_fade(1.0 if event.pressed else 0.0)
 
 
 func _fade(to: float) -> void:

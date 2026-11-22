@@ -13,7 +13,8 @@ static func open(parent: Control, carry_on: Callable) -> DemoEnd:
 	card.theme_type_variation = "PagePanel"
 	parent.add_child(card)
 	var col := Ui.vbox(card, 5)
-	var big := Settings.message_scale()
+	# A phone's screen is wide but short, so there the card spreads out to keep within its height.
+	var big := maxf(Settings.message_scale(), minf(Nav.ui_size().x - 40.0, 400.0) / WIDTH if Nav.phone and Nav.ui_size().y < 320.0 else 1.0)
 	var head := Ui.label(col, "Thank you for playing the demo!", "Heading", WIDTH * big)
 	head.add_theme_font_size_override("font_size", UiTheme.heading_size(true))
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -32,7 +33,7 @@ static func open(parent: Control, carry_on: Callable) -> DemoEnd:
 	var buttons := Ui.hbox(col, 4)
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	wishlist_button(buttons)
-	Ui.button(buttons, "Carry on", carry_on, "arrow_r", store_app_id() == 0)
+	Ui.button(buttons, "Carry on", carry_on, "arrow_r", store_app_id() == 0 or Nav.phone)
 	# Read once and gone if closed by a stray click, so only Carry on and Escape close it.
 	Ui.closes_with(card, carry_on, false)
 	Audio.play("page_turn", -6.0)
@@ -44,9 +45,9 @@ static func store_app_id() -> int:
 	return int(Data.num("demo.store_app_id", 0))
 
 
-## The Wishlist on Steam button, or nothing while the full game has no App ID yet.
+## The Wishlist on Steam button, or nothing while the full game has no App ID yet, or on a phone, which has no Steam.
 static func wishlist_button(parent: Node) -> Button:
-	if store_app_id() == 0:
+	if store_app_id() == 0 or Nav.phone:
 		return null
 	return Ui.button(parent, "Wishlist on Steam", open_store, "star", true)
 

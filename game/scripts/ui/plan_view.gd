@@ -11,6 +11,9 @@ signal dropped(motif: String, tile: Vector2)
 signal hovered_at(tile: Vector2)
 signal handle_grabbed(corner: int)
 signal handle_dragged(tile: Vector2)
+## A second finger touched the plan, at the tile between the two; then how far apart they are against how far they began.
+signal pinch_began(tile: Vector2)
+signal pinched(factor: float)
 
 const HANDLE := 5.0
 const GOLD := Color8(236, 196, 96)
@@ -39,6 +42,9 @@ var _down := false
 var _resizing := false
 var _corner := -1
 var _t := 0.0
+## Fingers on the plan by touch index, where each is now, and the first two's places as the pinch began.
+var _fingers := {}
+var _pinch_from: Array = []
 
 
 func _ready() -> void:
@@ -133,9 +139,11 @@ func _corners(s: Rect2) -> Array:
 func handle_at(local: Vector2) -> int:
 	if selection.size == Vector2.ZERO or not resizable:
 		return -1
-	var cs := _corners(_to_local_rect(selection))
+	var box := _to_local_rect(selection)
+	var cs := _corners(box)
+	var reach := Touch.handle_reach(box.has_point(local), Nav.touch_px(), minf(box.size.x, box.size.y))
 	for i in 4:
-		if (cs[i] as Vector2).distance_to(local) <= HANDLE:
+		if (cs[i] as Vector2).distance_to(local) <= reach:
 			return i
 	return -1
 
@@ -147,6 +155,12 @@ func _to_local_rect(t: Rect2) -> Rect2:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		_touch(event)
+		return
+	# A pinch ends any drag, and the first finger's made-up mouse moves wait until both fingers lift.
+	if not _pinch_from.is_empty() and event is InputEventMouse:
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
@@ -179,6 +193,31 @@ func _gui_input(event: InputEvent) -> void:
 		else:
 			hovered_at.emit(tile_at(pos))
 		_set_cursor(pos)
+
+
+## Two fingers on the plan pinch; the first finger alone works as the mouse does.
+func _touch(event: InputEvent) -> void:
+	var i: int = event.index
+	if event is InputEventScreenTouch and not event.pressed:
+		_fingers.erase(i)
+		if _fingers.is_empty():
+			_pinch_from = []
+		return
+	_fingers[i] = event.position
+	var keys := _fingers.keys()
+	keys.sort()
+	if keys.size() < 2:
+		return
+	var now := [_fingers[keys[0]], _fingers[keys[1]]]
+	if _pinch_from.is_empty():
+		_pinch_from = now
+		_down = false
+		_resizing = false
+		pinch_began.emit(tile_at((now[0] + now[1]) * 0.5))
+		accept_event()
+		return
+	pinched.emit(Touch.pinch_factor(_pinch_from[0], _pinch_from[1], now[0], now[1]))
+	accept_event()
 
 
 func _set_cursor(pos: Vector2) -> void:

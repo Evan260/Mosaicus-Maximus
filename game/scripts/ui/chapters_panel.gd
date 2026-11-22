@@ -139,7 +139,7 @@ func _bookmark(n: int) -> void:
 	else:
 		b.text = NUMERALS[n - 1] if n <= NUMERALS.size() else str(n)
 	b.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	b.custom_minimum_size = Vector2(24, 22)
+	b.custom_minimum_size = Ui.finger(Vector2(24, 22))
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:

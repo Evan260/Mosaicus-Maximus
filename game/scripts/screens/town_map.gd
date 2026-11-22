@@ -90,6 +90,8 @@ func enter(_args: Dictionary) -> void:
 		back.reset_size()
 		back.position = Vector2(s.x - back.size.x - 6, s.y - back.size.y - 6)
 	Nav.resized.connect(place)
+	# The button widens once its text is centred beside its arrow, so it is placed again then.
+	back.resized.connect(place)
 	place.call()
 
 
@@ -140,7 +142,7 @@ func _marker(f: Dictionary, i: int) -> void:
 	var b := Button.new()
 	b.icon = UiTheme.icon("tile")
 	b.flat = true
-	b.size = Vector2(16, 16)
+	b.size = Ui.finger(Vector2(16, 16))
 	var who := Ui.text(f.get("client_name", ""))
 	var room := Data.room_name(f.get("room", ""))
 	var tip := tr("%s's %s, day %d") % [who, room, int(f.get("day", 1))] if who != "" else tr("A %s, day %d") % [room, int(f.get("day", 1))]
@@ -152,7 +154,7 @@ func _marker(f: Dictionary, i: int) -> void:
 	b.mouse_exited.connect(func() -> void: _tip.visible = false)
 	b.pressed.connect(func() -> void: _show_floor(f, tip))
 	_marks.add_child(b)
-	_pin(b, at, Vector2(8, 8))
+	_pin(b, at, b.size * 0.5)
 
 
 func _rival() -> void:

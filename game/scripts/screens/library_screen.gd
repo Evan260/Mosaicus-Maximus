@@ -85,7 +85,10 @@ func enter(args: Dictionary) -> void:
 	_watch = Ui.button(_buttons, "Watch it being laid", _watch_it, "play", true)
 	_copy = Ui.button(_buttons, "Copy to Pictures", _copy_it, "eye")
 	Ui.tip_on(_copy, "Saves the picture and a time-lapse to a Mosaicus Maximus folder in your Pictures, for sharing")
+	# A phone keeps its Pictures folder closed to games, so the copy would never arrive.
+	_copy.visible = not Nav.phone
 	_remove = Ui.button(_buttons, "", _remove_it, "trash")
+	_remove.custom_minimum_size = Ui.finger(Vector2.ZERO)
 	Ui.tip_on(_remove, "Take it out of the library (click twice)")
 	_remove.visible = Library.enabled
 	_note = Ui.label(vcol, "", "LightLabel")
@@ -129,7 +132,7 @@ func _add_slot(e: Dictionary) -> void:
 func _layout_ui() -> void:
 	var s := Nav.ui_size()
 	_root.size = s
-	Ui.put(_desk, Vector2.ZERO, s)
+	Ui.put(_desk, Nav.screen_rect().position, Nav.screen_rect().size)
 	var list_w := 162.0
 	Ui.put(_list, Vector2(5, 5), Vector2(list_w, s.y - 10))
 	Ui.put(_viewer, Vector2(list_w + 9, 5), Vector2(s.x - list_w - 14, s.y - 10))

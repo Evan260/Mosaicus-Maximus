@@ -91,7 +91,7 @@ func enter(args: Dictionary) -> void:
 		_price.max_value = int(budget * 1.6)
 		_price.step = 1
 		_price.value = budget
-		_price.custom_minimum_size = Vector2(110, 12)
+		_price.custom_minimum_size = Vector2(110, maxi(12, Nav.touch_px()))
 		_price.value_changed.connect(func(_v: float) -> void: _update_price())
 		price_row.add_child(_price)
 		_price_label = Ui.label(price_row, "")
@@ -119,7 +119,7 @@ func enter(args: Dictionary) -> void:
 func _place() -> void:
 	var s := Nav.ui_size()
 	_root.size = s
-	Ui.put(_desk, Vector2.ZERO, s)
+	Ui.put(_desk, Nav.screen_rect().position, Nav.screen_rect().size)
 	if _wishes:
 		fit_list(_card, _wishes, s.y - 8.0)
 	_card.reset_size()

@@ -688,6 +688,9 @@ func _open_bench() -> void:
 			if set_in:
 				sell.disabled = true
 				Ui.tip_on(sell, "It's set into the floor on your table.")
+		# A phone's fingertip buttons make each row taller, so the list still shows its first rows whole.
+		var row_h := (list.get_child(0) as Control).get_combined_minimum_size().y + 2.0
+		scroll.custom_minimum_size.y = minf(panels.size(), 4) * maxf(26.0, row_h)
 	Ui.button(col, "Improve the workshop", _open_upgrades, "hammer")
 	_layout.call_deferred()
 

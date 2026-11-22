@@ -34,6 +34,19 @@ var _made := PackedByteArray()
 var _made_box := {}
 var _loading: LoadingCard
 var _paused: PanelContainer
+## Fingers on the floor by touch index, where each is now: one finger lays, and two pan and zoom.
+var _fingers := {}
+## The two fingers' places at the last step of a pinch.
+var _pinch_from: Array = []
+## Set from a second finger touching down until every finger has lifted, so a pinch never lays.
+var _pinching := false
+## A finger is down but not laying yet, waiting a moment in case a second one follows.
+var _waiting := false
+## When and where the waiting finger touched down, timed by the clock since a slow frame says nothing about the finger.
+var _touch_msec := 0
+var _touch_from := Vector2.ZERO
+## Where the laying finger is on the screen, for the brush's ring, or INF with no finger down.
+var _finger_at := Vector2.INF
 
 
 func enter(args: Dictionary) -> void:
@@ -107,6 +120,8 @@ func _ready_floor() -> void:
 	_time = 0.0
 	if job.get("kind", "") == "restoration":
 		Guide.note("dig", "This old floor is buried. Pick the trowel and scrape the dirt away, then fill each gap with a matching stone and press Done. Then grout and polish it.", "top_left")
+	elif Nav.phone:
+		Guide.note("floor", "Now lay the floor, one stone at a time. Pick a stone in the tray below, then sweep a finger over the places that glow. Pinch to zoom, and drag with two fingers to look around. Then wipe in the grout with the sponge and polish with the cloth.", "top_left")
 	else:
 		Guide.note("floor", "Now lay the floor, one stone at a time. Pick a stone in the tray below, then hold the left mouse button and sweep over the places that glow. Then wipe in the grout with the sponge and polish with the cloth.", "top_left")
 
@@ -120,6 +135,8 @@ func _process(delta: float) -> void:
 		return
 	_time += delta
 	cursor.queue_redraw()
+	if _waiting and Touch.brush_starts(_touch_seconds(), 0.0, Nav.touch_slop()):
+		_start_brush()
 	_run_demo()
 	if _demo.has("fill-at") and _time >= float(_demo["fill-at"]) and _demo["fill-at"] != "done":
 		_demo["fill-at"] = "done"
@@ -129,10 +146,16 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if floor_view == null:
 		return
+	if Nav.phone and (event is InputEventScreenTouch or event is InputEventScreenDrag):
+		_touch_input(event)
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		match mb.button_index:
 			MOUSE_BUTTON_LEFT:
+				# A phone lays from its touches, which also arrive as this made-up mouse button.
+				if Nav.phone:
+					return
 				_brushing = mb.pressed
 				if mb.pressed:
 					_last = _to_world(mb.position)
@@ -149,7 +172,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mm := event as InputEventMouseMotion
 		if _panning:
 			cam.position -= mm.relative / cam.zoom
-		if _brushing:
+		if _brushing and not Nav.phone:
 			var p := _to_world(mm.position)
 			_stroke(_last, p)
 			_last = p
@@ -168,6 +191,70 @@ func _unhandled_input(event: InputEvent) -> void:
 				var order := floor_view.stones_used()
 				if n >= 0 and n < mini(9, order.size()) and floor_view.phase == FloorView.Phase.LAY:
 					select_stone(order[n])
+
+
+## One finger lays, once it sweeps or rests a moment; a second finger turns the touch into a pinch, which pans and zooms.
+func _touch_input(event: InputEvent) -> void:
+	var i: int = event.index
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_fingers[i] = event.position
+			if _fingers.size() == 1 and not _pinching:
+				_waiting = true
+				_touch_msec = Time.get_ticks_msec()
+				_touch_from = event.position
+				_finger_at = event.position
+			else:
+				_waiting = false
+				_brushing = false
+				_pinching = true
+				_finger_at = Vector2.INF
+				_pinch_from = _two_fingers()
+			return
+		_fingers.erase(i)
+		# A quick tap lays where it touched, as a click does.
+		if _waiting:
+			_start_brush()
+		_waiting = false
+		_brushing = false
+		_finger_at = Vector2.INF
+		_pinching = _pinching and not _fingers.is_empty()
+		_pinch_from = _two_fingers()
+		return
+	_fingers[i] = event.position
+	if _pinching:
+		var now := _two_fingers()
+		if not now.is_empty() and not _pinch_from.is_empty():
+			var moved := Touch.pinch_camera(cam.position, cam.zoom.x, get_viewport().get_visible_rect().size, _pinch_from[0], _pinch_from[1], now[0], now[1], ZOOM_MIN, ZOOM_MAX)
+			cam.position = moved[0]
+			cam.zoom = Vector2.ONE * float(moved[1])
+		_pinch_from = now
+		return
+	_finger_at = event.position
+	if _waiting and Touch.brush_starts(_touch_seconds(), event.position.distance_to(_touch_from), Nav.touch_slop()):
+		_start_brush()
+	if _brushing:
+		var p := _to_world(event.position)
+		_stroke(_last, p)
+		_last = p
+
+
+func _touch_seconds() -> float:
+	return (Time.get_ticks_msec() - _touch_msec) / 1000.0
+
+
+func _start_brush() -> void:
+	_waiting = false
+	_brushing = true
+	_last = _to_world(_touch_from)
+	_stroke(_last, _last)
+
+
+## The first two fingers down, by touch index, or none while fewer are down.
+func _two_fingers() -> Array:
+	var keys := _fingers.keys()
+	keys.sort()
+	return [_fingers[keys[0]], _fingers[keys[1]]] if keys.size() >= 2 else []
 
 
 ## Escape asks whether to leave the floor.
@@ -321,7 +408,9 @@ func find_gap() -> void:
 	if left.is_empty():
 		return
 	_gap_turn = (_gap_turn + 1) % left.size()
-	var zoom := clampf(maxf(cam.zoom.x, _fit_zoom() * 2.5), ZOOM_MIN, ZOOM_MAX)
+	# On a phone the gap's tile comes up half a fingertip wide, so a finger can set it.
+	var finger := Nav.touch_px() * Nav.scale_factor() * 0.5 / floor_view.tile_world()
+	var zoom := clampf(maxf(maxf(cam.zoom.x, _fit_zoom() * 2.5), finger), ZOOM_MIN, ZOOM_MAX)
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(cam, "position", floor_view.layout.pos[left[_gap_turn]] * FloorView.WORLD, 0.5)
 	tw.parallel().tween_property(cam, "zoom", Vector2.ONE * zoom, 0.5)
@@ -361,7 +450,13 @@ func _on_phase(phase: int) -> void:
 
 
 func _draw_cursor() -> void:
-	var p := _demo_prev if _demo.has("auto-lay") and _demo_prev != Vector2.INF else _to_world(get_viewport().get_mouse_position())
+	var at := get_viewport().get_mouse_position()
+	# A phone has no pointer, so the ring shows only round a finger on the floor.
+	if Nav.phone:
+		if _finger_at == Vector2.INF and not _demo.has("auto-lay"):
+			return
+		at = _finger_at
+	var p := _demo_prev if _demo.has("auto-lay") and _demo_prev != Vector2.INF else _to_world(at)
 	var tint := Color(1.0, 0.96, 0.85, 0.55)
 	if floor_view.phase == FloorView.Phase.LAY and stone >= 0:
 		tint = Color(Stones.LIST[stone]["tile"], 0.9)

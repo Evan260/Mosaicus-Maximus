@@ -80,7 +80,10 @@ func _process(_delta: float) -> void:
 	match fv.phase:
 		FloorView.Phase.LAY:
 			_title.text = "Lay the tiles"
-			_hint.text = "Pick a stone from the tray below to start laying." if screen.stone < 0 else "Sweep over the places that glow. Pick another stone when you like (1 to 9)."
+			if screen.stone < 0:
+				_hint.text = "Pick a stone from the tray below to start laying."
+			else:
+				_hint.text = "Sweep over the places that glow. Pick another stone when you like." if Nav.phone else "Sweep over the places that glow. Pick another stone when you like (1 to 9)."
 		FloorView.Phase.DIG:
 			_title.text = "Clear away the dirt"
 			_hint.text = "Pick the trowel from the tray below." if tool == "" else "Scrape the dirt away to find the old floor underneath."
@@ -95,6 +98,8 @@ func _process(_delta: float) -> void:
 				_hint.text = "Pick the stone that matches a gap, or the chisel to lift a tile out."
 			elif left < FloorView.RING_GAPS_BELOW:
 				_hint.text = "The last gaps are ringed in gold. Click one to set a tile."
+			elif Nav.phone:
+				_hint.text = "Tap a gap to set one tile. Pinch to zoom in for the details."
 			else:
 				_hint.text = "Click a gap to set one tile. The wheel zooms in for the details."
 		FloorView.Phase.GROUT:
@@ -153,8 +158,9 @@ func _build_tray() -> void:
 			for k in order.size():
 				var st: int = order[k]
 				var b := _tray_button(MotifIcons.swatch(Stones.id_of(st), 12), "%s (%d)" % [Stones.title(Stones.id_of(st)), k + 1] if k < 9 else Stones.title(Stones.id_of(st)), func() -> void: screen.select_stone(st))
-				b.custom_minimum_size = Vector2(38, 22)
-				if k < 9:
+				b.custom_minimum_size = Ui.finger(Vector2(38, 22))
+				# A phone has no number keys, so its chips leave out the digit that names them.
+				if k < 9 and not Nav.phone:
 					_add_digit(b, k + 1)
 				_buttons[st] = b
 		FloorView.Phase.DIG:
@@ -180,6 +186,11 @@ func _build_tray() -> void:
 			_buttons["sponge"] = _tray_button(UiTheme.icon("sponge"), "Sponge: wipe the grout into the gaps", func() -> void: screen.select_tool("sponge"), "Sponge")
 			_buttons["cloth"] = _tray_button(UiTheme.icon("cloth"), "Cloth: polish the grouted stone", func() -> void: screen.select_tool("cloth"), "Cloth")
 	_tray.columns = maxi(1, mini(_buttons.size(), 10))
+	# A phone's chips are a fingertip tall, so as many go on a row as fit, leaving more of the floor in view.
+	if Nav.phone and not _buttons.is_empty():
+		var chip := (_buttons.values()[0] as Button).get_combined_minimum_size().x + 4.0
+		var side := _side.get_combined_minimum_size().x + 6.0 if _side.get_child_count() > 0 else 0.0
+		_tray.columns = clampi(int((Nav.ui_size().x - 30.0 - side) / chip), 1, _buttons.size())
 	_tray_panel.size = Vector2.ZERO
 	_place.call_deferred()
 
@@ -189,7 +200,7 @@ func _tray_button(icon: Texture2D, tip: String, action: Callable, text: String =
 	b.icon = icon
 	b.text = text
 	b.toggle_mode = true
-	b.custom_minimum_size = Vector2(22, 22)
+	b.custom_minimum_size = Ui.finger(Vector2(22, 22))
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_stylebox_override("normal", UiTheme.panel("chip_off", 3, 3))
 	b.add_theme_stylebox_override("hover", UiTheme.panel("chip_off", 3, 3))
@@ -249,7 +260,7 @@ func _icon_button(icon_name: String, tip: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.icon = UiTheme.icon(icon_name)
 	Ui.tip_on(b, tip)
-	b.custom_minimum_size = Vector2(22, 22)
+	b.custom_minimum_size = Ui.finger(Vector2(22, 22))
 	b.size_flags_horizontal = Control.SIZE_SHRINK_END
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.pressed.connect(func() -> void:

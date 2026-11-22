@@ -72,6 +72,15 @@ var _pending := {}
 var _last_wheel := -10.0
 var _undo_button: Button
 var _redo_button: Button
+var _book_head: HBoxContainer
+var _resize_buttons: Array = []
+## The bar over a picked motif: its rows, its first row, and on a phone the row of sizing buttons, which wraps under the rest on a narrow plan.
+var _toolbar_rows: VBoxContainer
+var _toolbar_tools: HBoxContainer
+var _size_row: HBoxContainer
+var _labels: Array[Label] = []
+## The selected motif's size as a pinch on the plan began.
+var _pinch_size := 0.0
 
 
 func enter(args: Dictionary) -> void:
@@ -162,10 +171,13 @@ func _build() -> void:
 	_book = Ui.panel(_root, "PagePanel")
 	var book_col := Ui.vbox(_book, 4)
 	var head := Ui.hbox(book_col, 4)
-	Ui.icon_button(head, "arrow_l", "Back to the title" if free else "Back to the workshop, keeping this design", _back).custom_minimum_size = Vector2(18, 18)
+	_book_head = head
+	Ui.icon_button(head, "arrow_l", "Back to the title" if free else "Back to the workshop, keeping this design", _back).custom_minimum_size = Ui.finger(Vector2(18, 18))
 	var title := Ui.label(head, "Pattern book", "Heading")
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# On a phone the book's heading gives way to undo and redo, which leaves the book room for a row more of patterns.
+	title.visible = not Nav.phone
 	var tabs := Ui.hbox(book_col, 1)
 	for t in [["patterns", "Patterns"], ["pictures", "Pictures"], ["borders", "Borders"]]:
 		var b := Button.new()
@@ -175,6 +187,7 @@ func _build() -> void:
 		b.add_theme_stylebox_override("hover", UiTheme.panel("tab_off", 4, 2))
 		b.add_theme_stylebox_override("pressed", UiTheme.panel("tab_on", 4, 2))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.custom_minimum_size.y = Nav.touch_px()
 		var id: String = t[0]
 		b.pressed.connect(func() -> void:
 			Audio.play("page_turn", -10.0)
@@ -210,19 +223,25 @@ func _build() -> void:
 	_plan.hovered_at.connect(_on_hover)
 	_plan.handle_grabbed.connect(_on_handle)
 	_plan.handle_dragged.connect(_on_handle_drag)
+	_plan.pinch_began.connect(_on_pinch_began)
+	_plan.pinched.connect(_on_pinch)
 	_plan_panel.add_child(_plan)
 	_build_toolbar()
 	_bottom = Ui.panel(_root, "PagePanel")
 	var rows := Ui.vbox(_bottom, 3)
 	var parts_row := Ui.hbox(rows, 4)
-	Ui.label(parts_row, "Parts", "MutedLabel").custom_minimum_size.x = 34
+	_labels.append(Ui.label(parts_row, "Parts", "MutedLabel"))
 	_chips = HFlowContainer.new()
 	_chips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_chips.add_theme_constant_override("h_separation", 2)
 	_chips.add_theme_constant_override("v_separation", 2)
 	parts_row.add_child(_chips)
 	var stones_row := Ui.hbox(rows, 4)
-	Ui.label(stones_row, "Stones", "MutedLabel").custom_minimum_size.x = 34
+	_labels.append(Ui.label(stones_row, "Stones", "MutedLabel"))
+	# A phone's stones are a fingertip wide, so the row's names give way to fit more of them across.
+	for l in _labels:
+		l.custom_minimum_size.x = 34
+		l.visible = not Nav.phone
 	_palette = GridContainer.new()
 	_palette.columns = mini(10, _stones_allowed().size())
 	_palette.add_theme_constant_override("h_separation", 1)
@@ -232,7 +251,7 @@ func _build() -> void:
 		var b := Button.new()
 		b.icon = MotifIcons.swatch(id, 10)
 		Ui.tip_on(b, tr("%s, %s for a sack of 100 tiles") % [Stones.title(id), Ui.coins_text(Game.sack_price(id))])
-		b.custom_minimum_size = Vector2(15, 15)
+		b.custom_minimum_size = Ui.finger(Vector2(15, 15))
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.add_theme_stylebox_override("normal", UiTheme.panel("slot", 3, 1))
 		b.add_theme_stylebox_override("hover", UiTheme.panel("chip_off", 3, 1))
@@ -254,7 +273,7 @@ func _build() -> void:
 	_brief_box = Ui.vbox(card_scroll, 2)
 	_cost_panel = Ui.panel(_root, "PagePanel")
 	var cost_col := Ui.vbox(_cost_panel, 1)
-	var history := Ui.hbox(cost_col, 3)
+	var history := _book_head if Nav.phone else Ui.hbox(cost_col, 3)
 	_undo_button = Ui.icon_button(history, "undo", "Undo (Ctrl+Z)", _undo_step)
 	_redo_button = Ui.icon_button(history, "redo", "Redo (Ctrl+Y)", _redo_step)
 	_refresh_history()
@@ -287,15 +306,34 @@ func _build() -> void:
 			_cost_dirty = true)
 		_right.add_child(rooms)
 	_start = Ui.button(_right, "Start laying", _start_laying, "brush", true)
+	if Nav.phone:
+		# The plan has the least room on a phone, so the panels round it keep narrower edges.
+		for p in [_bottom, _plan_panel]:
+			var snug := p.get_theme_stylebox("panel").duplicate() as StyleBox
+			snug.content_margin_top = 5
+			snug.content_margin_bottom = 5
+			p.add_theme_stylebox_override("panel", snug)
+		# Their contents change as motifs and stones are picked, and the plan takes whatever height they leave.
+		for p in [_bottom, _cost_panel]:
+			p.minimum_size_changed.connect(_layout_ui, CONNECT_DEFERRED)
 
 
 ## The little dark bar that floats above the picked motif, with what can be done to it.
 func _build_toolbar() -> void:
 	_toolbar = Ui.panel(_root, "TipPanel")
-	var tools := Ui.hbox(_toolbar, 2)
+	_toolbar_rows = Ui.vbox(_toolbar, 2)
+	var tools := Ui.hbox(_toolbar_rows, 2)
+	_toolbar_tools = tools
 	PadGlyph.badge(Ui.icon_button(tools, "rotate", "Turn a quarter (R)", _turn), "pad_x", Vector2(0.5, 0.0), Vector2(0, -5))
 	PadGlyph.badge(Ui.icon_button(tools, "flip", "Mirror it (F)", _flip), "pad_y", Vector2(0.5, 0.0), Vector2(0, -5))
+	# A phone has no wheel or keys to size a motif with, so the bar has its own buttons for it.
+	if Nav.phone:
+		_size_row = Ui.hbox(tools, 2)
+		_size_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		_resize_buttons = [Ui.icon_button(_size_row, "plus", "Make it bigger or smaller", func() -> void: _resize(1)),
+			Ui.icon_button(_size_row, "minus", "Make it bigger or smaller", func() -> void: _resize(-1))]
 	_pair_button = Ui.button(tools, "Pair", _mirror)
+	_pair_button.custom_minimum_size = Ui.finger(Vector2.ZERO)
 	Ui.tip_on(_pair_button, "Add a mirrored copy on the other side of the room (M)")
 	_fine_button = Ui.button(tools, "Small tiles", _toggle_fine)
 	_fine_button.toggle_mode = true
@@ -307,11 +345,17 @@ func _build_toolbar() -> void:
 func _layout_ui() -> void:
 	var s := Nav.ui_size()
 	_root.size = s
-	Ui.put(_desk, Vector2.ZERO, s)
+	Ui.put(_desk, Nav.screen_rect().position, Nav.screen_rect().size)
 	var book_w := 134.0
 	var right_w := RIGHT_W
 	var bottom_h := 72.0
 	var cost_h := 116.0
+	if Nav.phone:
+		# Fingertip stones and buttons need more room than the computer's sizes, so the bottom and the cost take what they need.
+		var plan_room := s.x - book_w - right_w - 18.0 - _bottom.get_theme_stylebox("panel").get_minimum_size().x
+		_palette.columns = clampi(int((plan_room + 1.0) / (Nav.touch_px() + 1.0)), 1, 10)
+		bottom_h = _bottom.get_combined_minimum_size().y
+		cost_h = _cost_panel.get_combined_minimum_size().y
 	Ui.put(_book, Vector2(5, 5), Vector2(book_w, s.y - cost_h - 14))
 	Ui.put(_cost_panel, Vector2(5, s.y - cost_h - 5), Vector2(book_w, cost_h))
 	Ui.put(_right, Vector2(s.x - right_w - 5, 5), Vector2(right_w, s.y - 10))
@@ -327,6 +371,7 @@ func _place_toolbar() -> void:
 	_toolbar.visible = selected >= 0
 	if selected < 0:
 		return
+	_fit_toolbar()
 	_toolbar.reset_size()
 	var box := _plan_panel.get_global_rect()
 	var sel := _plan.selection_local()
@@ -336,6 +381,19 @@ func _place_toolbar() -> void:
 	at.x = clampf(at.x, box.position.x + 2, box.end.x - _toolbar.size.x - 2)
 	at.y = clampf(at.y, box.position.y + 2, box.end.y - _toolbar.size.y - 2)
 	_toolbar.position = (at - _root.get_global_rect().position).floor()
+
+
+## Puts the sizing buttons on the bar's first row when it still fits across the plan, or on a row of their own under it.
+func _fit_toolbar() -> void:
+	if _size_row == null:
+		return
+	var apart := _size_row.get_parent() != _toolbar_tools
+	var one_row := _toolbar_tools.get_combined_minimum_size().x + (_size_row.get_combined_minimum_size().x + 2.0 if apart else 0.0)
+	var home: Control = _toolbar_tools if one_row <= _plan_panel.size.x - 8.0 else _toolbar_rows
+	if _size_row.get_parent() != home:
+		_size_row.reparent(home)
+		if home == _toolbar_tools:
+			_toolbar_tools.move_child(_size_row, 2)
 
 
 ## Free design offers everything the build has: every chapter's, or only the demo's in the demo.
@@ -367,7 +425,7 @@ func _fill_book() -> void:
 		for id in Data.border_order:
 			_add_border_slot(id, Data.border_title(id))
 		return
-	_book_grid.columns = 4
+	_book_grid.columns = 3 if Nav.phone else 4
 	if tab == "pictures" and _panels_open():
 		for panel in Game.state["panels"]:
 			_add_panel_slot(panel)
@@ -377,7 +435,7 @@ func _fill_book() -> void:
 		if is_picture != (tab == "pictures"):
 			continue
 		var slot := Button.new()
-		slot.custom_minimum_size = Vector2(28, 28)
+		slot.custom_minimum_size = Ui.finger(Vector2(28, 28))
 		slot.icon = MotifIcons.motif(id, 22, _stones_for(id))
 		slot.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		slot.expand_icon = false
@@ -409,7 +467,7 @@ func _panels_open() -> bool:
 
 func _add_panel_slot(panel: Dictionary) -> void:
 	var slot := Button.new()
-	slot.custom_minimum_size = Vector2(28, 28)
+	slot.custom_minimum_size = Ui.finger(Vector2(28, 28))
 	slot.icon = MotifIcons.motif(panel["motif"], 22, panel.get("stones", {}))
 	slot.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	slot.add_theme_stylebox_override("normal", UiTheme.panel("chip_on", 3, 2))
@@ -451,7 +509,7 @@ func _add_border_slot(id: String, name: String) -> void:
 	var b := Button.new()
 	b.text = name
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.custom_minimum_size = Vector2(0, 18)
+	b.custom_minimum_size = Vector2(0, maxi(18, Nav.touch_px()))
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.clip_text = true
 	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -591,13 +649,13 @@ func _refresh_brief() -> void:
 		sketch.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		sketch.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		sketch.custom_minimum_size = Vector2(96, 62)
-		Ui.tip_on(sketch, "Hold the pointer here to lay the sketch over your plan")
-		sketch.mouse_entered.connect(func() -> void:
-			_plan.peek = _target_tex
-			_plan.queue_redraw())
-		sketch.mouse_exited.connect(func() -> void:
-			_plan.peek = null
-			_plan.queue_redraw())
+		Ui.tip_on(sketch, "Hold a finger here to lay the sketch over your plan" if Nav.phone else "Hold the pointer here to lay the sketch over your plan")
+		sketch.mouse_entered.connect(func() -> void: _peek(not Nav.phone))
+		sketch.mouse_exited.connect(func() -> void: _peek(false))
+		# A finger rests on nothing until it touches, so on a phone the sketch shows while a finger is held on it.
+		sketch.gui_input.connect(func(e: InputEvent) -> void:
+			if Nav.phone and e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+				_peek(e.pressed))
 		_brief_box.add_child(sketch)
 		Ui.label(_brief_box, tr("Likeness: %d%%") % int(round(float(verdict.get("likeness", 0.0)) * 100.0)), "", BRIEF_W)
 	else:
@@ -656,6 +714,8 @@ func _refresh_chips() -> void:
 		var m := Data.motif(p["motif"])
 		_fine_button.visible = m.get("kind", "") == "picture" and _fine_open() and not _is_panel(selected)
 		_pair_button.visible = not _is_panel(selected)
+		for b in _resize_buttons:
+			b.visible = not _is_panel(selected)
 		_fine_button.button_pressed = bool(p.get("fine", false))
 		if _is_panel(selected):
 			Ui.label(_chips, "From the bench, laid already", "MutedLabel")
@@ -691,7 +751,7 @@ func _chip(key: String, icon: Texture2D, stone_id: String, name: String) -> void
 	b.icon = icon
 	b.toggle_mode = true
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	b.custom_minimum_size = Vector2(24, 24)
+	b.custom_minimum_size = Ui.finger(Vector2(24, 24))
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_stylebox_override("normal", UiTheme.panel("chip_off", 3, 2))
 	b.add_theme_stylebox_override("hover", UiTheme.panel("chip_off", 3, 2))
@@ -749,6 +809,12 @@ func _apply_stone(stone_id: String) -> void:
 	_refresh_chips()
 
 
+
+
+## Lays a copy job's sketch over the plan, or takes it off.
+func _peek(on: bool) -> void:
+	_plan.peek = _target_tex if on else null
+	_plan.queue_redraw()
 
 
 func _code_for(placement: int, key: String) -> int:
@@ -968,6 +1034,33 @@ func _on_wheel(steps: int, tile: Vector2) -> void:
 	# A quick run of wheel turns is undone as one step.
 	if _resize(steps, now - _last_wheel > 0.8):
 		_last_wheel = now
+
+
+## A second finger on the plan picks the motif between the fingers if none is picked, and ends any drag; the pinch then sizes it.
+func _on_pinch_began(tile: Vector2) -> void:
+	_drag_offset = Vector2.INF
+	_ground_on_release = ""
+	_pending = {}
+	if selected < 0 and int(_pick_at(tile)[0]) >= 0:
+		_select(int(_pick_at(tile)[0]))
+	_pinch_size = float(design.placements[selected]["size"]) if selected >= 0 and not _is_panel(selected) else 0.0
+	if _pinch_size > 0.0:
+		_pending = design.to_dict()
+
+
+## Sizes the picked motif by how far the fingers have spread or closed since the pinch began, undone as one step.
+func _on_pinch(factor: float) -> void:
+	if _pinch_size <= 0.0 or selected < 0:
+		return
+	var p: Dictionary = design.placements[selected]
+	var m := Data.motif(p["motif"])
+	var to := clampf(roundf(_pinch_size * factor), float(m.get("min", 3)), minf(float(m.get("max", 60)), maxf(design.w, design.h)))
+	if to == float(p["size"]):
+		return
+	_commit_pending()
+	p["size"] = to
+	_dirty = true
+	_cost_dirty = true
 
 
 func _on_drop(motif_id: String, tile: Vector2) -> void:

@@ -49,7 +49,7 @@ func _build() -> void:
 	_head = Ui.window_head(col, self, "Settings")
 	var row := Ui.tab_row(col)
 	_tab_row = row
-	for t in TABS:
+	for t in _shown_tabs():
 		_tabs[t] = Ui.tab_button(row, t, func() -> void: _show(t, true))
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -63,9 +63,14 @@ func _build() -> void:
 	_page.custom_minimum_size.x = _widest()
 	if Dev.has("settings-tab"):
 		tab = Dev.get_arg("settings-tab")
-	_show(tab if tab in TABS else "Sound", true)
+	_show(tab if tab in _shown_tabs() else "Sound", true)
 	Settings.changed.connect(func() -> void: _show(tab, false))
 	Nav.resized.connect(_place)
+
+
+## Every tab but Keys on a phone, which has no keys.
+static func _shown_tabs() -> Array:
+	return TABS.filter(func(t: String) -> bool: return t != "Keys" or not Nav.phone)
 
 
 ## Lays out a tab's page, from the top when it is newly opened, or where it was when a setting changed.
@@ -97,7 +102,7 @@ func _fill(t: String) -> void:
 ## The width of the widest tab's page, which every tab takes, so the window keeps one size as the tabs change.
 func _widest() -> float:
 	var most := WIDTH
-	for t in TABS:
+	for t in _shown_tabs():
 		_fill(t)
 		most = maxf(most, _page.get_combined_minimum_size().x)
 	return most
@@ -107,6 +112,9 @@ func _sound() -> void:
 	_slider(tr("Everything"), Settings.master, func(v: float) -> void: Settings.master = v)
 	_slider(tr("Music"), Settings.music, func(v: float) -> void: Settings.music = v)
 	_slider(tr("Effects"), Settings.effects, func(v: float) -> void: Settings.effects = v)
+	# A phone keeps the game's folders out of the player's reach, and its game is silent while put away.
+	if Nav.phone:
+		return
 	var own := Ui.setting(_page, tr("Your own music"), tr("Open folder"), Audio.open_music_folder, WIDTH)
 	Ui.tip_on(own, "Music you put in this folder (.ogg, .mp3 or .wav) plays between the game's own tracks.")
 	var quiet := {"full": "Full volume", "quieter": "Quieter", "muted": "Muted"}
@@ -115,8 +123,11 @@ func _sound() -> void:
 
 
 func _display() -> void:
-	Ui.setting(_page, tr("Interface size"), tr(UI_SIZES[Settings.ui_scale_step]), Settings.cycle_ui_size, WIDTH)
-	Ui.on_off(_page, tr("Full screen (F11)"), Settings.fullscreen, Settings.toggle_fullscreen, WIDTH)
+	# A phone draws the interface as large as fits, so a size kept from Larger shows as Normal there.
+	var step := mini(Settings.ui_scale_step, 0) if Nav.phone else Settings.ui_scale_step
+	Ui.setting(_page, tr("Interface size"), tr(UI_SIZES[step]), Settings.cycle_ui_size, WIDTH)
+	if not Nav.phone:
+		Ui.on_off(_page, tr("Full screen (F11)"), Settings.fullscreen, Settings.toggle_fullscreen, WIDTH)
 
 
 func _gameplay() -> void:
@@ -126,7 +137,7 @@ func _gameplay() -> void:
 		if _in_game:
 			Game.state["guide_off"] = notes
 		Settings.set_value("guide", not notes), WIDTH)
-	Ui.on_off(_page, tr("Tips when you point at a button"), Settings.tooltips, func() -> void: Settings.set_value("tooltips", not Settings.tooltips), WIDTH)
+	Ui.on_off(_page, tr("Tips when you hold a finger on a button" if Nav.phone else "Tips when you point at a button"), Settings.tooltips, func() -> void: Settings.set_value("tooltips", not Settings.tooltips), WIDTH)
 	Ui.on_off(_page, tr("Larger text for messages"), Settings.large_text, func() -> void: Settings.set_value("large_text", not Settings.large_text), WIDTH)
 	Ui.on_off(_page, tr("Reduced motion"), Settings.reduced_motion, func() -> void: Settings.set_value("reduced_motion", not Settings.reduced_motion), WIDTH)
 	Ui.on_off(_page, tr("Show hints on the floor"), Settings.hints, func() -> void: Settings.set_value("hints", not Settings.hints), WIDTH)
@@ -220,7 +231,7 @@ func _slider(label: String, value: float, apply: Callable) -> void:
 	s.max_value = 1.0
 	s.step = 0.05
 	s.value = value
-	s.custom_minimum_size = Vector2(120, 16)
+	s.custom_minimum_size = Vector2(120, maxi(16, Nav.touch_px()))
 	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	s.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
