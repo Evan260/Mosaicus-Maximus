@@ -86,6 +86,7 @@ func enter(_args: Dictionary) -> void:
 	Nav.resized.connect(_layout)
 	_layout()
 	Game.changed.connect(_refresh)
+	FullGame.changed.connect(_on_store_changed)
 	_refresh()
 	if not "intro" in Game.state["story_seen"]:
 		Game.state["story_seen"].append("intro")
@@ -519,6 +520,17 @@ func _show_next_event() -> void:
 	ok.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	Audio.play("page_turn", -6.0)
 	_layout.call_deferred()
+
+
+## Buying the full game on a phone opens the chapters the reputation has reached there and then, as loading it would.
+func _on_store_changed() -> void:
+	if not Game.is_demo():
+		var events := Story.check_chapters(Game.state)
+		for e in events:
+			_queue_event(e)
+		if not events.is_empty():
+			_show_next_event()
+	_refresh()
 
 
 ## The demo's end card, which is not kept with the letters, since it is about the game rather than the town.

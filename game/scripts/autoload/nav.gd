@@ -86,6 +86,7 @@ func _ready() -> void:
 	top.add_child(_fade)
 	get_viewport().size_changed.connect(_fit)
 	get_tree().node_added.connect(_on_node_added)
+	FullGame.finished.connect(StoreCard.answer)
 	# The preview feels a click as a touch, so lists scroll by dragging as they do on a phone.
 	if phone_preview:
 		Input.emulate_touch_from_mouse = true
@@ -266,7 +267,7 @@ func reopen() -> void:
 
 ## Drops the last screen's listeners, keeping the autoloads', since a leftover one pointing at a freed panel crashes.
 func _forget_screen_listeners() -> void:
-	for sig in [resized, Game.changed]:
+	for sig in [resized, Game.changed, FullGame.changed]:
 		for c in sig.get_connections():
 			var owner: Object = (c["callable"] as Callable).get_object()
 			if not (owner is Node and (owner as Node).get_parent() == get_tree().root):

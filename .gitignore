@@ -2,6 +2,10 @@
 game/.godot/
 builds/
 
+# Godot's Android build template and what Gradle builds in it, ignored whole as Godot's own .gitignore does: every
+# Android export rewrites its icons, names and copy of the game, and --install-android-build-template puts it back
+game/android/
+
 # Secrets, and the Steam App ID file used to test Steam outside the Steam client (docs/Steam-publishing.md)
 .env
 steam_appid.txt

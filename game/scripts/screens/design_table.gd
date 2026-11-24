@@ -107,6 +107,7 @@ func enter(args: Dictionary) -> void:
 			Game.state["panels"] = [{"id": "p1", "motif": "dolphin", "stones": {}, "stars": 4, "size": 14}]
 	_build()
 	Nav.resized.connect(_layout_ui)
+	FullGame.changed.connect(_on_store_changed)
 	_layout_ui()
 	_fill_book()
 	if Dev.has("panels"):
@@ -394,6 +395,14 @@ func _fit_toolbar() -> void:
 		_size_row.reparent(home)
 		if home == _toolbar_tools:
 			_toolbar_tools.move_child(_size_row, 2)
+
+
+## Free design offers what the build has, so buying the full game on a phone lays the table out again, floor kept.
+func _on_store_changed() -> void:
+	if not free:
+		_fill_book()
+	elif _stones_allowed() != _stone_buttons.keys():
+		Nav.go("design_table", {"free": true, "design": design})
 
 
 ## Free design offers everything the build has: every chapter's, or only the demo's in the demo.

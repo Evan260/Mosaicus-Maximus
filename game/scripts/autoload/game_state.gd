@@ -240,9 +240,9 @@ func buy_from_ship() -> bool:
 	return true
 
 
-## Whether this is the free demo: the same project exported with the "demo" feature, or tried with --as-demo.
+## Whether this plays as the free demo: the "demo" export, --as-demo, or a phone that has not bought the full game.
 func is_demo() -> bool:
-	return OS.has_feature("demo") or acts_as_demo or Dev.has("as-demo")
+	return OS.has_feature("demo") or acts_as_demo or Dev.has("as-demo") or FullGame.locked()
 
 
 ## The last chapter this build plays: the demo's last, or the whole story's.

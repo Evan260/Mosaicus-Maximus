@@ -23,6 +23,7 @@ Dev="*res://scripts/autoload/dev.gd"
 Data="*res://scripts/autoload/data.gd"
 Audio="*res://scripts/autoload/audio.gd"
 Settings="*res://scripts/autoload/settings.gd"
+FullGame="*res://scripts/autoload/full_game.gd"
 Game="*res://scripts/autoload/game_state.gd"
 Saves="*res://scripts/autoload/saves.gd"
 Nav="*res://scripts/autoload/nav.gd"
@@ -35,6 +36,10 @@ Pad="*res://scripts/autoload/pad.gd"
 window/size/viewport_width=1440
 window/size/viewport_height=810
 window/stretch/mode="disabled"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/slowsunday_phone/plugin.cfg")
 
 [gui]
 

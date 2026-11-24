@@ -30,6 +30,7 @@ func enter(_args: Dictionary) -> void:
 	_version.add_theme_color_override("font_outline_color", UiTheme.INK)
 	_version.add_theme_constant_override("outline_size", 2)
 	Nav.resized.connect(_place)
+	FullGame.changed.connect(_on_store_changed)
 	_show_menu()
 	match Dev.get_arg("panel"):
 		"new":
@@ -86,9 +87,14 @@ func _place() -> void:
 
 
 func _swap_menu() -> VBoxContainer:
+	var at := -1
 	if is_instance_valid(_menu):
+		at = _menu.get_index()
 		_menu.queue_free()
 	_menu = Ui.panel(Nav.ui, "PagePanel")
+	# A menu made again while a window is open, as when the full game is bought from Settings, stays under it.
+	if at >= 0:
+		Nav.ui.move_child(_menu, at)
 	_menu.custom_minimum_size.x = 236
 	# Buttons widen a little once their text is centred, after the menu was first placed.
 	_menu.resized.connect(_place)
@@ -115,8 +121,14 @@ func _show_menu() -> void:
 		var s: Dictionary = info[n - 1]
 		if not s.is_empty():
 			_slot_row(col, n, s)
-	var fresh := Ui.button(col, "New workshop", _show_new, "plus", Saves.free_slot() > 0 and info.all(func(s: Dictionary) -> bool: return s.is_empty()))
+	# A phone's short screen has no room for one more line, so there the unlock sits beside New workshop.
+	var beside := Nav.phone and FullGame.locked()
+	var top: Container = Ui.hbox(col, 3) if beside else col
+	var fresh := Ui.button(top, "New workshop", _show_new, "plus", Saves.free_slot() > 0 and info.all(func(s: Dictionary) -> bool: return s.is_empty()))
 	fresh.custom_minimum_size.y = 22
+	if beside:
+		fresh.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		DemoEnd.unlock_button(top).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if Saves.free_slot() == 0:
 		fresh.disabled = true
 		Ui.tip_on(fresh, "You already keep three workshops. Delete one to start another.")
@@ -128,10 +140,16 @@ func _show_menu() -> void:
 	# Phone games are put away rather than quit, so a phone has no Quit.
 	if not Nav.phone:
 		Ui.button(row, "Quit", quit_game)
-	if Game.is_demo():
-		var wish := DemoEnd.wishlist_button(col)
+	if Game.is_demo() and not beside:
+		var wish := DemoEnd.full_game_button(col)
 		if wish:
 			wish.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+
+## The store's price arrived or the full game was bought, which changes the unlock, Demo and the saved workshops.
+func _on_store_changed() -> void:
+	if _page == "menu":
+		_show_menu()
 
 
 ## One saved workshop: its name and how far along it is, and a bin that asks first.

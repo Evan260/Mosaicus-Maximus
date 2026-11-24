@@ -65,6 +65,7 @@ func _build() -> void:
 		tab = Dev.get_arg("settings-tab")
 	_show(tab if tab in _shown_tabs() else "Sound", true)
 	Settings.changed.connect(func() -> void: _show(tab, false))
+	FullGame.changed.connect(func() -> void: _show(tab, false))
 	Nav.resized.connect(_place)
 
 
@@ -145,6 +146,9 @@ func _gameplay() -> void:
 		Ui.setting(_page, tr("Your dog"), tr("Change"), func() -> void:
 			queue_free()
 			DogPanel.open(get_parent()), WIDTH)
+	# A new phone, or the game installed again, learns of the purchase from the store.
+	if FullGame.locked():
+		Ui.setting(_page, tr("Already bought the full game?"), tr("Restore purchase"), FullGame.restore, WIDTH)
 
 
 ## Each key in a chip, with the controller button that does the same beside it while a controller is plugged in.
