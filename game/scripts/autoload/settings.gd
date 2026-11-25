@@ -40,9 +40,11 @@ func _ready() -> void:
 		_bring_old_saves()
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
-		master = cfg.get_value("sound", "master", master)
-		music = cfg.get_value("sound", "music", music)
-		effects = cfg.get_value("sound", "effects", effects)
+		# A recording keeps the game's own mix rather than the player's volumes, so every video comes out equally loud.
+		if Engine.get_write_movie_path() == "":
+			master = cfg.get_value("sound", "master", master)
+			music = cfg.get_value("sound", "music", music)
+			effects = cfg.get_value("sound", "effects", effects)
 		fullscreen = cfg.get_value("display", "fullscreen", fullscreen)
 		maximized = cfg.get_value("display", "maximized", maximized)
 		hints = cfg.get_value("play", "hints", hints)

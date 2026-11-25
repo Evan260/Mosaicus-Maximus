@@ -1,6 +1,5 @@
 extends Node
-## The edits of the trailer and the short: each plays its recorded shots in order with their own sound under the music,
-## with black caption cards, captions over shots and the end card. tools/trailer/make_trailer.py renders one at a time.
+## Every video's edit: its shots under the music, with cards, captions and the end card; make_trailer.py renders it.
 
 const FPS := 30.0
 ## One beat of the music, in seconds; every cut lands on a beat.
@@ -37,6 +36,19 @@ const TRAILER := [
 	{"shot": "night", "from": 1.0, "beats": 4},
 	{"card": "Lay a floor that lasts\ntwo thousand years.", "beats": 4},
 	{"end": "endcard", "from": 1.0, "beats": 7, "dim": 0.55},
+]
+## The Google Play video, with the phone's interface; its 48 beats start 48 into the music and end with it.
+const PLAY_STORE := [
+	{"shot": "floor", "from": 0.9, "beats": 8},
+	{"shot": "client", "from": 3.45, "beats": 5},
+	{"shot": "design", "from": 2.5, "beats": 8},
+	{"shot": "floor", "from": 11.5, "beats": 4},
+	{"shot": "floor", "from": 19.2, "beats": 4},
+	{"shot": "sea", "from": 1.6, "beats": 3, "caption": "Word gets around.", "caption_at": 0.3},
+	{"shot": "villa", "from": 2.4, "beats": 3},
+	{"shot": "dig", "from": 0.8, "beats": 5},
+	{"shot": "dog", "from": 1.4, "beats": 2},
+	{"end": "endcard", "from": 1.0, "beats": 6, "dim": 0.55},
 ]
 ## The short for phones: one floor laid close up, a stone at a time, then an old one dug up, with a caption on every shot.
 const SHORT := [
@@ -116,9 +128,10 @@ a bigger floor", "caption_at": 0.0},
 	{"end": "endcard", "from": 1.0, "beats": 6, "dim": 0.55},
 ]
 ## How each cut is laid out: its frame, how many screen pixels make one overlay pixel, its caption size and where its
-## text and logo sit in overlay pixels, and where in the music it starts.
+## text and logo sit in overlay pixels, where in the music it starts, and optionally the end card's line.
 const CUTS := {
 	"trailer": {"edit": TRAILER, "size": Vector2i(1920, 1080), "pixel": 4, "caption_size": 20, "caption_y": 20, "logo_y": 44, "scroll_y": 158, "music_from": 0.0},
+	"play_store": {"edit": PLAY_STORE, "size": Vector2i(1920, 1080), "pixel": 4, "caption_size": 20, "caption_y": 20, "logo_y": 44, "scroll_y": 158, "music_from": 41.143, "line": "Make Roman mosaics"},
 	"one_stone": {"edit": SHORT, "size": Vector2i(1080, 1920), "pixel": 3, "caption_size": 30, "caption_y": 70, "logo_y": 150, "scroll_y": 400, "music_from": 41.1},
 	"pet_the_dog": {"edit": PETS, "size": Vector2i(1080, 1920), "pixel": 3, "caption_size": 30, "caption_y": 70, "logo_y": 150, "scroll_y": 400, "music_from": 0.0},
 	"guess_the_floor": {"edit": GUESS, "size": Vector2i(1080, 1920), "pixel": 3, "caption_size": 30, "caption_y": 70, "logo_y": 150, "scroll_y": 400, "music_from": 20.0},
@@ -144,7 +157,7 @@ var _card_text: Label
 var _caption: Label
 var _logo: TextureRect
 var _scroll: TextureRect
-var _wishlist: Label
+var _line: Label
 var _music: AudioStreamPlayer
 var _sound: AudioStreamPlayer
 var _current := -1
@@ -227,9 +240,9 @@ func _build() -> void:
 	_scroll.texture = load("res://tools/trailer/scroll.png")
 	_scroll.position = Vector2(roundf((area.x - _scroll.texture.get_width()) / 2.0), float(_cut["scroll_y"]))
 	_overlay.add_child(_scroll)
-	_wishlist = _label(_scroll.position + Vector2(0, SCROLL_TEXT_TOP), _scroll.texture.get_width(), SCROLL_TEXT_HEIGHT, 20)
-	_wishlist.text = "Wishlist now on Steam"
-	_wishlist.add_theme_color_override("font_color", INK)
+	_line = _label(_scroll.position + Vector2(0, SCROLL_TEXT_TOP), _scroll.texture.get_width(), SCROLL_TEXT_HEIGHT, 20)
+	_line.text = String(_cut.get("line", "Wishlist now on Steam"))
+	_line.add_theme_color_override("font_color", INK)
 
 
 func _label(at: Vector2, width: float, height: float, size: int) -> Label:
@@ -284,7 +297,7 @@ func _draw_segment(seg: Dictionary, local: float, length: float) -> void:
 	_card_text.visible = is_card
 	_logo.visible = is_end
 	_scroll.visible = is_end
-	_wishlist.visible = is_end
+	_line.visible = is_end
 	_shade.visible = is_end
 	_caption.visible = seg.has("caption")
 	if is_card:
@@ -315,6 +328,6 @@ func _draw_segment(seg: Dictionary, local: float, length: float) -> void:
 		_logo.position.y = float(_cut["logo_y"]) + roundf(4.0 * (1.0 - _logo.modulate.a))
 		var s := clampf((local - 1.6) / 0.6, 0.0, 1.0)
 		_scroll.modulate.a = s
-		_wishlist.modulate.a = s
+		_line.modulate.a = s
 	# Sound from each shot fades in and out quickly at its cuts, so cuts never click.
 	_sound.volume_db = float(_cut.get("sound_db", SOUND_DB)) + linear_to_db(clampf(minf(local / 0.08, (length - local) / 0.08), 0.0001, 1.0))

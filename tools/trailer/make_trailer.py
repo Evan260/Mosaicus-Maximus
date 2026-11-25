@@ -1,6 +1,6 @@
-"""Make the Steam trailer and the vertical short for YouTube Shorts, Reels and TikTok: record each scripted shot in movie
-mode, then cut them together with the cards, captions, the end card and the music, all in Godot, and keep an .mp4 copy
-beside each .avi.
+"""Make the Steam trailer, the Google Play listing's video and the vertical shorts for YouTube Shorts, Reels and TikTok:
+record each scripted shot in movie mode, then cut them together with the cards, captions, the end card and the music,
+all in Godot, and keep an .mp4 copy beside each .avi.
 
 Usage:
   python tools/trailer/make_trailer.py              records any shot not yet recorded, then renders the trailer
@@ -8,13 +8,15 @@ Usage:
   python tools/trailer/make_trailer.py render       renders from the shots already recorded
   python tools/trailer/make_trailer.py render 40    renders a preview from 40 seconds in, into recordings/content/
   Add --cut=NAME to any of these for one of the shorts, named in SHORTS below, whose shots are recorded in a tall
-  1080x1920 frame.
+  1080x1920 frame, or --cut=play_store for the Google Play video, recorded at 1920x1080 with the phone's interface
+  (--phone), its touches shown as a fingertip.
 
 Finished videos go to their own folders in marketing/recordings/videos/, beside each one's title, description and
 thumbnail; the shot frames they are cut from are kept in marketing/recordings/content/, so a change to an edit renders
 again in a minute or two. The shots are scripted in game/tools/trailer/shots.gd and the edits, with their cards,
 captions and music, in game/tools/trailer/edit.gd. Every shot plays a fresh workshop that is never saved.
 """
+import json
 import shutil
 import subprocess
 import sys
@@ -60,6 +62,10 @@ SHOTS = {
 CUTS = {
     "trailer": {"shots": ["dawn", "client", "design", "floor", "sea", "villa", "apse", "dig", "dog", "night", "endcard"],
                 "size": (1920, 1080), "dir": WORK / "trailer_shots", "out": VIDEOS / "steam_trailer" / "steam_trailer.avi"},
+    # The Google Play listing's video shows the game as a phone gives it, and nothing a phone does not have.
+    "play_store": {"shots": ["floor", "client", "design", "sea", "villa", "dig", "dog", "endcard"],
+                   "size": (1920, 1080), "dir": WORK / "phone_shots", "flags": ["--phone"],
+                   "out": VIDEOS / "play_store_trailer" / "play_store_trailer.avi"},
 }
 # The shorts are all recorded in the tall frame and share their shots.
 SHORTS = {
@@ -97,7 +103,7 @@ def record(name, cut):
     w, h = cut["size"]
     # A .png movie is written as numbered frames with the sound beside them in a .wav of the same name.
     godot(["--write-movie", str(folder / "f.png"), "--fixed-fps", str(FPS), "--quit-after", str(SHOTS[name] * FPS),
-           "--", f"--window={w}x{h}", "--no-save", f"--trailer-shot={name}"], cut["size"])
+           "--", f"--window={w}x{h}", *cut.get("flags", []), "--no-save", f"--trailer-shot={name}"], cut["size"])
 
 
 def render(name, cut, start=0.0):
@@ -115,13 +121,21 @@ def render(name, cut, start=0.0):
 
 def mp4_copy(avi):
     """Writes an .mp4 beside the .avi: about a tenth of its size, and the format Instagram, TikTok and most upload pages
-    want. Skipped without ffmpeg."""
+    want, with its sound brought to -16 LUFS, the loudness video sites play at, as Fishus Maximus's and Legionus
+    Maximus's are. Skipped without ffmpeg."""
     if not FFMPEG.exists():
         print("no ffmpeg, so no .mp4 copy")
         return
+    level = "loudnorm=I=-16:TP=-1.5:LRA=11"
+    # A first pass measures the sound, so the copy is brought to the level by one steady change rather than a guess.
+    probe = subprocess.run([str(FFMPEG), "-hide_banner", "-i", str(avi), "-vn", "-af", level + ":print_format=json", "-f", "null", "-"],
+                           capture_output=True, text=True, check=True)
+    m = json.loads(probe.stderr[probe.stderr.rindex("{"):probe.stderr.rindex("}") + 1])
+    level += (f":measured_I={m['input_i']}:measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}"
+              f":measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true")
     subprocess.run([str(FFMPEG), "-y", "-loglevel", "error", "-i", str(avi), "-c:v", "libx264", "-preset", "slow", "-crf", "16",
-                    "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(avi.with_suffix(".mp4"))],
-                   check=True)
+                    "-pix_fmt", "yuv420p", "-af", level, "-ar", "48000", "-c:a", "aac", "-b:a", "192k",
+                    "-movflags", "+faststart", str(avi.with_suffix(".mp4"))], check=True)
 
 
 def main():

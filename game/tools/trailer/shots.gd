@@ -14,6 +14,11 @@ var _pointer: Sprite2D
 var _ring: Sprite2D
 var _scale := 4.0
 var _job := {}
+## A phone has no mouse pointer, so a recording with the phone's interface shows each touch as a fingertip on the glass.
+var _touch := Nav.phone and Engine.get_write_movie_path() != ""
+## The ring spreading from a touch on a phone, one picture for each whole pixel it grows.
+var _ripples: Array[Texture2D] = []
+var _fade: Tween
 
 
 func _ready() -> void:
@@ -33,8 +38,8 @@ func _ready() -> void:
 	layer.layer = 128
 	add_child(layer)
 	_pointer = Sprite2D.new()
-	_pointer.texture = _arrow()
-	_pointer.centered = false
+	_pointer.texture = _fingertip() if _touch else _arrow()
+	_pointer.centered = _touch
 	_pointer.scale = Vector2.ONE * _scale
 	_pointer.visible = false
 	layer.add_child(_pointer)
@@ -42,6 +47,10 @@ func _ready() -> void:
 	_ring.texture = _ring_texture()
 	_ring.modulate.a = 0.0
 	layer.add_child(_ring)
+	for radius in range(6, 12):
+		_ripples.append(_ripple_texture(radius))
+	if _touch:
+		_pointer.modulate.a = 0.0
 	# The real mouse plays no part: wherever it rests would light up what it is over.
 	get_tree().root.set_disable_input(true)
 	_new_workshop()
@@ -177,16 +186,19 @@ func _tidy(table: Node) -> void:
 	table._refresh_chips()
 
 
-## Turns the scroll wheel over the picked motif until it is the size wanted, a step at a time.
+## Turns the scroll wheel over the picked motif until it is the size wanted, or on a phone taps its size buttons.
 func _shrink_to(table: Node, size: float) -> void:
 	var p: Dictionary = table.design.placements[table.selected]
 	for k in 12:
 		var now := float(p["size"])
 		if absf(now - size) < 0.5:
 			return
+		if _touch:
+			_touch_down(_centre(table._resize_buttons[1 if now > size else 0]))
+			await _wait(0.08)
 		table._resize(-1 if now > size else 1)
 		table._plan.selection = table._rect_of(p)
-		await _wait(0.12)
+		await _wait(0.2 if _touch else 0.12)
 
 
 ## The first floor laid close up, a stone at a time: white is picked in the tray and swept over the dove, where it
@@ -297,6 +309,13 @@ func _drag_brush(screen: Node, lines: Array, seconds: float) -> void:
 				if next == target:
 					leg += 1
 			screen._demo_prev = at
+			# A finger sweeps the floor along each line and is lifted on its way to the next.
+			if _touch and leg >= 2 and leg < points.size():
+				if _pointer.modulate.a < 1.0:
+					_touch_down(_on_screen(screen, at), true)
+				_pointer.position = _on_screen(screen, at)
+		if _touch:
+			_lift()
 	screen.cursor.visible = false
 	screen._demo_prev = Vector2.INF
 
@@ -386,7 +405,14 @@ func _brush_only_while_working() -> void:
 		await get_tree().process_frame
 	var screen: Node = Nav.current
 	while is_instance_valid(screen) and Nav.current == screen:
-		screen.cursor.visible = screen._demo_prev != Vector2.INF
+		var working: bool = screen._demo_prev != Vector2.INF
+		screen.cursor.visible = working
+		if _touch and working:
+			if _pointer.modulate.a < 1.0:
+				_touch_down(_on_screen(screen, screen._demo_prev), true)
+			_pointer.position = _on_screen(screen, screen._demo_prev)
+		elif _touch and _pointer.modulate.a >= 1.0:
+			_lift()
 		await get_tree().process_frame
 
 
@@ -400,7 +426,8 @@ func _shot_dog() -> void:
 	_pointer.visible = true
 	await _click_spot(workshop._layers["bed"])
 	await _wait(0.5)
-	await _glide(_pointer.position + Vector2(140, 90), 0.6)
+	if not _touch:
+		await _glide(_pointer.position + Vector2(140, 90), 0.6)
 
 
 ## The workshop grown and lamplit at night, its plants, wine jars and lamps bought with the floors it has laid.
@@ -458,7 +485,8 @@ func _pet(dog: Dictionary) -> void:
 	await _wait(0.6)
 	await _click_spot(bed)
 	await _wait(0.4)
-	await _glide(_pointer.position + Vector2(220, 160), 0.6)
+	if not _touch:
+		await _glide(_pointer.position + Vector2(220, 160), 0.6)
 
 
 ## An old floor under a house, close on its picture: the trowel is picked and the dirt scraped from all round the
@@ -694,11 +722,11 @@ func _glide(to: Vector2, seconds := 0.5) -> void:
 	await tw.finished
 
 
-## Moves the pointer onto a button and presses it, as a player would.
+## Moves the pointer onto a button and presses it, as a player would, or on a phone taps it.
 func _press(button: BaseButton) -> void:
 	if button == null:
 		return
-	await _glide(_centre(button))
+	await _move_to(_centre(button))
 	await _wait(0.15)
 	_tap()
 	if button.toggle_mode:
@@ -708,16 +736,27 @@ func _press(button: BaseButton) -> void:
 
 ## Moves the pointer onto a control and clicks it, running the given action.
 func _press_with(c: Control, action: Callable) -> void:
-	await _glide(_centre(c))
+	await _move_to(_centre(c))
 	await _wait(0.15)
 	_tap()
 	action.call()
 
 
-## Moves onto a piece of the workshop, which lights up as it does under the mouse, and clicks it.
+## Moves onto a piece of the workshop, which lights up as under the mouse, and clicks it; on a phone it lights while held.
 func _click_spot(piece: Control) -> void:
 	var at := _centre(piece)
 	var spot := _spot_at(at)
+	if _touch:
+		await _wait(0.4)
+		_touch_down(at, true)
+		if spot:
+			spot._fade(1.0)
+		await _wait(0.3)
+		_lift()
+		if spot:
+			spot._fade(0.0)
+			spot.clicked.emit()
+		return
 	await _glide(at, 0.6)
 	if spot:
 		spot._fade(1.0)
@@ -739,24 +778,32 @@ func _spot_at(at: Vector2) -> Hotspot:
 
 ## Takes hold of the slider's knob and slides it to a new price.
 func _slide(slider: HSlider, value: float) -> void:
-	await _glide(_slider_point(slider, slider.value))
+	await _move_to(_slider_point(slider, slider.value))
 	await _wait(0.15)
-	_tap()
+	if _touch:
+		_touch_down(_pointer.position, true)
+	else:
+		_tap()
 	var from := slider.value
 	var tw := create_tween()
 	tw.tween_method(func(u: float) -> void:
 		slider.value = lerpf(from, value, u)
 		_pointer.position = _slider_point(slider, slider.value), 0.0, 1.0, 0.8)
 	await tw.finished
+	if _touch:
+		_lift()
 
 
 ## Picks a motif up from the book and carries it onto the floor plan, at a share of its width and height.
 func _drag_motif(table: Node, motif_id: String, where: Vector2) -> void:
 	var ids: Array = Data.motif_order.filter(func(id: String) -> bool: return (Data.motif(id).get("kind", "") == "picture") == (table.tab == "pictures"))
 	var slot: Control = table._book_grid.get_child(ids.find(motif_id))
-	await _glide(_centre(slot))
+	await _move_to(_centre(slot))
 	await _wait(0.15)
-	_tap()
+	if _touch:
+		_touch_down(_pointer.position, true)
+	else:
+		_tap()
 	var holder := Control.new()
 	holder.scale = Vector2.ONE * _scale
 	_pointer.get_parent().add_child(holder)
@@ -772,11 +819,31 @@ func _drag_motif(table: Node, motif_id: String, where: Vector2) -> void:
 		holder.position = _pointer.position, 0.0, 1.0, 1.0)
 	await tw.finished
 	holder.queue_free()
+	if _touch:
+		_lift()
 	table._add_motif(motif_id, Vector2(table.design.w, table.design.h) * where)
+
+
+## Glides the pointer to a point on screen; a finger is off the glass between touches, so it is not seen travelling.
+func _move_to(to: Vector2) -> void:
+	if _touch:
+		_pointer.position = to
+		await _wait(0.25)
+	else:
+		await _glide(to)
+
+
+## A point on the floor, in its world pixels, on screen.
+func _on_screen(screen: Node, world: Vector2) -> Vector2:
+	var cam: Camera2D = screen.cam
+	return ((world - cam.position) * cam.zoom + get_viewport().get_visible_rect().size * 0.5).round()
 
 
 ## The pointer dips a pixel and a small ring spreads from its tip, so a click reads on screen.
 func _tap() -> void:
+	if _touch:
+		_touch_down(_pointer.position)
+		return
 	_ring.position = _pointer.position
 	_ring.scale = Vector2.ONE * _scale * 0.5
 	_ring.modulate.a = 1.0
@@ -814,6 +881,62 @@ static func _arrow() -> Texture2D:
 				img.set_pixel(x, y, INK)
 			elif c == "o":
 				img.set_pixel(x, y, CREAM)
+	return ImageTexture.create_from_image(img)
+
+
+## A fingertip where the screen is touched, a ring spreading from it a pixel at a time; a held one stays until `_lift`.
+func _touch_down(at: Vector2, held := false) -> void:
+	if _fade:
+		_fade.kill()
+	_pointer.position = at
+	_pointer.visible = true
+	_pointer.modulate.a = 1.0
+	_ring.position = at
+	_ring.scale = _pointer.scale
+	var spread := create_tween()
+	for k in _ripples.size():
+		spread.tween_callback(func() -> void:
+			_ring.texture = _ripples[k]
+			_ring.modulate.a = 1.0 - float(k) / _ripples.size())
+		spread.tween_interval(0.05)
+	spread.tween_callback(func() -> void: _ring.modulate.a = 0.0)
+	if not held:
+		_lift(0.15)
+
+
+func _lift(after := 0.0) -> void:
+	if _fade:
+		_fade.kill()
+	_fade = create_tween()
+	_fade.tween_property(_pointer, "modulate:a", 0.0, 0.2).set_delay(after)
+
+
+## A fingertip pressed on the glass: a pale disc ringed in cream and then ink, so it shows on light and dark alike.
+static func _fingertip() -> Texture2D:
+	var img := Image.create(11, 11, false, Image.FORMAT_RGBA8)
+	for y in 11:
+		for x in 11:
+			var d := Vector2(x - 5, y - 5).length()
+			if d < 3.5:
+				img.set_pixel(x, y, Color(CREAM, 0.45))
+			elif d < 4.5:
+				img.set_pixel(x, y, Color(CREAM, 0.95))
+			elif d < 5.5:
+				img.set_pixel(x, y, Color(INK, 0.6))
+	return ImageTexture.create_from_image(img)
+
+
+static func _ripple_texture(radius: int) -> Texture2D:
+	var side := radius * 2 + 3
+	var img := Image.create(side, side, false, Image.FORMAT_RGBA8)
+	var middle := float(radius + 1)
+	for y in side:
+		for x in side:
+			var d := Vector2(x - middle, y - middle).length()
+			if absf(d - radius) < 0.5:
+				img.set_pixel(x, y, Color(CREAM, 0.9))
+			elif absf(d - radius - 1.0) < 0.5:
+				img.set_pixel(x, y, Color(INK, 0.45))
 	return ImageTexture.create_from_image(img)
 
 
