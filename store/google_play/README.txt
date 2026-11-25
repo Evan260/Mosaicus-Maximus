@@ -45,8 +45,8 @@ Upload them in this order; the first three show first on the listing.
 04_laying_the_stones.png     Laying her floor: the right-hand dove laid in white, red stones landing round the
                              flower where they glow, the stone tray below and the zoom buttons at the side. The script
                              takes a burst of frames and keeps the one with most of the flower laid.
-05_in_her_bedroom.png        Her finished floor in her bedroom, all of it in view beside her card: five stars and
-                             "Mother cried. Then she asked who made it."
+05_in_her_bedroom.png        Her finished floor in her bedroom, all of it in view beside her card: five stars,
+                             "Mother cried. Then she asked who made it." and Keep over Back to the workshop.
 06_the_town.png              The town on the Bay of Naples: the forum, the harbour, the baths, the villas on the hill,
                              the temple of Venus and the rival workshop.
 07_a_villa_dining_room.png   A finished floor visited from the town: peacocks round a Medusa in a villa's dining hall,

@@ -7,9 +7,8 @@ The pictures are made by python tools/phone/make_store_art.py, which has the gam
 interface (--phone) at the store's exact size, so they always match the game. Run it again after the art or the
 interface changes, then look at every picture. Like the Steam screenshots, they carry no captions. Every picture draws
 the painted scenes and the interface at a whole number of screen pixels to the game pixel (the scenes 6 times and the
-interface 4 times on the iPhone; on the iPad the interface 5 times and the bedroom 4 times, so its whole floor shows
-beside Livia's card), lays the mosaic floors at the screen's own resolution, as the game always does, and resizes
-nothing with smoothing.
+interface 4 times on the iPhone, both 5 times on the iPad, where the bedroom's whole floor shows beside Livia's card),
+lays the mosaic floors at the screen's own resolution, as the game always does, and resizes nothing with smoothing.
 
 
 APP ICON
@@ -33,9 +32,9 @@ IPHONE SCREENSHOTS (iphone_6.9_inch_screenshots/, all 2868x1320 landscape, PNG w
                              with the phone's buttons over the picked flower, her five stars and Start laying ready.
 04_laying_the_stones.png     Laying her floor: the right-hand dove laid in white and red stones landing round the
                              flower, with the stone tray below.
-05_in_her_bedroom.png        Her finished floor in her bedroom beside her card: five stars and "Mother cried. Then she
-                             asked who made it." The top of the room is cropped so the whole floor shows above the
-                             bottom edge.
+05_in_her_bedroom.png        Her finished floor in her bedroom beside her card: five stars, "Mother cried. Then she
+                             asked who made it." and Keep over Back to the workshop. The top of the room is cropped so
+                             the whole floor shows above the bottom edge.
 06_the_town.png              The town on the Bay of Naples: the forum, the harbour, the baths, the villas on the hill
                              and the rival workshop.
 07_a_villa_dining_room.png   A finished floor visited from the town: peacocks round a Medusa in a villa's dining hall,
@@ -53,7 +52,8 @@ IPAD SCREENSHOTS (ipad_13_inch_screenshots/, all 2752x2064 landscape, PNG withou
                              Livia's floor, her five stars and Start laying ready.
 02_laying_the_stones.png     Laying her floor close up: the right-hand dove laid in white and red stones landing round
                              the flower.
-03_in_her_bedroom.png        Her finished floor in her bedroom beside her five-star card.
+03_in_her_bedroom.png        Her finished floor in her bedroom beside her five-star card, drawn as large as the
+                             pictures on this screen.
 04_a_client_visits.png       Widow Cornelia's visit, her wishes and the price slider.
 05_an_old_floor_dug_up.png   A restoration: the trowel scraping the dirt off an old floor found under a house, its
                              guard dog with its red collar coming up out of the dirt.
