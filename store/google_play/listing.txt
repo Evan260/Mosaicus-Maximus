@@ -1,0 +1,54 @@
+MOSAICUS MAXIMUS: GOOGLE PLAY LISTING TEXT
+
+For Play Console > Store presence > Main store listing > App details. Each count is the number of
+characters Play counts for that field, line breaks included, against the field's limit. The text avoids
+"demo" and "trial", so it can be reused for the App Store.
+
+
+APP NAME (30 of 30 characters)
+
+Mosaicus Maximus: Cozy Mosaics
+
+
+SHORT DESCRIPTION (79 of 80 characters)
+
+Design Roman mosaic floors and lay every stone yourself. Cozy, calm and no ads.
+
+
+FULL DESCRIPTION (3,410 of 4,000 characters)
+
+Your uncle has left you his workshop. The town still remembers his floors.
+
+Mosaicus Maximus is a cozy craft and business game set in a small harbour town on the Bay of Naples in AD 72. Design mosaic floors for the townsfolk, lay them stone by stone, and restore the forgotten floors buried under the town. Start with a few sacks of black and white stone, and end with glass and gold for the temple of Venus.
+
+Free to start, one purchase for the whole game
+Download Mosaicus Maximus for free and play the first two chapters: black and white geometry, then coloured marble and terracotta. One purchase opens the rest of the story: detailed pictures in tiny tiles, then glass and gold for walls, fountains and the temple, with grander rooms and every stone. Your workshop carries straight on. No ads, ever, and nothing else for sale.
+
+Made for touch
+Sweep a finger over the floor to lay the stones, and pinch with two fingers to zoom and pan. At the design table, two fingers size a pattern. Hold a finger on a button to see what it does. Every button is sized for a fingertip, on phones and tablets alike.
+
+Design it, lay it, reveal it
+• A client comes in with a wish: a guard dog and "Cave Canem" by the door, two doves for a bride-to-be, an octopus for the baths. Name your price and shake on it.
+• Compose the floor at the design table from the pattern book's 31 Roman patterns and pictures and 9 borders. Drag, resize, mirror, pair and recolour them, and watch the stars it will earn as you work.
+• Lay every tile yourself. Pick a stone from the tray, sweep over the places that glow, and hundreds of tiles drop into place in a ripple, bending round curves the way Roman rows did.
+• Wipe in the grout with a sponge, polish the stone with a cloth, then see the finished floor in the client's own room and hear what they think.
+
+Floors under the town
+Old floors turn up under houses being rebuilt. Scrape away the dirt with the trowel, mend each gap with a stone that matches, and the lost pattern goes into your pattern book. Some mornings your dog comes home covered in dirt, having found one next door. The digs grow all the way to the great floor beneath the forum.
+
+A town full of people
+• Ten regular clients, each with a story that unfolds over their jobs, and twenty townsfolk with jobs of their own.
+• Every client has a taste. Learn it from what they say, and your notebook keeps it.
+• Copy famous floors for collectors, enter the town's floor contest every seventh day against the rival workshop, and lay themed floors for the Roman festivals.
+• Buy rare stone off the merchant ships in the harbour, make small picture panels at the workbench, and visit your floors on the town map.
+
+A workshop of your own
+• Choose your dog's breed and coat. It sleeps in its basket and wags when you pet it.
+• Add potted plants, wine jars and bronze lamps, take on an apprentice, open the courtyard and build a glass furnace.
+• The day passes from morning light to lamplight while you work.
+• Keep your favourite floors in your library and watch them laid again tile by tile.
+• Free design whenever you like: lay any floor you want, with no client to please.
+• Each stone has its own sound, from the hard click of marble to the ping of gold, over calm harp music.
+• 31 achievements, three workshops to keep, and play in 14 languages.
+
+No timers and no failure. Just a quiet Roman town that wants beautiful floors.
