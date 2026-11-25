@@ -61,6 +61,9 @@ func make_state() -> void:
 	var st := Game.state
 	st["_dev"] = true
 	st["guide_off"] = true
+	# --seed=N fixes the morning's notices and news, so a store picture shows the same board every time it is taken.
+	if has("seed"):
+		st["seed"] = int(get_arg("seed"))
 	if has("max-state"):
 		Story.unlock(st, Data.chapters.size())
 		st.merge({"coins": 99999, "reputation": int(Data.chapters[-1]["reputation"]), "day": 200, "apprentices": 1}, true)
