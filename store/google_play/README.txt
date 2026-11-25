@@ -63,16 +63,23 @@ TABLET SCREENSHOTS
 tablet_7_inch_screenshots/    1920x1080 landscape (16:9), 24-bit PNG
 tablet_10_inch_screenshots/   2560x1440 landscape (16:9), 24-bit PNG
 
-Each folder holds the same four scenes, taken at that window size with the phone interface, so the layout is the one a
-tablet of that shape gets:
+Each folder holds the phone's eight scenes in the same order, taken at that window size with the phone interface, so
+the layout is the one a tablet of that shape gets. The 7-inch tablet has the phone's size, so its pictures are the
+phone's own.
 
 01_the_workshop.png
-02_designing_her_floor.png
-03_a_villa_dining_room.png
-04_the_town.png
+02_a_client_visits.png
+03_designing_her_floor.png
+04_laying_the_stones.png
+05_in_her_bedroom.png
+06_the_town.png
+07_a_villa_dining_room.png
+08_festival_day.png
 
 On the 10-inch tablet the painted pictures are drawn 6 times, which crops a little off their top and bottom, as the
-game does on that screen: the dog's basket and the front of the villa's floor reach past the bottom edge.
+game does on that screen: the dog's basket and the front of the villa's floor reach past the bottom edge. The bedroom
+is drawn larger beside Livia's card there, so the card covers more of the left dove, and the job board shows the names
+on the next row of notices under the first.
 
 Meets: up to 8 screenshots for each tablet size, JPEG or 24-bit PNG without alpha, each side 320 to 3,840 px, the long
 side at most 2.3 times the short one. They are 16:9, as Google's large-screen guidance asks for a game to be featured

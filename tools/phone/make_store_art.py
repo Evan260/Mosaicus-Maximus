@@ -56,12 +56,11 @@ SCENES = {
 }
 PHONE = ["the_workshop", "a_client_visits", "designing_her_floor", "laying_the_stones", "in_her_bedroom", "the_town",
          "a_villa_dining_room", "festival_day"]
-TABLET = ["the_workshop", "designing_her_floor", "a_villa_dining_room", "the_town"]
 # folder: (window size, scenes in upload order).
 SETS = {
     PLAY / "phone_screenshots": ((1920, 1080), PHONE),
-    PLAY / "tablet_7_inch_screenshots": ((1920, 1080), TABLET),
-    PLAY / "tablet_10_inch_screenshots": ((2560, 1440), TABLET),
+    PLAY / "tablet_7_inch_screenshots": ((1920, 1080), PHONE),
+    PLAY / "tablet_10_inch_screenshots": ((2560, 1440), PHONE),
     APPLE / "iphone_6.9_inch_screenshots": ((2868, 1320), PHONE),
     # A 4:3 screen shows the workshop, the town and the villa small between dark bands, so the iPad leaves them out.
     APPLE / "ipad_13_inch_screenshots": ((2752, 2064), ["designing_her_floor", "laying_the_stones", "in_her_bedroom",
