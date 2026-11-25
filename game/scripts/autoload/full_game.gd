@@ -3,9 +3,10 @@ extends Node
 ## is bought. The store is the phone's native plugin (SlowSundayPhone's Google Play Billing on Android; an Apple one
 ## later, with the same methods and signals), so a computer has none and nothing there is for sale or locked. Owning
 ## the full game is written to user://store.cfg, so a phone without a connection keeps it. --store tries a pretend
-## store on a computer, and --store=owned one where the full game is already bought.
+## store on a computer, and --store=owned one where the full game is already bought. Google Play's reviewers, who
+## cannot buy, open the full game with a code typed on the title (redeem()), which no answer from the store takes back.
 
-## Whether the full game is owned, or its price, changed.
+## Whether the full game is owned or opened by a reviewer's code, or its price, changed.
 signal changed
 ## How a purchase or restore ended: purchased, pending, cancelled, error, unavailable, restored or not_found.
 signal finished(result: String)
@@ -13,14 +14,25 @@ signal finished(result: String)
 ## The product the store sells; each game creates it in the Play Console (and later App Store Connect) with this id.
 const PRODUCT := "full_game"
 const PLUGINS := ["SlowSundayPhone", "SlowSundayStore"]
+## The key in the cache that says a reviewer's code opened the full game on this phone.
+const REVIEW := "review_code"
+## How many taps on the title's hidden spot, all within REVIEW_SECONDS, open the box for a reviewer's code.
+const REVIEW_TAPS := 5
+const REVIEW_SECONDS := 3.0
 
 var store: Object = null
 ## Where owning the full game is written down; empty keeps nothing, as for the pretend store.
 var cache_path := "user://store.cfg"
+## The reviewer's code is never in the game, only the SHA-256 of "<package name>:<the code as normalize() leaves it>".
+var review_hash: String = ProjectSettings.get_setting("slowsunday/review_code_sha256", "")
+var package_name: String = ProjectSettings.get_setting("slowsunday/package_name", "")
 var _owned := false
+var _redeemed := false
 var _price := ""
 var _restoring := false
 var _pending := false
+## When the title's hidden spot was tapped lately, in seconds.
+var _taps := []
 
 
 func _ready() -> void:
@@ -48,7 +60,9 @@ func use_store(new_store: Object) -> void:
 	_price = ""
 	_restoring = false
 	_pending = false
-	_owned = store != null and _cached()
+	_owned = store != null and _cached(PRODUCT)
+	_redeemed = store != null and _cached(REVIEW)
+	_taps.clear()
 	changed.emit()
 	if store == null:
 		return
@@ -73,7 +87,7 @@ func owned() -> bool:
 
 ## True on a phone that has not bought the full game, which then plays by the demo's limits.
 func locked() -> bool:
-	return store != null and not _owned
+	return store != null and not _owned and not _redeemed
 
 
 ## The store's own price text, such as CA$4.99 in the player's currency, or "" until the store has said it.
@@ -91,6 +105,34 @@ func restore() -> void:
 	if store != null:
 		_restoring = true
 		store.call("query_owned")
+
+
+## The code as it is hashed: upper case, without the spaces and dashes a reviewer may type between its groups.
+static func normalize(code: String) -> String:
+	return code.strip_edges().to_upper().replace(" ", "").replace("-", "")
+
+
+## Opens the full game on this phone for one of Google Play's reviewers, who cannot buy it; false for a wrong code.
+func redeem(code: String) -> bool:
+	if review_hash == "" or (package_name + ":" + normalize(code)).sha256_text() != review_hash:
+		return false
+	if not _redeemed:
+		_redeemed = true
+		_write()
+		changed.emit()
+	return true
+
+
+## A tap at `now` seconds on the title's hidden spot; true for the REVIEW_TAPS-th within REVIEW_SECONDS while locked.
+func review_tap(now: float) -> bool:
+	if not locked():
+		return false
+	_taps = _taps.filter(func(t: float) -> bool: return now - t <= REVIEW_SECONDS)
+	_taps.append(now)
+	if _taps.size() < REVIEW_TAPS:
+		return false
+	_taps.clear()
+	return true
 
 
 func _on_connected() -> void:
@@ -137,16 +179,23 @@ func _set_owned(value: bool) -> void:
 	if value == _owned:
 		return
 	_owned = value
-	if cache_path != "":
-		var cfg := ConfigFile.new()
-		cfg.set_value("store", PRODUCT, value)
-		cfg.save(cache_path)
+	_write()
 	changed.emit()
 
 
-func _cached() -> bool:
+func _write() -> void:
+	if cache_path == "":
+		return
 	var cfg := ConfigFile.new()
-	return cache_path != "" and cfg.load(cache_path) == OK and bool(cfg.get_value("store", PRODUCT, false))
+	cfg.set_value("store", PRODUCT, _owned)
+	if _redeemed:
+		cfg.set_value("store", REVIEW, true)
+	cfg.save(cache_path)
+
+
+func _cached(key: String) -> bool:
+	var cfg := ConfigFile.new()
+	return cache_path != "" and cfg.load(cache_path) == OK and bool(cfg.get_value("store", key, false))
 
 
 ## A store that answers at once, for trying the purchase and the unlock on a computer.

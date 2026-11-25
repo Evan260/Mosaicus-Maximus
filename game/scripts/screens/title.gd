@@ -10,7 +10,7 @@ var _t := 0.0
 var _name_edit: LineEdit
 var _chooser: DogChooser
 var _begun := false
-## Which page the menu shows: "menu", "new" or "delete".
+## Which page the menu shows: "menu", "new", "delete" or "review".
 var _page := "menu"
 var _version: Label
 
@@ -29,6 +29,12 @@ func enter(_args: Dictionary) -> void:
 	_version.modulate.a = 0.7
 	_version.add_theme_color_override("font_outline_color", UiTheme.INK)
 	_version.add_theme_constant_override("outline_size", 2)
+	# The version takes a fingertip's taps, reaching up and left from where it is drawn.
+	_version.custom_minimum_size = Ui.finger(Vector2.ZERO)
+	_version.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_version.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_version.mouse_filter = Control.MOUSE_FILTER_STOP
+	_version.gui_input.connect(_on_version_input)
 	Nav.resized.connect(_place)
 	FullGame.changed.connect(_on_store_changed)
 	_show_menu()
@@ -206,6 +212,46 @@ func _confirm_delete(slot: int, s: Dictionary) -> void:
 	Ui.closes_with(_menu, _show_menu)
 	field.text_changed.connect(func(_t: String) -> void: gone.disabled = not typed.call())
 	field.text_submitted.connect(func(_t: String) -> void: delete.call())
+	field.grab_focus.call_deferred()
+
+
+## Five quick taps on the version open the page for Google Play's reviewer code while the full game is locked.
+func _on_version_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if FullGame.review_tap(Time.get_ticks_msec() / 1000.0):
+			_review_code()
+
+
+## The page for the code that opens the full game for Google Play's reviewers, in English since only they see it.
+func _review_code() -> void:
+	_page = "review"
+	var col := _swap_menu()
+	col.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	var title := Ui.label(col, "Reviewer code", "Heading")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# The message and OK sit above and beside the field, which a phone's keyboard stops just below.
+	var wrong := Ui.label(col, "That code isn't right.")
+	wrong.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	wrong.add_theme_color_override("font_color", UiTheme.RED)
+	wrong.visible = false
+	var row := Ui.hbox(col, 4)
+	var field := LineEdit.new()
+	field.name = "ReviewCode"
+	field.placeholder_text = "XXXX-XXXX-XXXX"
+	field.max_length = 20
+	field.custom_minimum_size = Vector2(120, 20)
+	field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(field)
+	var enter := func() -> void:
+		if FullGame.redeem(field.text):
+			_show_menu()
+		else:
+			wrong.visible = true
+	Ui.button(row, "OK", enter, "", true)
+	Ui.button(col, "Cancel", _show_menu, "arrow_l").size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# A click beside the page would throw away the code typed so far, so only Cancel and Escape leave it.
+	Ui.closes_with(_menu, _show_menu, false)
+	field.text_submitted.connect(func(_t: String) -> void: enter.call())
 	field.grab_focus.call_deferred()
 
 

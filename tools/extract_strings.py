@@ -25,8 +25,10 @@ LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
 ENGINE_LINE = re.compile(r"Audio\.|AudioServer|get_node|res://|user://|push_|print|has_method|connect\(|add_theme|"
                          r"set_stylebox|set_color|set_constant|set_icon|set_font|set_type_variation|find_children|Engine\.|"
                          r"\.bus\b|path_join|InputMap|is_action|load\(|\.name = |spend\(|earn\(|\"what\":|Dev\.")
-# Names that stay as they are in every language: the game's own, the player's default name, theme names and buses.
-KEEP = {"Mosaicus Maximus", "Steam", "Lucia", "Dev", "Hant", "Heading", "Label", "Button", "Master", "Effects", "World"}
+# Names that stay as they are in every language: the game's own, the player's default name, theme names and buses,
+# and the words of the title's page for Google Play's reviewer code, which only the reviewers see.
+KEEP = {"Mosaicus Maximus", "Steam", "Lucia", "Dev", "Hant", "Heading", "Label", "Button", "Master", "Effects", "World",
+        "Reviewer code", "That code isn't right."}
 # Scripts whose text only the developer sees.
 DEV_SCRIPTS = {"dev.gd"}
 
