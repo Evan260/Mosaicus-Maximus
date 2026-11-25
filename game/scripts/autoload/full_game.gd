@@ -76,7 +76,7 @@ func locked() -> bool:
 	return store != null and not _owned
 
 
-## The store's own price text, such as CA$6.99 in the player's currency, or "" until the store has said it.
+## The store's own price text, such as CA$4.99 in the player's currency, or "" until the store has said it.
 func price() -> String:
 	return _price
 
@@ -172,7 +172,7 @@ class PreviewStore:
 		return true
 
 	func query_price(product_id: String) -> void:
-		price_found.emit(product_id, "CA$6.99")
+		price_found.emit(product_id, "CA$4.99")
 
 	func buy(product_id: String) -> void:
 		owned.append(product_id)

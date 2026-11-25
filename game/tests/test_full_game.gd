@@ -3,7 +3,7 @@ extends "res://tests/test_case.gd"
 ## the demo's limits, the answer is kept so it holds without a connection, and a computer sells and locks nothing.
 
 const CACHE := "user://test_store.cfg"
-const PRICE := "CA$6.99"
+const PRICE := "CA$4.99"
 
 ## What each test listens to on FullGame, let go of when the test is done.
 var _listening: Array[Callable] = []
