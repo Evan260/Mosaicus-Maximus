@@ -5,12 +5,19 @@ extends Control
 ## size and its band of light still runs across it.
 
 const ART := "res://assets/art/rooms/"
+## How far the floor keeps from the card beside it and from the top and bottom of the screen, in interface pixels.
+const GAP := 2.0
 
 var floor_view: FloorView
 var _viewport: SubViewport
 var _camera: Camera2D
 var _world := Vector2.ONE
-var _floor_width := 0.0
+## The floor's bounding box in the painting's pixels.
+var _floor_box := Rect2()
+## Screen pixels per painting pixel, which is never more than the other pictures' scale.
+var _scale := 1
+## The card the room sits beside, in interface pixels; empty while there is none.
+var _card := Rect2()
 
 static var _rooms := {}
 
@@ -38,7 +45,7 @@ func setup(room: String, layout: MosaicLayout, stones: Dictionary) -> void:
 	box.position = box.position.floor()
 	box.end = box.end.ceil()
 	_world = Vector2(layout.w, layout.h) * FloorView.WORLD
-	_floor_width = box.size.x
+	_floor_box = box
 	var vp := SubViewport.new()
 	vp.transparent_bg = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -55,10 +62,6 @@ func setup(room: String, layout: MosaicLayout, stones: Dictionary) -> void:
 	_camera.position = _world * 0.5
 	vp.add_child(_camera)
 	_camera.make_current()
-	_fit_floor()
-	Nav.resized.connect(_fit_floor)
-	Nav.resized.connect(place)
-	place()
 	var floor_rect := ColorRect.new()
 	floor_rect.position = box.position
 	floor_rect.size = box.size
@@ -76,17 +79,41 @@ func setup(room: String, layout: MosaicLayout, stones: Dictionary) -> void:
 	painting.texture = load(ART + room + ".png")
 	painting.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(painting)
+	Nav.resized.connect(place)
+	place()
 
 
-## Sets the room right of centre on the picture layer, leaving the left side for the client's card.
+## Sets the room beside the client's card, given in interface pixels, so the whole floor shows to the right of it.
+func keep_clear_of(card: Rect2) -> void:
+	_card = card
+	place()
+
+
+## Draws the room at the largest whole scale, up to the pictures', that fits its whole floor right of the card, right of centre.
 func place() -> void:
-	var view := Nav.picture_view()
-	var x := minf((view.size.x - size.x) * 0.5 + 24.0, view.size.x - size.x + 24.0)
-	position = (view.position + Vector2(x, (view.size.y - size.y) * 0.5)).floor()
+	var ui := float(Nav.scale_factor())
+	var free := Rect2(Nav.safe_top_left * ui, Nav.ui_size() * ui).grow_individual(0.0, -GAP * ui, 0.0, -GAP * ui)
+	if _card.size != Vector2.ZERO:
+		var left := (Nav.safe_top_left.x + _card.end.x + GAP) * ui
+		free = Rect2(left, free.position.y, free.end.x - left, free.size.y)
+	_scale = Nav.picture_scale()
+	while _scale > 1 and (_floor_box.size.x * _scale > free.size.x or _floor_box.size.y * _scale > free.size.y):
+		_scale -= 1
+	var window := get_viewport().get_visible_rect().size
+	var room := size * _scale
+	var at := Vector2(minf((window.x - room.x) * 0.5, window.x - room.x) + 24.0 * _scale, (window.y - room.y) * 0.5)
+	var box := Rect2(at + _floor_box.position * _scale, _floor_box.size * _scale)
+	var low := free.position - box.position
+	var high := free.end - box.end
+	at += Vector2(maxf(low.x, minf(0.0, high.x)), maxf(low.y, minf(0.0, high.y)))
+	var picture := float(Nav.picture_scale())
+	scale = Vector2.ONE * _scale / picture
+	position = (at.floor() - Nav.picture_origin()) / picture
+	_fit_floor()
 
 
 ## Draws the floor at about the size it shows on screen, so it stays sharp when the window's scale changes.
 func _fit_floor() -> void:
-	var wide := clampi(int(_floor_width * Nav.picture_scale() * 1.25), 512, 2048)
+	var wide := clampi(int(_floor_box.size.x * _scale * 1.25), 512, 2048)
 	_viewport.size = Vector2i(wide, int(ceil(wide * _world.y / _world.x)))
 	_camera.zoom = Vector2.ONE * wide / _world.x

@@ -57,7 +57,7 @@ func enter(args: Dictionary) -> void:
 		var list := Ui.vbox(_wishes, 1)
 		list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for w in wishes:
-			Ui.tip_on(Ui.label(list, "• " + str(w["text"]), "", 290), Brief.help(w, Game.state["unlocked_motifs"]))
+			Ui.tip_on(Ui.bullet(list, str(w["text"]), 290), Brief.help(w, Game.state["unlocked_motifs"]))
 		var known := Story.known_taste(Game.state, job)
 		if not known.is_empty() and not bool(job.get("taste_said", false)):
 			Ui.label(list, (tr("From your notebook: she %s.") if she else tr("From your notebook: he %s.")) % Looks.tastes_words(known), "MutedLabel", 290)

@@ -99,7 +99,7 @@ func _notice(job: Dictionary) -> Control:
 		Ui.icon(r, "trowel")
 		Ui.label(r, "Restoration: clean and mend", "", 110)
 		if str(job.get("discovery", "")) != "":
-			Ui.label(col, "• Hides a pattern you don't know", "", 140)
+			Ui.bullet(col, "Hides a pattern you don't know", 140)
 	elif kind == "copy":
 		var r := Ui.hbox(col, 2)
 		Ui.icon(r, "eye")
@@ -111,7 +111,7 @@ func _notice(job: Dictionary) -> Control:
 	else:
 		var wishes := Brief.score(job.get("brief", {}), FloorDesign.new())["wishes"] as Array
 		for w in wishes.slice(0, 2):
-			Ui.label(col, "• " + str(w["text"]), "", 140)
+			Ui.bullet(col, str(w["text"]), 140)
 		if wishes.size() > 2:
 			Ui.label(col, tr("and 1 more wish") if wishes.size() == 3 else tr("and %d more wishes") % (wishes.size() - 2), "MutedLabel", 140)
 	var pay := Ui.hbox(col, 2)

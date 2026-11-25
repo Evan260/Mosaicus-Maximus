@@ -26,6 +26,19 @@ static func label(parent: Node, text: String, variation: String = "", wrap_width
 	return l
 
 
+## A line of a list with its bullet hanging at the left, so a wrapped line carries on under the words, not the bullet.
+static func bullet(parent: Node, text: String, wrap_width: float) -> HBoxContainer:
+	var font := UiTheme.body_font()
+	var size := UiTheme.text_size()
+	var gap := ceilf(font.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x)
+	var row := hbox(parent, int(gap))
+	var dot := label(row, "•")
+	dot.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	dot.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	label(row, text, "", wrap_width - gap - ceilf(font.get_string_size("•", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x))
+	return row
+
+
 static func button(parent: Node, text: String, action: Callable, icon_name: String = "", main: bool = false) -> Button:
 	var b := Button.new()
 	b.text = text

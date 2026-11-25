@@ -30,6 +30,9 @@ var _view: PanelContainer
 var _visit: Control
 ## The visited room and the dark round it, on the picture layer over the map.
 var _visit_room: Control
+## The visit's card and the room beside it, which keeps its floor clear of the card.
+var _visit_card: PanelContainer
+var _visit_view: RoomView
 var _task := -1
 var _pending := {}
 
@@ -93,6 +96,7 @@ func enter(_args: Dictionary) -> void:
 	# The button widens once its text is centred beside its arrow, so it is placed again then.
 	back.resized.connect(place)
 	place.call()
+	Nav.resized.connect(_place_visit)
 
 
 ## Keeps a control on the interface layer over a point of the map, `offset` up and left of it in interface pixels.
@@ -241,8 +245,9 @@ func _process(_delta: float) -> void:
 	_visit_room.add_child(room)
 	room.setup(str(f.get("room", "")), _pending["layout"], f.get("stones", {}))
 	room.floor_view.shine(0.4, 1.6)
-	var s := Nav.ui_size()
+	_visit_view = room
 	var card := Ui.panel(_visit, "PagePanel")
+	_visit_card = card
 	var col := Ui.vbox(card, 4)
 	Ui.label(col, str(_pending["title"]), "Heading", 150)
 	var stars := Ui.hbox(col, 1)
@@ -252,8 +257,18 @@ func _process(_delta: float) -> void:
 	Ui.button(col, "Back to the map", _leave_visit, "arrow_l", true)
 	Ui.closes_with(_visit, _leave_visit, false)
 	Ui.closes_on_click(_visit, _leave_visit)
-	card.reset_size()
-	card.position = Vector2(6, floorf((s.y - card.size.y) * 0.5))
+	# The card widens once its button centres its text, so it is placed again then.
+	card.resized.connect(_place_visit)
+	_place_visit()
+
+
+## The visit's card at the left, and the room beside it with the whole floor clear of the card.
+func _place_visit() -> void:
+	if not is_instance_valid(_visit_card) or not is_instance_valid(_visit_view):
+		return
+	_visit_card.reset_size()
+	_visit_card.position = Vector2(6, floorf((Nav.ui_size().y - _visit_card.size.y) * 0.5))
+	_visit_view.keep_clear_of(Rect2(_visit_card.position, _visit_card.size))
 
 
 func _close_view() -> void:

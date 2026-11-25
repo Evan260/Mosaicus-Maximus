@@ -4,6 +4,8 @@ extends Node
 
 const JobBoard := preload("res://scripts/screens/job_board.gd")
 const ClientVisit := preload("res://scripts/screens/client_visit.gd")
+## How far the card keeps from the screen's edge, and a floor shown without its room from the card and the edges.
+const MARGIN := 6.0
 
 var job := {}
 var design: FloorDesign
@@ -28,6 +30,7 @@ var _panel_bonus := 0
 var _wrap := 190.0
 var _wishes: ScrollContainer
 var _done := false
+var _zoom_out: Tween
 
 
 func enter(args: Dictionary) -> void:
@@ -84,19 +87,29 @@ func _setup() -> void:
 	_floor.show_finished()
 	_floor.apply_stones(_stones)
 	_floor.shine(0.9, 1.8)
-	var size := _floor.size_world()
 	_cam = Camera2D.new()
 	Nav.world.add_child(_cam)
 	_cam.make_current()
-	var vp := get_viewport().get_visible_rect().size
-	var wall := FloorView.WALL * _floor.tile_world()
-	var area := size + Vector2.ONE * wall * 1.2
-	var fit := minf(vp.x * 0.54 / area.x, vp.y * 0.92 / area.y)
-	_cam.zoom = Vector2.ONE * fit * 1.5
-	_cam.position = size * 0.5 + Vector2(vp.x * 0.21 / fit, 0)
-	_cam.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(_cam, "zoom", _cam.zoom / 1.5, 2.2)
 	_build_card()
 	Audio.glissando()
+
+
+## Fits the floor and its walls into the screen left of the card, the first time zooming out to it from closer in.
+func _frame_floor() -> void:
+	var ui := float(Nav.scale_factor())
+	var wall := Vector2.ONE * FloorView.WALL * _floor.tile_world()
+	var drawn := Rect2(-wall, _floor.size_world() + wall * 2.0)
+	var safe := Rect2(Nav.safe_top_left * ui, Nav.ui_size() * ui)
+	var free := Rect2(safe.position, Vector2((Nav.safe_top_left.x + _card.position.x) * ui - safe.position.x, safe.size.y)).grow(-MARGIN * ui)
+	var fit := minf(free.size.x / drawn.size.x, free.size.y / drawn.size.y)
+	_cam.position = drawn.get_center() - (free.get_center() - get_viewport().get_visible_rect().size * 0.5) / fit
+	if _zoom_out == null:
+		_cam.zoom = Vector2.ONE * fit * 1.5
+		_zoom_out = _cam.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_zoom_out.tween_property(_cam, "zoom", Vector2.ONE * fit, 2.2)
+		return
+	_zoom_out.kill()
+	_cam.zoom = Vector2.ONE * fit
 
 
 ## The floor in the client's painted room, set right of centre so the client's card has the left side.
@@ -192,7 +205,11 @@ func _build_card() -> void:
 		var s := Nav.ui_size()
 		ClientVisit.fit_list(_card, _wishes, s.y - 8.0)
 		_card.reset_size()
-		_card.position = Vector2(6.0 if _room else s.x - _card.size.x - 6, floorf((s.y - _card.size.y) * 0.5))
+		_card.position = Vector2(MARGIN if _room else s.x - _card.size.x - MARGIN, floorf((s.y - _card.size.y) * 0.5))
+		if _room:
+			_room.keep_clear_of(Rect2(_card.position, _card.size))
+		else:
+			_frame_floor()
 	Nav.resized.connect(place)
 	place.call_deferred()
 	if _room:
