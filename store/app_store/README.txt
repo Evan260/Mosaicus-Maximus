@@ -29,7 +29,7 @@ IPHONE SCREENSHOTS (iphone_6.9_inch_screenshots/, all 2868x1320 landscape, PNG w
 02_a_client_visits.png       Widow Cornelia comes in for an entrance hall floor: her story, her wishes, and the price
                              slider with Shake on it.
 03_designing_her_floor.png   The design table: two doves facing each other across a flower on Livia's bedroom floor,
-                             with the phone's buttons over the picked flower and her five stars.
+                             with the phone's buttons over the picked flower, her five stars and Start laying ready.
 04_laying_the_stones.png     Laying her floor: the right-hand dove laid in white and red stones landing round the
                              flower, with the stone tray below.
 05_in_her_bedroom.png        Her finished floor in her bedroom beside her card: five stars and "Mother cried. Then she
@@ -48,7 +48,7 @@ screenshots, PNG or JPEG without alpha. Apple scales these down for the smaller 
 IPAD SCREENSHOTS (ipad_13_inch_screenshots/, all 2752x2064 landscape, PNG without alpha)
 
 01_designing_her_floor.png   The design table laid out for the iPad's squarer screen, with the doves and the flower on
-                             Livia's floor and her five stars.
+                             Livia's floor, her five stars and Start laying ready.
 02_laying_the_stones.png     Laying her floor close up: the right-hand dove laid in white and red stones landing round
                              the flower.
 03_in_her_bedroom.png        Her finished floor in her bedroom beside her five-star card.

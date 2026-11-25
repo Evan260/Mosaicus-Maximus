@@ -39,7 +39,7 @@ Upload them in this order; the first three show first on the listing.
                              slider with Shake on it.
 03_designing_her_floor.png   The design table: two doves facing each other across a flower on Livia's bedroom floor,
                              the flower picked with the phone's turn, mirror, bigger, smaller, Pair and remove buttons
-                             over it, her five stars, and the stone still to buy.
+                             over it, her five stars, all the stone in stock and Start laying ready.
 04_laying_the_stones.png     Laying her floor: the right-hand dove laid in white, red stones landing round the
                              flower where they glow, the stone tray below and the zoom buttons at the side. The script
                              takes a burst of frames and keeps the one with most of the flower laid.

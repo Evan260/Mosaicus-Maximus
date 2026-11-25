@@ -142,6 +142,10 @@ func _shot_client() -> void:
 ## The first design: a dove dragged onto her bedroom, made smaller and paired with a mirror image that faces it, then a
 ## flower dragged in between them.
 func _shot_design() -> void:
+	# --stocked fills the shelves first, so the store pictures show a floor ready to lay rather than stone still to buy.
+	if Dev.has("stocked"):
+		for id in Game.state["unlocked_stones"]:
+			Game.add_stock(id, 2000)
 	Nav.go("design_table", {"job": _agreed_job()})
 	await _wait(1.2)
 	var table: Node = Nav.current

@@ -46,7 +46,7 @@ SCENES = {
     # Any --panel puts away the morning's letters, which would cover the room; "none" opens no window in their place.
     "the_workshop": [*CHAPTER_3, "--screen=workshop", "--furnished", "--hour=16.5", "--panel=none"],
     "a_client_visits": [*EVERYTHING, "--screen=client_visit", "--kind=commission"],
-    "designing_her_floor": ["--trailer-shot=design", "--shot-at=13"],
+    "designing_her_floor": ["--trailer-shot=design", "--stocked", "--shot-at=13"],
     "laying_the_stones": ["--trailer-shot=floor"],
     "in_her_bedroom": ["--trailer-shot=floor", "--shot-at=26"],
     "the_town": [*EVERYTHING, "--screen=town_map"],
