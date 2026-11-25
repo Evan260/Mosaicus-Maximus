@@ -51,7 +51,7 @@ The demo's Mac app is named `Mosaicus Maximus.app`, since Godot names the app af
 
 ## The secrets
 
-The Mac signing needs six secrets. They have the same names in all three game repositories, so making them once covers Farmus Maximus, Fishus Maximus and Mosaicus Maximus. Until they exist, the Mac build is published unsigned and the run shows a notice saying so; if only some are set, the signing job fails and names the missing ones.
+The Mac signing needs six secrets. They have the same names in all four game repositories, so making them once covers Farmus Maximus, Fishus Maximus, Mosaicus Maximus and Legionus Maximus. Until they exist, the Mac build is published unsigned and the run shows a notice saying so; if only some are set, the signing job fails and names the missing ones.
 
 | Secret | What it holds |
 |---|---|
@@ -108,14 +108,14 @@ The certificate made in WSL with `tools/steam/apple_setup.sh` works too: its .p1
 
    The clipboard now holds `APPLE_API_KEY_P8`.
 
-One key serves all three games. The key stays valid until it is revoked on that page.
+One key serves all four games. The key stays valid until it is revoked on that page.
 
 ### 3. Add the secrets on GitHub
 
 1. Open the repository on GitHub, then **Settings**, **Secrets and variables**, **Actions**.
 2. On the **Secrets** tab, press **New repository secret**.
 3. Type the name exactly as in the table above, paste the value, and press **Add secret**.
-4. Repeat for all six Apple secrets, then do the same in the other two game repositories.
+4. Repeat for all six Apple secrets, then do the same in the other three game repositories.
 
 The GitHub command line does the same from PowerShell; it asks for each value, so nothing lands in the shell history:
 

@@ -152,3 +152,5 @@ The music is calm harp, which softens briefly under big moments.
 ## Platform and controls
 
 Steam, on Windows, Mac, Linux and Steam Deck. The game is played mainly with the mouse, with full controller support for the Deck. It's built in Godot 4 in 2D.
+
+Phones play by touch. The game is a free download that plays like the Steam demo, and one purchase unlocks the full game.

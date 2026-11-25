@@ -37,7 +37,7 @@ The Windows build uses a trimmed Godot engine, `tools/engine/slim.windows.templa
 
 These steps need you, because they involve your Steam account, payment and tax details.
 
-1. **Join Steamworks.** Sign up at partner.steamgames.com, pay the Steam Direct fee (US\$100 per game, about \$140, paid back once the game earns US\$1,000), and fill in the tax and bank forms. Valve checks these, which can take from a few days to a couple of weeks.
+1. **Join Steamworks.** Sign up at partner.steamgames.com, pay the Steam Direct fee (about \$140 CAD, US\$100 per game; paid back once the game earns about \$1,400 CAD, US\$1,000), and fill in the tax and bank forms. Valve checks these, which can take from a few days to a couple of weeks.
 2. **Create the app.** Steamworks gives the game an **App ID**, for example 3456780. Under App Admin, SteamPipe, Depots, it also creates a **depot**, usually numbered one higher, for example 3456781. Set that depot's operating system to Windows, then add two more depots, one set to macOS and one to Linux + SteamOS.
 3. **Tell Steam how to start the game.** Under Installation, General, add three launch options:
    - executable `Mosaicus Maximus.exe`, operating system Windows

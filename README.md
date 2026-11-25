@@ -1,6 +1,6 @@
 # Mosaicus Maximus
 
-A cozy craft and business game about running a mosaic workshop in a Roman harbour town in AD 72, made for Steam (Windows, Mac, Linux and Steam Deck), in 14 languages.
+A cozy craft and business game about running a mosaic workshop in a Roman harbour town in AD 72, made for Steam (Windows, Mac, Linux and Steam Deck) and for phones (on Google Play now, the App Store being prepared: a free download that plays like the Steam demo, with one purchase that unlocks the full game), in 14 languages.
 
 Clients come to your door with a floor to lay: a guard dog for the entrance, an octopus for the bathhouse, a dining room strewn with the scraps of a feast. You compose the design, buy the stone, and lay it by sweeping a brush so hundreds of tiles cascade into place, then grout it, polish it and watch the client's face at the reveal. Floors buried under the town are dug out and mended the same way, and each one teaches you a pattern nobody has seen in years.
 
@@ -28,7 +28,7 @@ Add `-- --max-state` for a workshop with every chapter open and the best of ever
 | `store/`, `marketing/` | The Steam page, the achievements and the pictures |
 | `builds/` | Exported builds (not kept in git) |
 
-The whole game is described in [Overview.md](Overview.md).
+The whole game is described in [Overview.md](docs/Overview.md).
 
 ## Checking changes
 
