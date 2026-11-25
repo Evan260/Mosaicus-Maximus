@@ -6,6 +6,8 @@ const JobBoard := preload("res://scripts/screens/job_board.gd")
 const ClientVisit := preload("res://scripts/screens/client_visit.gd")
 ## How far the card keeps from the screen's edge, and a floor shown without its room from the card and the edges.
 const MARGIN := 6.0
+## What the Keep button says before, while and after keeping the floor.
+const KEEP_WORDS := ["Keep", "Keeping...", "Kept"]
 
 var job := {}
 var design: FloorDesign
@@ -31,6 +33,13 @@ var _wrap := 190.0
 var _wishes: ScrollContainer
 var _done := false
 var _zoom_out: Tween
+var _slide: Tween
+## Keep and Back beside a room, side by side or stacked.
+var _buttons: BoxContainer
+## Where the card sits once it has slid in, in interface pixels.
+var _card_rect := Rect2()
+## The guide's note on the first reveal, which the floor keeps clear of while it shows.
+var _note: Guide
 
 
 func enter(args: Dictionary) -> void:
@@ -94,13 +103,16 @@ func _setup() -> void:
 	Audio.glissando()
 
 
-## Fits the floor and its walls into the screen left of the card, the first time zooming out to it from closer in.
+## Fits the floor and its walls into the screen left of the card and below the guide's note, the first time zooming out to it from closer in.
 func _frame_floor() -> void:
 	var ui := float(Nav.scale_factor())
 	var wall := Vector2.ONE * FloorView.WALL * _floor.tile_world()
 	var drawn := Rect2(-wall, _floor.size_world() + wall * 2.0)
 	var safe := Rect2(Nav.safe_top_left * ui, Nav.ui_size() * ui)
-	var free := Rect2(safe.position, Vector2((Nav.safe_top_left.x + _card.position.x) * ui - safe.position.x, safe.size.y)).grow(-MARGIN * ui)
+	var free := Rect2(safe.position, Vector2((Nav.safe_top_left.x + _card_rect.position.x) * ui - safe.position.x, safe.size.y)).grow(-MARGIN * ui)
+	var note := _note_rect()
+	if note.has_area():
+		free = free.grow_side(SIDE_TOP, minf(0.0, free.position.y - (Nav.safe_top_left.y + note.end.y + MARGIN) * ui))
 	var fit := minf(free.size.x / drawn.size.x, free.size.y / drawn.size.y)
 	_cam.position = drawn.get_center() - (free.get_center() - get_viewport().get_visible_rect().size * 0.5) / fit
 	if _zoom_out == null:
@@ -191,8 +203,12 @@ func _build_card() -> void:
 			Ui.label(col, ahead, "MutedLabel", _wrap)
 		if _paid > 0:
 			_coin_shower()
-	# Beside a room the card is narrower, so its two buttons share a row.
-	var buttons: BoxContainer = Ui.hbox(col, 3) if _room else col
+	var buttons: BoxContainer = col
+	if _room:
+		_buttons = BoxContainer.new()
+		_buttons.add_theme_constant_override("separation", 3)
+		col.add_child(_buttons)
+		buttons = _buttons
 	_keep = Ui.button(buttons, "Keep" if _room else "Keep in my library", _keep_it, "book")
 	Ui.tip_on(_keep, "Keeps a picture of this floor, and the way you laid it, in your library")
 	var back := Ui.button(buttons, "Back" if job.get("free", false) else "Back to the workshop", _finish, "arrow_r", true)
@@ -200,23 +216,107 @@ func _build_card() -> void:
 	_card.modulate.a = 0.0
 	_card.create_tween().tween_property(_card, "modulate:a", 1.0, 0.5).set_delay(1.4)
 	if not free:
-		Guide.note("reveal", "The client pays you, and your reputation grows. Enough reputation opens the next chapter, with new stone and patterns.", "top_right" if _room else "top_left")
-	var place := func() -> void:
-		var s := Nav.ui_size()
-		ClientVisit.fit_list(_card, _wishes, s.y - 8.0)
-		_card.reset_size()
-		_card.position = Vector2(MARGIN if _room else s.x - _card.size.x - MARGIN, floorf((s.y - _card.size.y) * 0.5))
-		if _room:
-			_room.keep_clear_of(Rect2(_card.position, _card.size))
-		else:
-			_frame_floor()
-	Nav.resized.connect(place)
-	place.call_deferred()
+		_note = Guide.note("reveal", "The client pays you, and your reputation grows. Enough reputation opens the next chapter, with new stone and patterns.", "top_right" if _room else "top_left")
+	if _note:
+		_note.item_rect_changed.connect(_place_floor)
+		_note.tree_exiting.connect(_place_floor)
+	Nav.resized.connect(_place_card)
+	_place_card.call_deferred()
+
+
+## Sets the card at its side of the screen, the guide's note beside it, and the floor clear of both; beside a room the card slides in the first time.
+func _place_card() -> void:
+	var s := Nav.ui_size()
+	_stack_buttons(s.y - 8.0)
+	_lay_out_card(s.y - 8.0)
+	_card.reset_size()
+	_card_rect = Rect2(MARGIN if _room else s.x - _card.size.x - MARGIN, floorf((s.y - _card.size.y) * 0.5), _card.size.x, _card.size.y)
+	_card.position = _card_rect.position
+	if _room and _slide == null:
+		_card.position.x = -_card.size.x
+		_slide = _card.create_tween()
+		_slide.tween_property(_card, "position:x", _card_rect.position.x, 0.6).set_delay(1.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if _note_open():
+		# The note may take the top two thirds of the screen beside the card, so the floor keeps at least the last third.
+		var left := _card_rect.end.x + MARGIN if _room else MARGIN
+		var right := s.x - MARGIN if _room else _card_rect.position.x - MARGIN
+		_note.keep_within(Rect2(left, MARGIN, right - left, floorf(s.y * 2.0 / 3.0) - MARGIN))
+	_place_floor()
+
+
+## Stacks Keep and Back when side by side they would make the card wider than its words need, unless stacking hides some of the checklist in `height` without drawing the room any larger.
+func _stack_buttons(height: float) -> void:
+	if _buttons == null:
+		return
+	# Keep is as wide as its longest word, so pressing it never widens the card.
+	var said := _keep.text
+	var widest := 0.0
+	_keep.custom_minimum_size.x = 0.0
+	for word in KEEP_WORDS:
+		_keep.text = word
+		widest = maxf(widest, _keep.get_combined_minimum_size().x)
+	_keep.text = said
+	_keep.custom_minimum_size.x = widest
+	var col := _buttons.get_parent() as Control
+	col.custom_minimum_size.x = 0.0
+	var words := 0.0
+	for c: Control in col.get_children():
+		if c != _buttons and c.visible:
+			words = maxf(words, c.get_combined_minimum_size().x)
+	_buttons.vertical = false
+	var row := _buttons.get_combined_minimum_size().x
+	if row <= words:
+		return
+	var side := _lay_out_card(height)
+	var tallest := maxf(height, side["tall"])
+	_buttons.vertical = true
+	var narrow := _lay_out_card(height)
+	if narrow["tall"] <= tallest and narrow["shown"] >= side["shown"]:
+		return
+	# A wider stacked card showing some of the checklist wins only where it draws the room larger, and the most of the checklist at that size.
+	var pick := -1.0
+	var best := side
+	var w := words + 10.0
+	while w < row:
+		col.custom_minimum_size.x = w
+		var card := _lay_out_card(height)
+		if card["tall"] <= tallest and (card["shown"] > 0.0 or side["shown"] <= 0.0) and (card["scale"] > best["scale"] or (pick > 0.0 and card["scale"] == best["scale"] and card["shown"] > best["shown"])):
+			pick = w
+			best = card
+		w += 10.0
+	col.custom_minimum_size.x = maxf(pick, 0.0)
+	_buttons.vertical = pick > 0.0
+
+
+## Lays the card out at once, so its words wrap at its new width, and fits its checklist into `height`: how much of the checklist shows, how tall the card is and the room's scale beside it.
+func _lay_out_card(height: float) -> Dictionary:
+	_card.reset_size()
+	for c: Container in [_card] + _card.find_children("*", "Container", true, false):
+		c.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	for l: Label in _card.find_children("*", "Label", true, false):
+		l.get_minimum_size()
+	ClientVisit.fit_list(_card, _wishes, height)
+	var box := _card.get_combined_minimum_size()
+	return {"shown": _wishes.custom_minimum_size.y, "tall": box.y, "scale": _room.scale_beside(Rect2(MARGIN, 0.0, box.x, 1.0)) if _room else 0}
+
+
+## The room or the floor alone, clear of the card and of the guide's note while it shows.
+func _place_floor() -> void:
+	if not _card_rect.has_area():
+		return
 	if _room:
-		(func() -> void:
-			var shown := _card.position.x
-			_card.position.x = -_card.size.x
-			_card.create_tween().tween_property(_card, "position:x", shown, 0.6).set_delay(1.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)).call_deferred()
+		_room.keep_clear_of(_card_rect, _note_rect())
+	else:
+		_frame_floor()
+
+
+func _note_open() -> bool:
+	return is_instance_valid(_note) and not _note.is_queued_for_deletion()
+
+
+## The guide's note in interface pixels, or an empty rectangle once it is closed or when there is none.
+func _note_rect() -> Rect2:
+	return Rect2(_note.position, _note.size) if _note_open() else Rect2()
 
 
 func _star_row(parent: Node, n: int) -> void:

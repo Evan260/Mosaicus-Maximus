@@ -18,6 +18,8 @@ var _floor_box := Rect2()
 var _scale := 1
 ## The card the room sits beside, in interface pixels; empty while there is none.
 var _card := Rect2()
+## A note at the top of the screen that the floor keeps below, in interface pixels; empty while there is none.
+var _note := Rect2()
 
 static var _rooms := {}
 
@@ -83,22 +85,38 @@ func setup(room: String, layout: MosaicLayout, stones: Dictionary) -> void:
 	place()
 
 
-## Sets the room beside the client's card, given in interface pixels, so the whole floor shows to the right of it.
-func keep_clear_of(card: Rect2) -> void:
+## Sets the room so its whole floor shows right of the client's card and below a note at the top, both in interface pixels.
+func keep_clear_of(card: Rect2, note := Rect2()) -> void:
 	_card = card
+	_note = note
 	place()
 
 
-## Draws the room at the largest whole scale, up to the pictures', that fits its whole floor right of the card, right of centre.
-func place() -> void:
+## The largest whole scale, up to the pictures', at which the whole floor fits right of `card` and below `note`, both in interface pixels.
+func scale_beside(card: Rect2, note := Rect2()) -> int:
+	var free := _free(card, note)
+	var k := Nav.picture_scale()
+	while k > 1 and (_floor_box.size.x * k > free.size.x or _floor_box.size.y * k > free.size.y):
+		k -= 1
+	return k
+
+
+## The screen right of `card` and below `note`, in screen pixels, keeping a gap from both and from the top and bottom.
+func _free(card: Rect2, note: Rect2) -> Rect2:
 	var ui := float(Nav.scale_factor())
 	var free := Rect2(Nav.safe_top_left * ui, Nav.ui_size() * ui).grow_individual(0.0, -GAP * ui, 0.0, -GAP * ui)
-	if _card.size != Vector2.ZERO:
-		var left := (Nav.safe_top_left.x + _card.end.x + GAP) * ui
+	if card.size != Vector2.ZERO:
+		var left := (Nav.safe_top_left.x + card.end.x + GAP) * ui
 		free = Rect2(left, free.position.y, free.end.x - left, free.size.y)
-	_scale = Nav.picture_scale()
-	while _scale > 1 and (_floor_box.size.x * _scale > free.size.x or _floor_box.size.y * _scale > free.size.y):
-		_scale -= 1
+	if note.has_area():
+		free = free.grow_side(SIDE_TOP, minf(0.0, free.position.y - (Nav.safe_top_left.y + note.end.y + GAP) * ui))
+	return free
+
+
+## Draws the room at the largest whole scale, up to the pictures', that fits its whole floor beside the card and under the note.
+func place() -> void:
+	var free := _free(_card, _note)
+	_scale = scale_beside(_card, _note)
 	var window := get_viewport().get_visible_rect().size
 	var room := size * _scale
 	var at := Vector2(minf((window.x - room.x) * 0.5, window.x - room.x) + 24.0 * _scale, (window.y - room.y) * 0.5)

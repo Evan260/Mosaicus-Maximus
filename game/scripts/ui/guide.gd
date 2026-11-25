@@ -14,6 +14,9 @@ var _t := 0.0
 var _over: Control
 var _words: Label
 var _chrome: Array[Control] = []
+var _row: BoxContainer
+## The part of the screen a corner note keeps inside, in interface pixels, such as beside the reveal's card; empty for the whole screen.
+var _within := Rect2()
 
 
 ## Whether the guide is still running: until the first floor is done and the day ended, unless it was skipped.
@@ -54,13 +57,16 @@ func _build(text: String, corner: String, target: Variant) -> void:
 	var big := Settings.message_scale()
 	_words = Ui.label(col, text, "LightLabel", minf(WIDTH * big, Nav.ui_size().x - 24.0))
 	_words.add_theme_font_size_override("font_size", UiTheme.text_size() * big)
-	var row: BoxContainer = Ui.vbox(col, 3) if _over else Ui.hbox(col, 4)
-	_chrome = [head, row]
-	var skip := Ui.button(row, "Skip the guide", func() -> void:
+	_row = BoxContainer.new()
+	_row.vertical = _over != null
+	_row.add_theme_constant_override("separation", 3 if _over else 4)
+	col.add_child(_row)
+	_chrome = [head, _row]
+	var skip := Ui.button(_row, "Skip the guide", func() -> void:
 		Game.state["guide_off"] = true
 		queue_free())
 	skip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	Ui.button(row, "Got it", func() -> void: queue_free(), "tick", true)
+	Ui.button(_row, "Got it", func() -> void: queue_free(), "tick", true)
 	Ui.closes_with(self, Callable(), false)
 	if _follows or _target_rect.has_area():
 		_arrow = TextureRect.new()
@@ -80,16 +86,34 @@ func _on_resized() -> void:
 	_place.call_deferred()
 
 
+## Keeps a corner note inside `area`, in interface pixels: it narrows its words and stacks its buttons to fit, and large text drops to the normal size only if it still won't.
+func keep_within(area: Rect2) -> void:
+	_within = area
+	_place()
+
+
 func _place() -> void:
 	if _over:
 		_place_over()
 		return
-	reset_size()
 	var s := Nav.ui_size()
-	var x := 6.0 if _corner.ends_with("left") else s.x - size.x - 6.0
+	var bounds := _within if _within.has_area() else Rect2(6.0, 30.0, s.x - 12.0, s.y - 36.0)
+	var widest := bounds.size.x - get_theme_stylebox("panel").get_minimum_size().x if _within.has_area() else INF
+	var big := Settings.message_scale()
+	for k in ([big, 1] if _within.has_area() and big > 1 else [big]):
+		_words.add_theme_font_size_override("font_size", UiTheme.text_size() * k)
+		_words.custom_minimum_size.x = minf(minf(WIDTH * k, s.x - 24.0), widest)
+		_row.vertical = false
+		_row.vertical = _row.get_combined_minimum_size().x > widest
+		# The words wrap at the note's inside width now, so the note is measured at the height it will have.
+		_words.size.x = maxf(_words.custom_minimum_size.x, maxf(_chrome[0].get_combined_minimum_size().x, _row.get_combined_minimum_size().x))
+		reset_size()
+		if size.y <= bounds.size.y:
+			break
+	var x := bounds.position.x if _corner.ends_with("left") else bounds.end.x - size.x
 	if _corner == "top":
 		x = floorf((s.x - size.x) * 0.5)
-	var y := 30.0 if _corner.begins_with("top") else s.y - size.y - 6.0
+	var y := bounds.position.y if _corner.begins_with("top") else s.y - size.y - 6.0
 	if _corner == "right":
 		y = floorf((s.y - size.y) * 0.5)
 	position = Vector2(x, y).floor()
