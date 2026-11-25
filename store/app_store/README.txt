@@ -7,8 +7,9 @@ The pictures are made by python tools/phone/make_store_art.py, which has the gam
 interface (--phone) at the store's exact size, so they always match the game. Run it again after the art or the
 interface changes, then look at every picture. Like the Steam screenshots, they carry no captions. Every picture draws
 the painted scenes and the interface at a whole number of screen pixels to the game pixel (the scenes 6 times and the
-interface 4 times on the iPhone, both 5 times on the iPad), lays the mosaic floors at the screen's own resolution, as
-the game always does, and resizes nothing with smoothing.
+interface 4 times on the iPhone; on the iPad the interface 5 times and the bedroom 4 times, so its whole floor shows
+beside Livia's card), lays the mosaic floors at the screen's own resolution, as the game always does, and resizes
+nothing with smoothing.
 
 
 APP ICON
@@ -33,11 +34,12 @@ IPHONE SCREENSHOTS (iphone_6.9_inch_screenshots/, all 2868x1320 landscape, PNG w
 04_laying_the_stones.png     Laying her floor: the right-hand dove laid in white and red stones landing round the
                              flower, with the stone tray below.
 05_in_her_bedroom.png        Her finished floor in her bedroom beside her card: five stars and "Mother cried. Then she
-                             asked who made it."
+                             asked who made it." The top of the room is cropped so the whole floor shows above the
+                             bottom edge.
 06_the_town.png              The town on the Bay of Naples: the forum, the harbour, the baths, the villas on the hill
                              and the rival workshop.
 07_a_villa_dining_room.png   A finished floor visited from the town: peacocks round a Medusa in a villa's dining hall,
-                             five stars.
+                             five stars, the top of the room cropped as in the bedroom.
 08_festival_day.png          The job board on the day of the Vinalia, four notices across, among them a cook's that
                              asks for wine and pays more for the festival.
 

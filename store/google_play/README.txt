@@ -8,7 +8,9 @@ interface (--phone) at the store's exact size, so they always match the game. Ru
 interface changes, then look at every picture. Like the Steam screenshots, they carry no captions. Every picture draws
 the painted scenes and the interface at a whole number of screen pixels to the game pixel (the scenes 4 times on the
 phone and the 7-inch tablet and 6 times on the 10-inch tablet, the interface 4 and 5 times), lays the mosaic floors at
-the screen's own resolution, as the game always does, and resizes nothing with smoothing.
+the screen's own resolution, as the game always does, and resizes nothing with smoothing. A room beside a client's
+card is drawn smaller where it must be, so its whole floor shows beside the card: the bedroom and the villa 3 times on
+the phone and the 7-inch tablet, and 4 and 5 times on the 10-inch tablet.
 
 
 APP ICON
@@ -43,8 +45,8 @@ Upload them in this order; the first three show first on the listing.
 04_laying_the_stones.png     Laying her floor: the right-hand dove laid in white, red stones landing round the
                              flower where they glow, the stone tray below and the zoom buttons at the side. The script
                              takes a burst of frames and keeps the one with most of the flower laid.
-05_in_her_bedroom.png        Her finished floor in her bedroom, and her card: five stars and "Mother cried. Then she
-                             asked who made it." The card covers the edge of the left dove, as on any 16:9 screen.
+05_in_her_bedroom.png        Her finished floor in her bedroom, all of it in view beside her card: five stars and
+                             "Mother cried. Then she asked who made it."
 06_the_town.png              The town on the Bay of Naples: the forum, the harbour, the baths, the villas on the hill,
                              the temple of Venus and the rival workshop.
 07_a_villa_dining_room.png   A finished floor visited from the town: peacocks round a Medusa in a villa's dining hall,
@@ -77,9 +79,9 @@ phone's own.
 08_festival_day.png
 
 On the 10-inch tablet the painted pictures are drawn 6 times, which crops a little off their top and bottom, as the
-game does on that screen: the dog's basket and the front of the villa's floor reach past the bottom edge. The bedroom
-is drawn larger beside Livia's card there, so the card covers more of the left dove, and the job board shows the names
-on the next row of notices under the first.
+game does on that screen: the dog's basket reaches past the bottom edge. The bedroom and the villa beside their cards
+are drawn 4 and 5 times there, so their whole floors show, and the job board shows the names on the next row of notices
+under the first.
 
 Meets: up to 8 screenshots for each tablet size, JPEG or 24-bit PNG without alpha, each side 320 to 3,840 px, the long
 side at most 2.3 times the short one. They are 16:9, as Google's large-screen guidance asks for a game to be featured
