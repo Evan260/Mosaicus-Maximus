@@ -26,6 +26,8 @@ const PAD_ONLY := ["With a controller", [["Move the pointer", "pad_lstick"], ["C
 
 ## The tab last open, shown again the next time the window opens.
 static var tab := "Sound"
+## Opens a web page; the tests replace it so no browser starts.
+static var open_url := func(url: String) -> void: OS.shell_open(url)
 
 var _in_game := false
 var _tabs := {}
@@ -149,6 +151,9 @@ func _gameplay() -> void:
 	# A new phone, or the game installed again, learns of the purchase from the store.
 	if FullGame.locked():
 		Ui.setting(_page, tr("Already bought the full game?"), tr("Restore purchase"), FullGame.restore, WIDTH)
+	# Google Play and the App Store ask for the privacy policy to be reachable from inside the game.
+	if Nav.phone:
+		Ui.setting(_page, tr("Privacy policy"), tr("Open"), func() -> void: open_url.call(String(Data.value("privacy_policy", ""))), WIDTH)
 
 
 ## Each key in a chip, with the controller button that does the same beside it while a controller is plugged in.

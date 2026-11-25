@@ -200,6 +200,40 @@ func test_desktop_only_choices_are_hidden_on_a_phone() -> void:
 	await _back_from_phone(was)
 
 
+func test_a_phone_links_the_privacy_policy_in_the_settings() -> void:
+	var tab: String = SettingsPanel.tab
+	var opener: Callable = SettingsPanel.open_url
+	var opened := []
+	SettingsPanel.open_url = func(url: String) -> void: opened.append(url)
+	SettingsPanel.tab = "Gameplay"
+	var settings := SettingsPanel.open(Nav.ui)
+	await get_tree().process_frame
+	check(_setting_button(settings, "Privacy policy") == null, "a computer's settings look as they always have, with no privacy policy")
+	settings.queue_free()
+	var was := _as_phone(Vector2i(1212, 540))
+	settings = SettingsPanel.open(Nav.ui)
+	await get_tree().process_frame
+	var link := _setting_button(settings, "Privacy policy")
+	check(link != null and link.text == tr("Open"), "a phone's gameplay settings link the privacy policy, as the stores ask")
+	if link:
+		link.pressed.emit()
+	check(opened == ["https://evan260.github.io/slowsunday/privacy.html"], "which opens the policy's page: %s" % [opened])
+	settings.queue_free()
+	SettingsPanel.open_url = opener
+	SettingsPanel.tab = tab
+	await _back_from_phone(was)
+
+
+## The button beside a setting's name, or null when the settings show no such row.
+func _setting_button(settings: Control, text: String) -> Button:
+	for l: Label in settings.find_children("*", "Label", true, false):
+		if not l.is_queued_for_deletion() and l.text == tr(text):
+			for b in l.get_parent().get_children():
+				if b is Button:
+					return b
+	return null
+
+
 func test_two_fingers_on_the_floor_zoom_without_laying_and_one_finger_lays() -> void:
 	Game.new_game("Pinch")
 	Game.state["guide_off"] = true
