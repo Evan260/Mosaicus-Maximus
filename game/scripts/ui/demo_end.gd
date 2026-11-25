@@ -18,7 +18,9 @@ static func open(parent: Control, carry_on: Callable) -> DemoEnd:
 	var col := Ui.vbox(card, 5)
 	# A phone's screen is wide but short, so there the card spreads out to keep within its height.
 	var big := maxf(Settings.message_scale(), minf(Nav.ui_size().x - 40.0, 400.0) / WIDTH if Nav.phone and Nav.ui_size().y < 320.0 else 1.0)
-	var head := Ui.label(col, "Thank you for playing the demo!", "Heading", WIDTH * big)
+	# A phone selling the full game shows its limits without calling itself a demo, which App Review refuses.
+	var thanks := "Thank you for playing!" if FullGame.sold_here() else "Thank you for playing the demo!"
+	var head := Ui.label(col, thanks, "Heading", WIDTH * big)
 	head.add_theme_font_size_override("font_size", UiTheme.heading_size(true))
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	Ui.label(col, "Your workshop has come as far as the demo goes. Your floors, coins and reputation are kept, and carry on into the full game.", "", WIDTH * big)

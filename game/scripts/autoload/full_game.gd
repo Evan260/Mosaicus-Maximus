@@ -12,7 +12,7 @@ signal finished(result: String)
 
 ## The product the store sells; each game creates it in the Play Console (and later App Store Connect) with this id.
 const PRODUCT := "full_game"
-const PLUGINS := ["SlowSundayPhone"]
+const PLUGINS := ["SlowSundayPhone", "SlowSundayStore"]
 
 var store: Object = null
 ## Where owning the full game is written down; empty keeps nothing, as for the pretend store.

@@ -210,7 +210,8 @@ func test_the_title_offers_the_unlock_and_says_thank_you() -> void:
 	store.billing_connected.emit()
 	await _go("title")
 	check(_button(Nav.ui, "Unlock the full game") != null, "before the store says its price the title offers the full game without one")
-	check(_label(Nav.ui, "Demo") != null, "and says Demo")
+	# App Review refuses a game that calls itself a demo, so a phone selling the full game never shows the word.
+	check(_label(Nav.ui, "Demo") == null, "and does not say Demo where the full game is sold")
 	store.price_found.emit("full_game", PRICE)
 	await get_tree().process_frame
 	var unlock := _button(Nav.ui, "Unlock the full game: %s" % PRICE)

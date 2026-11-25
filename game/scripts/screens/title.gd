@@ -110,7 +110,8 @@ func _show_menu() -> void:
 	title.add_theme_font_override("font", UiTheme.title_font("en"))
 	title.add_theme_font_size_override("font_size", 16)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if Game.is_demo():
+	# A phone selling the full game shows its limits without calling itself a demo, which App Review refuses.
+	if Game.is_demo() and not FullGame.sold_here():
 		var demo := Ui.label(col, "Demo", "Heading")
 		demo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		demo.add_theme_color_override("font_color", UiTheme.RED)

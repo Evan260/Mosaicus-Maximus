@@ -1,0 +1,15 @@
+[config]
+
+name="SlowSundayStore"
+binary="SlowSundayStore.a"
+
+initialization="slow_sunday_store_init"
+deinitialization="slow_sunday_store_deinit"
+
+[dependencies]
+
+system=["StoreKit.framework", "Foundation.framework", "UIKit.framework"]
+
+# -ObjC keeps the Objective-C categories the Swift half relies on; the Swift runtime itself ships
+# with iOS 12.2 and later, so only its search path is needed.
+linker_flags=["-ObjC", "-L/usr/lib/swift"]
