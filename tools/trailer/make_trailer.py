@@ -126,7 +126,8 @@ def mp4_copy(avi):
     if not FFMPEG.exists():
         print("no ffmpeg, so no .mp4 copy")
         return
-    level = "loudnorm=I=-16:TP=-1.5:LRA=11"
+    # The AAC encoder overshoots sharp clicks by about 2 dB, so peaks are held at -3 dBTP to stay under 0 once encoded.
+    level = "loudnorm=I=-16:TP=-3:LRA=11"
     # A first pass measures the sound, so the copy is brought to the level by one steady change rather than a guess.
     probe = subprocess.run([str(FFMPEG), "-hide_banner", "-i", str(avi), "-vn", "-af", level + ":print_format=json", "-f", "null", "-"],
                            capture_output=True, text=True, check=True)
