@@ -12,6 +12,7 @@ Usage:
   python tools/export.py windows linux        only those
   python tools/export.py --demo               the demo for every platform
   python tools/export.py macos --mac-share    the Mac build straight into ~/MacShare/Mosaicus Maximus for testing on a Mac
+  python tools/export.py --out DIR            into DIR/<platform> (or DIR/<platform>-demo) instead of builds/
 GODOT may name the Godot console exe; the WinGet install is used otherwise.
 """
 import argparse
@@ -75,13 +76,14 @@ def main():
     parser.add_argument("platforms", nargs="*", help="windows, macos or linux; every platform when none is given")
     parser.add_argument("--mac-share", action="store_true", help=f"put the Mac build in {MAC_SHARE}")
     parser.add_argument("--demo", action="store_true", help="build the free demo")
+    parser.add_argument("--out", type=Path, default=ROOT / "builds", help="the folder to build into (builds/ by default)")
     args = parser.parse_args()
     unknown = [p for p in args.platforms if p not in PRESETS]
     if unknown:
         parser.error(f"unknown platform {', '.join(unknown)}; choose from {', '.join(PRESETS)}")
     godot("--import")
     for platform in args.platforms or PRESETS:
-        folder = ROOT / "builds" / (f"{platform}-demo" if args.demo else platform)
+        folder = args.out.resolve() / (f"{platform}-demo" if args.demo else platform)
         if platform == "macos" and args.mac_share:
             folder = MAC_SHARE.with_name(f"{GAME} Demo") if args.demo else MAC_SHARE
         export(platform, folder, args.demo)
