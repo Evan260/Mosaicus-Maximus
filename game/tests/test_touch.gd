@@ -295,6 +295,53 @@ func test_the_back_gesture_closes_then_leaves() -> void:
 	await _back_from_phone(was)
 
 
+func test_a_tall_window_on_a_phone_hides_the_top_bar_and_a_shop_shows_the_purse() -> void:
+	Game.new_game("Purse")
+	Game.state["story_seen"].append("intro")
+	Game.state["guide_off"] = true
+	Game.state["coins"] = 500
+	Story.unlock(Game.state, 3)
+	var saving := Saves.enabled
+	Saves.enabled = false
+	var was := _as_phone(Vector2i(1212, 540))
+	Nav.go("workshop")
+	await _settle()
+	var shop: Node = Nav.current
+	check(shop._bar.visible, "a phone's workshop shows its top bar while no window is open")
+	shop._open_table()
+	await _settle()
+	check(shop._bar.visible, "a small window leaves the top bar showing")
+	shop._open_merchant()
+	await _settle()
+	check(not shop._bar.visible, "the stone merchant fills the phone's screen and hides the top bar")
+	check(shop._purse.is_visible_in_tree() and shop._purse_label.text == Ui.coins_text(500), "and shows the purse beside its close button (%s)" % shop._purse_label.text)
+	Game.buy_sack("limestone")
+	await get_tree().process_frame
+	check(shop._purse_label.text == Ui.coins_text(500 - Game.sack_price("limestone")), "which follows what the player spends (%s)" % shop._purse_label.text)
+	Nav.close_top()
+	await _settle()
+	check(shop._bar.visible, "the top bar comes back once the window closes")
+	shop.open_settings()
+	await _settle()
+	shop._queue_event({"kind": "news", "title": "News", "text": "A client sends word."})
+	shop._show_next_event()
+	await get_tree().process_frame
+	check(not is_instance_valid(shop._popup), "a letter waits while a window is open")
+	Nav.close_top()
+	await _settle()
+	check(is_instance_valid(shop._popup), "and shows once the window closes")
+	await _back_from_phone(was)
+	Nav.go("workshop")
+	await _settle()
+	shop = Nav.current
+	shop._open_merchant()
+	await _settle()
+	check(shop._bar.visible and not is_instance_valid(shop._purse), "a computer keeps the top bar over the merchant, with no second purse")
+	Saves.enabled = saving
+	Nav.go("title")
+	await _settle()
+
+
 func test_two_fingers_on_the_plan_size_the_picked_motif() -> void:
 	Game.new_game("Plan")
 	Game.state["guide_off"] = true

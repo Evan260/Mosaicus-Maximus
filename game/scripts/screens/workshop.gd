@@ -52,6 +52,12 @@ var _sold_at := -1000
 var _list_scroll: ScrollContainer
 ## The day and part of the day the top bar shows, so its text is only made again when they change.
 var _day_key := ""
+var _hud := true
+## The purse beside the close button of a window that buys or sells, shown on a phone while that window hides the top bar.
+var _purse: HBoxContainer
+var _purse_label: Label
+## Whether a letter waits for the open window to close before it shows.
+var _letter_waits := false
 
 
 func enter(_args: Dictionary) -> void:
@@ -98,7 +104,8 @@ func enter(_args: Dictionary) -> void:
 	_refresh()
 	if Dev.has("panel") or Dev.has("no-hud"):
 		Game.state["pending_events"].clear()
-	_bar.visible = not Dev.has("no-hud")
+	_hud = not Dev.has("no-hud")
+	_bar.visible = _hud
 	_show_next_event()
 	match Dev.get_arg("panel"):
 		"settings":
@@ -273,6 +280,40 @@ func _process(delta: float) -> void:
 		_day.text = tr("Day %d, %s") % [int(Game.state["day"]), Daylight.part_name(part)]
 		_fit_bar()
 	Ui.restyle(_end_day, "MainButton" if part in ["evening", "night"] else "")
+	var covered := _covered()
+	_bar.visible = _hud and not covered
+	if is_instance_valid(_purse):
+		_purse.visible = covered
+	if _letter_waits and not _panel_open():
+		_letter_waits = false
+		_show_next_event()
+
+
+## Whether a window open on a phone is too tall to sit under the top bar, which would then only peek out round its edges.
+func _covered() -> bool:
+	if not Nav.phone:
+		return false
+	var room := Nav.ui_size().y - 2.0 * _bar.get_rect().end.y
+	for w in [_panel, _popup]:
+		if is_instance_valid(w) and not w.is_queued_for_deletion() and w.visible and maxf(w.size.y, w.get_combined_minimum_size().y) > room:
+			return true
+	return false
+
+
+func _panel_open() -> bool:
+	return is_instance_valid(_panel) and not _panel.is_queued_for_deletion()
+
+
+## Puts the purse at the head of a window that buys or sells, on a phone, where the window can hide the top bar.
+func _head_purse(head: HBoxContainer) -> void:
+	if not Nav.phone:
+		return
+	_purse = Ui.hbox(head, 3)
+	head.move_child(_purse, head.get_child_count() - 2)
+	_purse.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_purse.visible = false
+	Ui.icon(_purse, "coin")
+	_purse_label = Ui.label(_purse, Ui.coins_text(Game.coins()))
 
 
 ## Lets a piece's painted sunlight fade at night with the room's, reading the room's sunlight map at its place.
@@ -402,6 +443,8 @@ func _refresh() -> void:
 	var left := Story.jobs_left(st)
 	_jobs.text = tr("1 job left") if left == 1 else tr("%d jobs left") % left
 	_fit_bar()
+	if is_instance_valid(_purse_label):
+		_purse_label.text = Ui.coins_text(int(st["coins"]))
 
 
 func _open_table() -> void:
@@ -481,6 +524,9 @@ func _queue_event(e: Dictionary) -> void:
 func _show_next_event() -> void:
 	var pending: Array = Game.state.get("pending_events", [])
 	if is_instance_valid(_popup):
+		return
+	if _panel_open() and not pending.is_empty():
+		_letter_waits = true
 		return
 	if pending.is_empty():
 		_guide.call_deferred()
@@ -604,7 +650,7 @@ func _open_merchant() -> void:
 	_close_panel()
 	_panel = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_panel, 3)
-	Ui.window_head(col, _panel, "The stone merchant", _close_panel)
+	_head_purse(Ui.window_head(col, _panel, "The stone merchant", _close_panel))
 	var labels := [Ui.label(col, "Prices are for a sack of 100 tiles, and a floor is laid only from stone in stock.", "MutedLabel", 300)]
 	_list_scroll = ScrollContainer.new()
 	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -665,7 +711,7 @@ func _open_bench() -> void:
 	_close_panel()
 	_panel = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_panel, 4)
-	Ui.window_head(col, _panel, "The workbench", _close_panel)
+	_head_purse(Ui.window_head(col, _panel, "The workbench", _close_panel))
 	Ui.label(col, "Lay a small picture panel here, one a day. A collector will buy it, or you can set it into a client's floor, where it comes laid already and the client pays extra.", "MutedLabel", 270)
 	var busy: Dictionary = Game.state["active_job"]
 	if busy.get("kind", "") == "panel":
@@ -742,7 +788,7 @@ func _open_upgrades() -> void:
 	_close_panel()
 	_panel = Ui.panel(_root, "PagePanel")
 	var col := Ui.vbox(_panel, 3)
-	Ui.window_head(col, _panel, "Improve the workshop", _close_panel)
+	_head_purse(Ui.window_head(col, _panel, "Improve the workshop", _close_panel))
 	# Two to a row, scrolling only when a long language needs more lines than the screen has.
 	_list_scroll = ScrollContainer.new()
 	_list_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
