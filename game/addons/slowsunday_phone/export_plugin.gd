@@ -1,7 +1,8 @@
 @tool
 extends EditorExportPlugin
 ## Adds the SlowSundayPhone library to Android exports with the libraries it uses, and writes the game's Play Games
-## app id, notification colour and status-bar icon into the Gradle build before it runs.
+## app id, notification colour and status-bar icon into the Gradle build before it runs. A game whose project setting
+## `slowsunday_phone/notifications` is off gets no notification permissions, receivers or icon at all.
 
 const StatusIcon := preload("status_icon.gd")
 
@@ -16,6 +17,13 @@ const APP_ID := "slowsunday_phone/play_games_app_id"
 const ICON := "slowsunday_phone/notification_icon"
 const COLOR := "slowsunday_phone/notification_color"
 const ICON_NAME := "slowsunday_phone_notification.png"
+## A project setting rather than an export option, so the debug and release presets can never disagree.
+const NOTIFICATIONS := "slowsunday_phone/notifications"
+
+
+## Whether the game sends notifications: on unless the game's project settings turn them off.
+static func notifications_on() -> bool:
+	return bool(ProjectSettings.get_setting(NOTIFICATIONS, true))
 
 
 func _get_name() -> String:
@@ -56,12 +64,28 @@ func _get_android_dependencies(platform: EditorExportPlatform, debug: bool) -> P
 	return PackedStringArray(DEPENDENCIES)
 
 
+## The library's manifest asks for both permissions, so a game that sends no notifications takes them out again.
+func _get_android_manifest_element_contents(platform: EditorExportPlatform, debug: bool) -> String:
+	if notifications_on():
+		return ""
+	return "".join(PackedStringArray([
+		'\t<uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:node="remove" />\n',
+		'\t<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove" />\n',
+	]))
+
+
 func _get_android_manifest_application_element_contents(platform: EditorExportPlatform, debug: bool) -> String:
+	var text := ""
+	if not notifications_on():
+		# The library reads this to make no notification channel and schedule nothing.
+		text += '\t\t<meta-data android:name="com.slowsunday.phone.NOTIFICATIONS" android:value="false" />\n'
+		text += '\t\t<receiver android:name="com.slowsunday.phone.NoticeReceiver" tools:node="remove" />\n'
+		text += '\t\t<receiver android:name="com.slowsunday.phone.RestartReceiver" tools:node="remove" />\n'
 	if _app_id() == "":
 		# Play Games' own start-up provider tries to sign the player in at every launch, which fails without an app id.
-		return '\t\t<provider android:name="com.google.android.gms.games.provider.PlayGamesInitProvider" android:authorities="${applicationId}.playgamesinitprovider" tools:node="remove" />\n'
+		return text + '\t\t<provider android:name="com.google.android.gms.games.provider.PlayGamesInitProvider" android:authorities="${applicationId}.playgamesinitprovider" tools:node="remove" />\n'
 	# Play Games reads the id as text, and a bare number in the manifest would be stored as an integer.
-	return '\t\t<meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/slowsunday_phone_play_games_app_id" />\n'
+	return text + '\t\t<meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/slowsunday_phone_play_games_app_id" />\n'
 
 
 func _export_begin(features: PackedStringArray, is_debug: bool, path: String, flags: int) -> void:
@@ -96,6 +120,9 @@ func _write_values(res_dir: String) -> void:
 
 
 func _write_icons(res_dir: String) -> void:
+	if not notifications_on():
+		_remove_icons(res_dir)
+		return
 	var source := _icon_source()
 	var image := Image.new()
 	if source == "" or image.load(ProjectSettings.globalize_path(source)) != OK:

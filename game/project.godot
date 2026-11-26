@@ -64,3 +64,7 @@ environment/defaults/default_clear_color=Color(0.13, 0.105, 0.09, 1)
 
 package_name="com.slowsunday.mosaicusmaximus"
 review_code_sha256="6f2bae361176816a8bcb516cb47a29ee08ea7bcde63877823b5598c03cba4295"
+
+[slowsunday_phone]
+
+notifications=false

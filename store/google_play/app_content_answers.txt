@@ -10,12 +10,15 @@ What the answers rest on, from the code and the built bundle (builds/android/Mos
 - Saves, settings, the library of kept floors and whether the full game is owned are files on the phone (user://).
   Copy to Pictures, which saves a floor to a computer's Pictures folder, is left out on phones.
 - Google Play Billing sells the one product, full_game. The game asks Play only for the price and whether it is owned.
-- The SlowSunday phone plugin carries the Play Games library and notifications for Farmus Maximus, but this game
-  never calls either: its Play Games app id is blank, so Play Games never starts (the plugin removes its start-up
-  provider from the manifest), and it schedules no notifications.
-- Permissions in the bundle's manifest: INTERNET and ACCESS_NETWORK_STATE (from the Play Billing Library),
-  com.android.vending.BILLING, POST_NOTIFICATIONS and RECEIVE_BOOT_COMPLETED (from the plugin, unused here), and the
-  app's own DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION (from AndroidX). No AD_ID.
+- The SlowSunday phone plugin carries the Play Games library, which this game never calls: its Play Games app id is
+  blank, so Play Games never starts (the plugin removes its start-up provider from the manifest).
+- The game sends no notifications, and its project turns the plugin's notifications off
+  (slowsunday_phone/notifications=false in project.godot), so the manifest asks for no notification permission and
+  has no notification receivers.
+- Permissions in the manifest: INTERNET and ACCESS_NETWORK_STATE (from the Play Billing Library),
+  com.android.vending.BILLING, and the app's own DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION (from AndroidX). No
+  POST_NOTIFICATIONS, no RECEIVE_BOOT_COMPLETED and no AD_ID. Checked in the debug APK of 25 November 2026; a
+  bundle built since has the same manifest.
 
 
 1. PRIVACY POLICY
@@ -150,14 +153,14 @@ uploaded bundle's manifest against this answer.
 
 FORMS PLAY ONLY SHOWS WHEN THEY APPLY (none apply)
 
-- Permissions declaration: not needed. POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED, INTERNET and BILLING are not on
-  Google's list of restricted permissions.
+- Permissions declaration: not needed. INTERNET and BILLING are not on Google's list of restricted permissions.
 - Exact alarms, foreground services, full-screen intents, photo and video access: none in the bundle.
 
 
 HOW MOSAICUS DIFFERS FROM THE OTHER THREE
 
 - The only one with references to gambling (the race-day gamblers), and alcohol references like Farmus's.
-- Like Fishus and Legionus, no notifications and no Play Games, so Data safety is always "No data collected".
-  Farmus changes once its Play Games app id is set.
+- Like Legionus, no notifications and no Play Games, so Data safety is always "No data collected". Fishus's
+  reminders are local notifications that send nothing, so it says the same; Farmus changes once its Play Games app id
+  is set.
 - Rated about Everyone, like Farmus and Fishus. Legionus has combat and blood and rates about Teen.
