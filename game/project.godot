@@ -30,6 +30,7 @@ Nav="*res://scripts/autoload/nav.gd"
 Tips="*res://scripts/autoload/tips.gd"
 Awards="*res://scripts/autoload/awards.gd"
 Pad="*res://scripts/autoload/pad.gd"
+Landscape="*res://scripts/autoload/landscape.gd"
 
 [display]
 
