@@ -1406,6 +1406,9 @@ func test_the_pictures_fill_the_window_by_a_whole_scale() -> void:
 	check(Nav.picture_scale_for(Vector2(2560, 1080)) == 4, "an ultrawide screen would lose too much top and bottom, so it fits")
 	check(Nav.picture_scale_for(Vector2(3440, 1440)) == 5, "so does a wider one")
 	check(Nav.picture_scale_for(Vector2(1280, 1024)) == 2, "a tall window would lose too much of the sides, so it fits")
+	check(Nav.picture_scale_for(Vector2(3216, 1440), true) == 5, "a 20:9 phone keeps the room's whole height, so the table and the dog show")
+	check(Nav.picture_scale_for(Vector2(2400, 1080), true) == 4, "and so does a smaller one")
+	check(Nav.picture_scale_for(Vector2(1280, 800), true) == 3, "a tablet that loses only a pixel or two top and bottom still fills the screen")
 
 
 func test_the_interface_size_setting_steps_round_three_sizes() -> void:

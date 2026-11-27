@@ -14,6 +14,8 @@ const UI_FIT_WIDTH := 400.0
 const SMALL_HEIGHT := 800.0
 ## The most of the pictures' 480 by 270 view a scale may cut off each side to fill the window.
 const MOST_CROP := 0.12
+## The most picture pixels a phone may cut off the top and the bottom: the workshop's table and the dog's basket stop 4 short of the bottom.
+const PHONE_MOST_CUT := 4.0
 const SCREENS := {
 	"title": "res://scripts/screens/title.gd",
 	"workshop": "res://scripts/screens/workshop.gd",
@@ -170,7 +172,7 @@ func _on_node_added(node: Node) -> void:
 
 ## Screen pixels per picture pixel.
 func picture_scale() -> int:
-	return picture_scale_for(get_viewport().get_visible_rect().size)
+	return picture_scale_for(get_viewport().get_visible_rect().size, phone)
 
 
 ## One step under what fits the window, or what fits on a small window, moved by the player's interface size, but never
@@ -183,10 +185,13 @@ static func ui_scale_for(window: Vector2, step: int = 0) -> int:
 
 
 ## The smallest scale that covers the window when it crops only a little, else the largest that fits.
-static func picture_scale_for(window: Vector2) -> int:
+static func picture_scale_for(window: Vector2, on_phone := false) -> int:
 	var fits := maxi(1, int(minf(window.x / BASE.x, window.y / BASE.y)))
 	var covers := maxi(1, ceili(maxf(window.x / BASE.x, window.y / BASE.y)))
 	var crop := (BASE * covers - window) * 0.5 / (BASE * covers)
+	# A phone is wider than the pictures, so covering it cuts their top and bottom, where the workshop's table and dog lie.
+	if on_phone and (BASE.y * covers - window.y) * 0.5 / covers > PHONE_MOST_CUT:
+		return fits
 	return covers if maxf(crop.x, crop.y) <= MOST_CROP else fits
 
 
