@@ -17,4 +17,7 @@ func _ready() -> void:
 		return
 	if Dev.made_up():
 		Dev.make_state()
+	# A player's launch fades into the title from the loading screen; checks with flags start on the screen unless --boot asks.
+	if Dev.args.is_empty() or Dev.has("boot"):
+		add_child(load("res://scripts/ui/boot_cover.gd").new())
 	Nav.go.call_deferred(Dev.get_arg("screen", "workshop" if Dev.made_up() else "title"), {})
