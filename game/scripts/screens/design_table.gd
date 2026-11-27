@@ -48,6 +48,13 @@ var _drag_offset := Vector2.INF
 ## The ground or border part under a press inside the picked motif's box: picked instead if the press doesn't drag.
 var _ground_on_release := ""
 var _moved := false
+## While a motif is dragged, the plan is drawn without it and its own picture follows the pointer between grid steps.
+var _lifted := false
+## The design as the lifted motif's picture was drawn, leaving out where it stands, so any other change draws it again.
+var _lifted_key := ""
+## The lifted picture's size in tiles, with its margin, and where the pointer holds its middle.
+var _lifted_size := Vector2.ZERO
+var _held := Vector2.ZERO
 var _press_tile := Vector2.ZERO
 var _anchor := Vector2.ZERO
 var _grow := Vector2.ONE
@@ -118,7 +125,10 @@ func enter(args: Dictionary) -> void:
 		_select(int(Dev.num("pick", 0)))
 	_refresh_chips()
 	if not free and str(job.get("kind", "")) != "panel":
-		Guide.note("design", "This is the design table. Drag patterns and pictures from the book onto the floor plan, and click any part to give it a stone. The stars show how much the client will like it. Then buy the stone and press Start laying.", "over", _brief_card)
+		if Nav.phone:
+			Guide.note("design", "This is the design table. Tap patterns and pictures in the book to put them on the floor plan, and tap any part to give it a stone. The stars show how much the client will like it. Then buy the stone and press Start laying.", "over", _brief_card)
+		else:
+			Guide.note("design", "This is the design table. Drag patterns and pictures from the book onto the floor plan, and click any part to give it a stone. The stars show how much the client will like it. Then buy the stone and press Start laying.", "over", _brief_card)
 
 
 func _process(delta: float) -> void:
@@ -128,7 +138,7 @@ func _process(delta: float) -> void:
 		_dirty = false
 		_since = 0.0
 		_recompose()
-	if _cost_dirty and _cost_since > 0.35:
+	if _cost_dirty and _cost_since > 0.35 and not _lifted:
 		_cost_dirty = false
 		_cost_since = 0.0
 		_recost()
@@ -213,6 +223,7 @@ func _build() -> void:
 	_plan.released.connect(func() -> void:
 		_drag_offset = Vector2.INF
 		_pending = {}
+		_land()
 		if _ground_on_release != "" and not _moved:
 			selected = -1
 			role = _ground_on_release
@@ -369,8 +380,8 @@ func _layout_ui() -> void:
 
 ## Keeps the toolbar just above the picked motif, or below it when it sits at the top of the plan.
 func _place_toolbar() -> void:
-	_toolbar.visible = selected >= 0
-	if selected < 0:
+	_toolbar.visible = selected >= 0 and not _lifted
+	if not _toolbar.visible:
 		return
 	_fit_toolbar()
 	_toolbar.reset_size()
@@ -455,7 +466,8 @@ func _fill_book() -> void:
 		var open: bool = id in _motifs_allowed()
 		var shows := (m.get("tags", []) as Array).filter(func(t: String) -> bool: return Brief.TAG_WORDS.has(t)).map(func(t: String) -> String: return Brief.tag_words(t))
 		var about := (tr("%s. Shows %s.") % [Data.motif_title(id), tr(", ").join(shows)]) if not shows.is_empty() else tr("%s.") % Data.motif_title(id)
-		Ui.tip_on(slot, Ui.text([about, "Drag it onto the floor, or click to add it." if open else _locked_tip(int(m.get("tier", 1)))]))
+		var how := "Tap it to add it to the floor." if Nav.phone else "Drag it onto the floor, or click to add it."
+		Ui.tip_on(slot, Ui.text([about, how if open else _locked_tip(int(m.get("tier", 1)))]))
 		if not open:
 			slot.disabled = true
 			slot.modulate = Color(1, 1, 1, 0.35)
@@ -463,9 +475,11 @@ func _fill_book() -> void:
 			slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			var mid: String = id
 			slot.pressed.connect(func() -> void: _add_motif(mid, Vector2(design.w, design.h) * 0.5))
-			slot.set_drag_forwarding(func(_at: Vector2):
-				slot.set_drag_preview(_drag_preview(mid))
-				return {"motif": mid}, Callable(), Callable())
+			# A finger dragged over the book scrolls it, so a phone adds a pattern with a tap alone.
+			if not Nav.phone:
+				slot.set_drag_forwarding(func(_at: Vector2):
+					slot.set_drag_preview(_drag_preview(mid))
+					return {"motif": mid}, Callable(), Callable())
 		_book_grid.add_child(slot)
 
 
@@ -550,23 +564,39 @@ func _add_border_slot(id: String, name: String) -> void:
 
 
 func _recompose() -> void:
+	var key := _lift_key() if _lifted else ""
+	# While a motif is held only its own picture moves; the plan, and the brief, which takes milliseconds to judge, wait for it to land.
+	if _lifted and key == _lifted_key:
+		return
+	_lifted_key = key
 	var px := clampi(int(360.0 / maxf(design.w, design.h * 1.4)), 2, 6)
-	var img := Composer.picture(design, px)
+	var shown := design
+	_plan.lifted = null
+	if _lifted:
+		shown = FloorDesign.from_dict(design.to_dict())
+		shown.placements.remove_at(selected)
+		var alone := Composer.motif_picture(design.placements[selected], px)
+		_lifted_size = Vector2(alone.get_size()) / px
+		_plan.lifted = ImageTexture.create_from_image(alone)
+		_plan.lifted_rect = Rect2(_held - _lifted_size * 0.5, _lifted_size)
+	var img := Composer.picture(shown, px)
 	if _tex == null or _tex.get_size() != Vector2(img.get_size()):
 		_tex = ImageTexture.create_from_image(img)
 	else:
 		_tex.update(img)
-	_parts = Composer.part_map(design, px)
-	_parts_px = px
+	if not _lifted:
+		_parts = Composer.part_map(design, px)
+		_parts_px = px
 	_plan.outline_width = maxf(1.0, roundf(px * 0.4))
 	_plan.set_image(_tex, Vector2(design.w, design.h))
 	_plan.selection = _rect_of(design.placements[selected]) if selected >= 0 else Rect2()
 	_plan.resizable = not _is_panel(selected)
-	_plan.chosen_part = _part_texture(_chosen_code())
+	_plan.chosen_part = null if _lifted else _part_texture(_chosen_code())
 	_hover_code = -1
 	_plan.hover_part = null
 	_plan.queue_redraw()
-	_refresh_brief()
+	if not _lifted:
+		_refresh_brief()
 	_place_toolbar()
 
 
@@ -940,6 +970,7 @@ func _hit(tile: Vector2) -> int:
 
 func _select(i: int) -> void:
 	selected = i if i < design.placements.size() else -1
+	_land()
 	role = ""
 	_plan.selection = _rect_of(design.placements[selected]) if selected >= 0 else Rect2()
 	_plan.resizable = not _is_panel(selected)
@@ -986,15 +1017,36 @@ func _on_drag(tile: Vector2) -> void:
 		return
 	_moved = true
 	var p: Dictionary = design.placements[selected]
-	var c := (tile - _drag_offset).clamp(Vector2.ZERO, Vector2(design.w, design.h))
-	var to := Vector2(snappedf(c.x, 0.5), snappedf(c.y, 0.5))
+	_held = (tile - _drag_offset).clamp(Vector2.ZERO, Vector2(design.w, design.h))
+	if not _lifted:
+		_lifted = true
+		_recompose()
+	_plan.lifted_rect = Rect2(_held - _lifted_size * 0.5, _lifted_size)
+	var to := Vector2(snappedf(_held.x, 0.5), snappedf(_held.y, 0.5))
 	if to == Vector2(float(p["x"]), float(p["y"])):
 		return
 	_commit_pending()
 	p["x"] = to.x
 	p["y"] = to.y
-	_dirty = true
+	_plan.selection = _rect_of(p)
+	_plan.queue_redraw()
 	_cost_dirty = true
+
+
+## Puts a lifted motif down where its frame shows, on the grid, and draws the plan with it again.
+func _land() -> void:
+	if not _lifted:
+		return
+	_lifted = false
+	_recompose()
+
+
+func _lift_key() -> String:
+	var d := design.to_dict()
+	var p: Dictionary = d["placements"][selected]
+	p.erase("x")
+	p.erase("y")
+	return "%d %s" % [selected, JSON.stringify(d)]
 
 
 ## Grabbing a corner pins the opposite one, so the motif grows and shrinks from there, keeping its shape.
@@ -1050,6 +1102,7 @@ func _on_pinch_began(tile: Vector2) -> void:
 	_drag_offset = Vector2.INF
 	_ground_on_release = ""
 	_pending = {}
+	_land()
 	if selected < 0 and int(_pick_at(tile)[0]) >= 0:
 		_select(int(_pick_at(tile)[0]))
 	_pinch_size = float(design.placements[selected]["size"]) if selected >= 0 and not _is_panel(selected) else 0.0

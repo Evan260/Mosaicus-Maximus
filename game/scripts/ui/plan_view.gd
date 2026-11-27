@@ -38,6 +38,15 @@ var _chosen_layer: TextureRect
 var _hover_layer: TextureRect
 ## A copy job's sketch, laid over the plan while the player compares.
 var peek: Texture2D
+## A dragged motif's own picture and where the pointer holds it, in tiles, off the grid; the selection marks where it will land.
+var lifted: Texture2D:
+	set(t):
+		lifted = t
+		queue_redraw()
+var lifted_rect := Rect2():
+	set(r):
+		lifted_rect = r
+		queue_redraw()
 var _down := false
 var _resizing := false
 var _corner := -1
@@ -112,12 +121,25 @@ func _draw() -> void:
 	_draw_guides(r)
 	if peek:
 		draw_texture_rect(peek, r, false, Color(1, 1, 1, 0.85))
+	if lifted:
+		var held := _to_local_rect(lifted_rect)
+		_draw_on_plan(lifted, Rect2(held.position + Vector2(2, 2), held.size), Color(0, 0, 0, 0.35))
+		_draw_on_plan(lifted, held, Color.WHITE)
 	if selection.size != Vector2.ZERO:
 		var s := _to_local_rect(selection)
 		draw_rect(s.grow(1), GOLD, false, 1.0)
-		for c in (_corners(s) if resizable else []):
+		for c in (_corners(s) if resizable and not lifted else []):
 			draw_rect(Rect2(c - Vector2(2, 2), Vector2(5, 5)), Color8(58, 38, 30))
 			draw_rect(Rect2(c - Vector2(1, 1), Vector2(3, 3)), GOLD)
+
+
+## Draws a picture into a rectangle, leaving out whatever falls past the plan's edges.
+func _draw_on_plan(tex: Texture2D, to: Rect2, tint: Color) -> void:
+	var shown := to.intersection(plan_rect())
+	if shown.size.x <= 0.0 or shown.size.y <= 0.0:
+		return
+	var k := Vector2(tex.get_size()) / to.size
+	draw_texture_rect_region(tex, shown, Rect2((shown.position - to.position) * k, shown.size * k), tint)
 
 
 ## Dotted lines through the middle of the room, side to side and top to bottom, for lining motifs up.

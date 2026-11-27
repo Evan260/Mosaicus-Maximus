@@ -43,6 +43,26 @@ static func _labels(design: FloorDesign, px: int) -> PackedByteArray:
 	return labels
 
 
+## One placement drawn alone on a clear picture, with a tile's margin round it for its outline, as the plan shows it lifted.
+static func motif_picture(p: Dictionary, px: int) -> Image:
+	var t := MotifLibrary.tiles(p.get("motif", ""), float(p.get("size", 10)))
+	if int(p.get("rot", 0)) % 2 == 1:
+		t = Vector2(t.y, t.x)
+	var w := maxi(1, int(t.x * px)) + 2 * px
+	var h := maxi(1, int(t.y * px)) + 2 * px
+	var labels := PackedByteArray()
+	labels.resize(w * h)
+	labels.fill(Stones.NO_TILE)
+	var inside := PackedByteArray()
+	inside.resize(w * h)
+	inside.fill(1)
+	var alone := p.duplicate()
+	alone["x"] = t.x * 0.5 + 1.0
+	alone["y"] = t.y * 0.5 + 1.0
+	_stamp(labels, inside, w, h, px, alone)
+	return _to_image(labels, w, h, true)
+
+
 ## Which part of the design each pixel belongs to (the PART_ codes, NO_TILE outside), so a click can pick a part.
 static func part_map(design: FloorDesign, px: int) -> PackedByteArray:
 	var w := design.w * px
