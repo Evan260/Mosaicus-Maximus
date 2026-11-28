@@ -11,7 +11,7 @@ signal changed
 ## How a purchase or restore ended: purchased, pending, cancelled, error, unavailable, restored or not_found.
 signal finished(result: String)
 
-## The product the store sells; each game creates it in the Play Console (and later App Store Connect) with this id.
+## The product's id on Google Play, where each game creates it in the Play Console.
 const PRODUCT := "full_game"
 const PLUGINS := ["SlowSundayPhone", "SlowSundayStore"]
 ## The key in the cache that says a reviewer's code opened the full game on this phone.
@@ -21,6 +21,8 @@ const REVIEW_TAPS := 5
 const REVIEW_SECONDS := 3.0
 
 var store: Object = null
+## The product's id in the store this build talks to: PRODUCT on Google Play, apple_product() on the App Store.
+var product := PRODUCT
 ## Where owning the full game is written down; empty keeps nothing, as for the pretend store.
 var cache_path := "user://store.cfg"
 ## The reviewer's code is never in the game, only the SHA-256 of "<package name>:<the code as normalize() leaves it>".
@@ -46,12 +48,18 @@ func _ready() -> void:
 		return
 	for plugin in PLUGINS:
 		if Engine.has_singleton(plugin):
-			use_store(Engine.get_singleton(plugin))
+			use_store(Engine.get_singleton(plugin), apple_product(package_name) if plugin == "SlowSundayStore" else PRODUCT)
 			return
 
 
-## Hands the purchase to a store, or to none; the tests give it a fake one.
-func use_store(new_store: Object) -> void:
+## The product's id on the App Store, which wants every id unique across all of a developer's apps.
+static func apple_product(package: String) -> String:
+	return package + "." + PRODUCT
+
+
+## Hands the purchase to a store that sells it as `product_id`, or to none; the tests give it a fake one.
+func use_store(new_store: Object, product_id := PRODUCT) -> void:
+	product = product_id
 	if store != null:
 		for link in _links():
 			if store.is_connected(link[0], link[1]):
@@ -97,7 +105,7 @@ func price() -> String:
 
 func buy() -> void:
 	if locked():
-		store.call("buy", PRODUCT)
+		store.call("buy", product)
 
 
 ## Asks the store again what the player owns, for a new phone or the game installed again.
@@ -136,7 +144,7 @@ func review_tap(now: float) -> bool:
 
 
 func _on_connected() -> void:
-	store.call("query_price", PRODUCT)
+	store.call("query_price", product)
 
 
 func _on_unavailable(_message: String) -> void:
@@ -146,13 +154,13 @@ func _on_unavailable(_message: String) -> void:
 
 
 func _on_price(product_id: String, text: String) -> void:
-	if product_id == PRODUCT and text != _price:
+	if product_id == product and text != _price:
 		_price = text
 		changed.emit()
 
 
 func _on_purchase(product_id: String, status: String) -> void:
-	if product_id != PRODUCT:
+	if product_id != product:
 		return
 	if status == "purchased":
 		_pending = false
@@ -164,7 +172,7 @@ func _on_purchase(product_id: String, status: String) -> void:
 
 ## The store's list is the truth whenever it answers: a refunded purchase drops off it and locks the game again.
 func _on_owned(product_ids: Variant) -> void:
-	var has: bool = PRODUCT in product_ids
+	var has: bool = product in product_ids
 	var was := _owned
 	_set_owned(has)
 	if _restoring:
