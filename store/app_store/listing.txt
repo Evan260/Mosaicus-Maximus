@@ -1,0 +1,135 @@
+MOSAICUS MAXIMUS: APP STORE LISTING TEXT
+
+For App Store Connect (appstoreconnect.apple.com) > Apps > Mosaicus Maximus. The name, subtitle, category and age
+rating are under App Information, the privacy answers under App Privacy, and the promotional text, description and
+keywords on the version being prepared. Each count is the number of characters Apple counts for that field, line
+breaks included, against the field's limit. The description is store/google_play/listing.txt's full description with
+only the changes listed under it, and none of the text names another platform or says "demo" or "trial" (App Review
+guidelines 2.2 and 2.3.10).
+
+
+NAME (30 of 30 characters, already set)
+
+Mosaicus Maximus: Cozy Mosaics
+
+
+SUBTITLE (27 of 30 characters)
+
+Design and lay Roman floors
+
+
+PROMOTIONAL TEXT (169 of 170 characters)
+
+Your uncle has left you his workshop. Design mosaic floors for the townsfolk, lay every stone yourself and restore old floors under the town. Free to start, with no ads.
+
+
+DESCRIPTION (3,407 of 4,000 characters)
+
+Your uncle has left you his workshop. The town still remembers his floors.
+
+Mosaicus Maximus is a cozy craft and business game set in a small harbour town on the Bay of Naples in AD 72. Design mosaic floors for the townsfolk, lay them stone by stone, and restore the forgotten floors buried under the town. Start with a few sacks of black and white stone, and end with glass and gold for the temple of Venus.
+
+Free to start, one purchase for the whole game
+Download Mosaicus Maximus for free and play the first two chapters: black and white geometry, then coloured marble and terracotta. One purchase opens the rest of the story: detailed pictures in tiny tiles, then glass and gold for walls, fountains and the temple, with grander rooms and every stone. Your workshop carries straight on. No ads, ever, and nothing else for sale.
+
+Made for touch
+Sweep a finger over the floor to lay the stones, and pinch with two fingers to zoom and pan. At the design table, two fingers size a pattern. Hold a finger on a button to see what it does. Every button is sized for a fingertip, on iPhone and iPad alike.
+
+Design it, lay it, reveal it
+• A client comes in with a wish: a guard dog and "Cave Canem" by the door, two doves for a bride-to-be, an octopus for the baths. Name your price and shake on it.
+• Compose the floor at the design table from the pattern book's 31 Roman patterns and pictures and 9 borders. Drag, resize, mirror, pair and recolour them, and watch the stars it will earn as you work.
+• Lay every tile yourself. Pick a stone from the tray, sweep over the places that glow, and hundreds of tiles drop into place in a ripple, bending round curves the way Roman rows did.
+• Wipe in the grout with a sponge, polish the stone with a cloth, then see the finished floor in the client's own room and hear what they think.
+
+Floors under the town
+Old floors turn up under houses being rebuilt. Scrape away the dirt with the trowel, mend each gap with a stone that matches, and the lost pattern goes into your pattern book. Some mornings your dog comes home covered in dirt, having found one next door. The digs grow all the way to the great floor beneath the forum.
+
+A town full of people
+• Ten regular clients, each with a story that unfolds over their jobs, and twenty townsfolk with jobs of their own.
+• Every client has a taste. Learn it from what they say, and your notebook keeps it.
+• Copy famous floors for collectors, enter the town's floor contest every seventh day against the rival workshop, and lay themed floors for the Roman festivals.
+• Buy rare stone off the merchant ships in the harbour, make small picture panels at the workbench, and visit your floors on the town map.
+
+A workshop of your own
+• Choose your dog's breed and coat. It sleeps in its basket and wags when you pet it.
+• Add potted plants, wine jars and bronze lamps, take on an apprentice, open the courtyard and build a glass furnace.
+• The day passes from morning light to lamplight while you work.
+• Keep your favourite floors in your library and watch them laid again tile by tile.
+• Free design whenever you like: lay any floor you want, with no client to please.
+• Each stone has its own sound, from the hard click of marble to the ping of gold, over calm harp music.
+• 31 achievements, three workshops to keep, and play in 14 languages.
+
+No timers and no failure. Just a quiet Roman town that wants beautiful floors.
+
+Changed from the Google Play text: "on phones and tablets alike" reads "on iPhone and iPad alike". Nothing else
+changes.
+
+
+KEYWORDS (100 of 100 characters)
+
+tile,art,craft,pattern,rome,ancient,relaxing,pixel,marble,stone,creative,decorate,satisfying,offline
+
+Apple already searches the name and subtitle, so none of their words, or their plurals, are repeated here.
+
+
+CATEGORY
+
+Primary category: Games
+Subcategories: Simulation and Casual
+Why: A craft and business game, designing and laying floors for clients and running the workshop, played at a calm
+pace.
+
+
+AGE RATING (App Information > Age Rating; these answers give 13+)
+
+Apple's table puts any answer above None for alcohol at 13+, so the tavern and the wine set it; that matches the 13
+and over audience chosen on Google Play.
+
+Content, each None, Infrequent or Mild, or Frequent or Intense:
+- Alcohol, Tobacco, or Drug Use or References (alcoholTobaccoOrDrugUseOrReferences): Infrequent or Mild. A tavern
+  keeper's floor ("Some of it even goes in cups"), wine jars in the workshop and the pattern book, a feast of fish,
+  loaves and wine, and the Vinalia; nobody is shown drinking, and there is no tobacco or drugs.
+- Contests (contests): None. Single player with no leaderboards; the weekly floor contest is against a rival workshop
+  the game plays, not other players.
+- Simulated Gambling (gamblingSimulated): None. One client mentions gamblers on race day, but there is nothing to bet
+  on, and the floor contest is won by the floor with nothing staked.
+- Guns or Other Weapons (gunsOrOtherWeapons): None. The pattern book's pictures are animals, sea life, flowers,
+  objects and Medusa's head; no weapons.
+- Horror/Fear Themes (horrorOrFearThemes): None. Medusa's head is a small classic mosaic face in stone, not a scare.
+- Mature or Suggestive Themes (matureOrSuggestiveThemes): None. Clients mention weddings and the temple of Venus is a
+  building, with no innuendo.
+- Medical or Treatment Information (medicalOrTreatmentInformation): None. No medical content.
+- Profanity or Crude Humor (profanityOrCrudeHumor): None. No profanity or crude humour.
+- Graphic Sexual Content and Nudity (sexualContentGraphicAndNudity): None. No sexual content or nudity.
+- Sexual Content or Nudity (sexualContentOrNudity): None. No nudity; the pattern book has no human figures.
+- Cartoon or Fantasy Violence (violenceCartoonOrFantasy): None. Nothing is hurt: the lion, stag, hare and guard dog
+  are pictures laid in stone.
+- Realistic Violence (violenceRealistic): None. No violence of any kind.
+- Prolonged Graphic or Sadistic Realistic Violence (violenceRealisticProlongedGraphicOrSadistic): None. No violence of
+  any kind.
+
+Features and controls, each Yes or No:
+- Advertising (advertising): No. No ads of any kind, and no ad library in the build.
+- Age Assurance (ageAssurance): No. The game never asks for, estimates or checks anyone's age.
+- Dating and Relationships (datingAndRelationships): No. Single player, with no dating, matching or romantic
+  companion.
+- Gambling (gambling): No. Nothing can be bet, with real money or otherwise; the one purchase buys the full game.
+- Health or Wellness Topics (healthOrWellnessTopics): No. No self-care, diet or exercise advice.
+- Loot Boxes (lootBox): No. The one purchase unlocks the full game; nothing random is sold.
+- Messaging and Chat (messagingAndChat): No. Single player, with no way to talk to other players.
+- Parental Controls (parentalControls): No. The game has no parental control settings of its own.
+- Shared Location (sharedLocation): No. The game never reads the player's location.
+- Social Media (socialMedia): No. No feeds, posting, likes or sharing.
+- Unrestricted Web Access (unrestrictedWebAccess): No. No browser inside the game; the Privacy policy button opens
+  that one page in the phone's own browser.
+- User-Generated Content (userGeneratedContent): No. Floors made in free design and kept in the library stay on the
+  device (Copy to Pictures is left out on phones), and nothing is shown to anyone else.
+
+
+APP PRIVACY
+
+Data Not Collected is the true answer. The iPhone and iPad build's only native plugin is SlowSundayStore, which asks
+StoreKit for the full game's price, buys it and restores it; the purchase is handled by Apple, which does not count as
+collection by the developer. The game has no networking, analytics, crash reporting or ads in its code, on iPhone and
+iPad it has no Game Center and sends no notifications, its iOS export has tracking switched off, and saves, settings
+and the record of the purchase are files on the device that never leave it.
