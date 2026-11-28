@@ -122,7 +122,7 @@ static func normalize(code: String) -> String:
 
 ## Opens the full game on this phone for one of Google Play's reviewers, who cannot buy it; false for a wrong code.
 func redeem(code: String) -> bool:
-	if review_hash == "" or (package_name + ":" + normalize(code)).sha256_text() != review_hash:
+	if product != PRODUCT or review_hash == "" or (package_name + ":" + normalize(code)).sha256_text() != review_hash:
 		return false
 	if not _redeemed:
 		_redeemed = true
@@ -133,7 +133,8 @@ func redeem(code: String) -> bool:
 
 ## A tap at `now` seconds on the title's hidden spot; true for the REVIEW_TAPS-th within REVIEW_SECONDS while locked.
 func review_tap(now: float) -> bool:
-	if not locked():
+	# Apple allows no way to the full game but buying it, and its reviewers can buy in the sandbox.
+	if not locked() or product != PRODUCT:
 		return false
 	_taps = _taps.filter(func(t: float) -> bool: return now - t <= REVIEW_SECONDS)
 	_taps.append(now)

@@ -420,6 +420,17 @@ func test_the_reviewer_code_opens_the_full_game_and_is_kept() -> void:
 	_done()
 
 
+func test_the_app_store_build_has_no_reviewer_code() -> void:
+	var store := _reviewer_shop()
+	_full().use_store(store, "com.slowsunday.example.full_game")
+	var opened := false
+	for i in 5:
+		opened = _full().review_tap(10.0 + i * 0.1) or opened
+	check(not opened, "five quick taps open no code box on the App Store, where Apple allows no way in but buying")
+	check(not _full().redeem(REVIEW_CODE) and _full().locked(), "and Google Play's reviewer code opens nothing there")
+	_done()
+
+
 func test_the_reviewer_code_may_be_typed_in_lower_case_with_spaces_or_dashes() -> void:
 	for typed in ["qx7p-29hd-mm4f", "QX7P 29HD MM4F", "qx7p29hdmm4f", " Qx7P - 29hD - mM4f "]:
 		_reviewer_shop()
