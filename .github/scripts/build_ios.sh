@@ -68,13 +68,13 @@ done
 # Apple refuses a build number it has seen for this version, so each run of the workflow gets the next one.
 build="${BUILD_NUMBER:-${GITHUB_RUN_NUMBER:-1}}"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$plist"
-version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")"
+version="$(grep -m1 -o 'MARKETING_VERSION = [^;]*' "$project/project.pbxproj" | cut -d' ' -f3 | tr -d '"')"
 echo "$GAME_NAME $version ($build), $bundle_id, signed with $profile_name"
 
 xcodebuild -project "$project" -scheme "$scheme" -configuration Release -destination "generic/platform=iOS" \
   -archivePath "$WORK/$scheme.xcarchive" archive \
   CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$bundle_id" \
-  CODE_SIGN_IDENTITY="Apple Distribution" "CODE_SIGN_IDENTITY[sdk=iphoneos*]=Apple Distribution" \
+  CODE_SIGN_IDENTITY="Apple Distribution" CURRENT_PROJECT_VERSION="$build" \
   PROVISIONING_PROFILE_SPECIFIER="$profile_name" OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" | tail -n 40
 
 cat > "$WORK/ExportOptions.plist" <<PLIST
