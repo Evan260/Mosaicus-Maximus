@@ -142,3 +142,28 @@ The Steam job is written but switched off. It uploads the builds from the same r
 5. A tag then uploads to the Playtest. To upload tags to another app, add the variable `STEAM_TARGET` with `game` or `demo`. **Run workflow** has a menu to pick the app for that run.
 
 If Steam ends the saved login, the job fails asking for a new `STEAM_CONFIG_VDF`; log in again in WSL and repeat step 3. To switch uploads off, set `STEAM_UPLOAD` to `false`.
+
+## The iPhone build
+
+`.github/workflows/ios.yml` builds the game for iPhone and iPad and uploads it to App Store Connect, where it reaches TestFlight once Apple has processed it, usually within half an hour. It runs for every `v*` tag, and by hand from Actions, iPhone build, Run workflow.
+
+| Job | Runs on | What it does |
+|---|---|---|
+| Export the Xcode project | Ubuntu | Exports the `iOS` preset with Godot's iOS template. On Linux that makes the Xcode project, not a finished app |
+| Sign and upload to TestFlight | Mac | Sets the build number to the workflow's run number, signs with the Apple Distribution certificate and the game's App Store profile, archives, and uploads with the App Store Connect API key |
+
+Its secrets were made through the App Store Connect API on 27 November 2026, and copies of the files are kept outside the repo:
+
+| Secret | What it holds |
+|---|---|
+| `IOS_DIST_P12` | The Apple Distribution certificate with its private key, as a base64 .p12 |
+| `IOS_DIST_P12_PASSWORD` | That .p12's password |
+| `IOS_PROFILE` | This game's App Store provisioning profile, named after the game with "App Store", in base64 |
+| `ASC_API_KEY_P8` | The App Store Connect API key "Slow Sunday setup" (Admin access), the .p8 file in base64 |
+| `ASC_API_KEY_ID` | That key's Key ID |
+| `ASC_API_ISSUER_ID` | The Issuer ID shown above the keys |
+| `APPLE_TEAM_ID` | The Apple Developer team ID, as for the Mac build |
+
+The certificate and the profile expire on 28 November 2027. Make new ones before then and replace `IOS_DIST_P12`, `IOS_DIST_P12_PASSWORD` and `IOS_PROFILE`.
+
+On the iPhone the full game is sold as `<bundle id>.full_game` (for this game `com.slowsunday.<game>.full_game`), because Apple wants every product id unique across all of a developer's apps; Google Play keeps `full_game`. `FullGame.apple_product()` makes the id.

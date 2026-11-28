@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs the pinned Godot for Linux from the official GitHub release, checking each download against its checksum:
 #   bash .github/scripts/install_godot.sh editor      the headless-capable editor, as ~/godot/godot
-#   bash .github/scripts/install_godot.sh templates   the Linux and macOS export templates this game exports with
+#   bash .github/scripts/install_godot.sh templates   the Linux, macOS and iOS export templates this game exports with
 # The Windows export uses the trimmed template in the repository, so no stock Windows template is installed.
 set -euo pipefail
 
@@ -37,7 +37,7 @@ case "${1:-}" in
     rm -rf "$TEMPLATE_DIR"
     mkdir -p "$TEMPLATE_DIR"
     unzip -q -j "$DOWNLOADS/Godot_v$VERSION-stable_export_templates.tpz" -d "$TEMPLATE_DIR" \
-      templates/version.txt templates/icudt_godot.dat templates/linux_release.x86_64 templates/macos.zip
+      templates/version.txt templates/icudt_godot.dat templates/linux_release.x86_64 templates/macos.zip templates/ios.zip
     rm -f "$DOWNLOADS/Godot_v$VERSION-stable_export_templates.tpz"
     ls -l "$TEMPLATE_DIR"
     ;;

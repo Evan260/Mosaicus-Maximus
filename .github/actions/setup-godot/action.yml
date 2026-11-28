@@ -2,7 +2,7 @@ name: Set up Godot
 description: Installs the Godot version pinned in .github/scripts/install_godot.sh, and its export templates when asked, both cached between runs.
 inputs:
   templates:
-    description: Also install the Linux and macOS export templates
+    description: Also install the Linux, macOS and iOS export templates
     default: "false"
 runs:
   using: composite
